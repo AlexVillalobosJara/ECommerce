@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Solicitud de Cotización</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #1a1a1a;
+            font-size: 24px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background-color: #fbbf24;
+            color: #78350f;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .section {
+            margin-bottom: 24px;
+        }
+        .section-title {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+        .info-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .info-label {
+            font-weight: 500;
+            color: #6b7280;
+            min-width: 120px;
+        }
+        .info-value {
+            color: #1a1a1a;
+        }
+        .product-item {
+            padding: 12px;
+            background-color: #f9fafb;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        .product-name {
+            font-weight: 500;
+            color: #1a1a1a;
+        }
+        .product-details {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            margin-top: 16px;
+        }
+        .button:hover {
+            background-color: #2563eb;
+        }
+        .footer {
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📋 Nueva Solicitud de Cotización</h1>
+        <span class="badge">REQUIERE ATENCIÓN</span>
+    </div>
+
+    <p>Hola,</p>
+    <p>Has recibido una nueva solicitud de cotización que requiere tu atención.</p>
+
+    <div class="section">
+        <div class="section-title">Información del Pedido</div>
+        <div class="info-row">
+            <span class="info-label">Número de Orden:</span>
+            <span class="info-value"><strong>{{ order.order_number }}</strong></span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Fecha:</span>
+            <span class="info-value">{{ order.created_at|date:"d/m/Y H:i" }}</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Información del Cliente</div>
+        <div class="info-row">
+            <span class="info-label">Nombre:</span>
+            <span class="info-value">{{ order.shipping_recipient_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Email:</span>
+            <span class="info-value">{{ order.customer_email }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Teléfono:</span>
+            <span class="info-value">{{ order.customer_phone|default:"No proporcionado" }}</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Productos Solicitados</div>
+        {% for item in items %}
+        <div class="product-item">
+            <div class="product-name">{{ item.product_name }}</div>
+            <div class="product-details">
+                {% if item.variant_name %}{{ item.variant_name }} • {% endif %}
+                Cantidad: {{ item.quantity }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if order.customer_notes %}
+    <div class="section">
+        <div class="section-title">Notas del Cliente</div>
+        <p style="background-color: #f9fafb; padding: 12px; border-radius: 6px; margin: 0;">
+            {{ order.customer_notes }}
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="section">
+        <div class="section-title">Dirección de Envío</div>
+        <div class="info-row">
+            <span class="info-label">Dirección:</span>
+            <span class="info-value">{{ order.shipping_street_address }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Comuna:</span>
+            <span class="info-value">{{ order.shipping_commune }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Ciudad:</span>
+            <span class="info-value">{{ order.shipping_city }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Región:</span>
+            <span class="info-value">{{ order.shipping_region }}</span>
+        </div>
+    </div>
+
+    <a href="{{ admin_url }}" class="button">Ver Detalles y Responder</a>
+
+    <div class="footer">
+        <p>Este es un email automático del sistema de gestión de pedidos.</p>
+        <p>Por favor no respondas a este email.</p>
+    </div>
+</body>
+</html>

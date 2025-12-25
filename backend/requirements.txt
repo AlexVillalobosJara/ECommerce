@@ -1,0 +1,16 @@
+django>=4.2
+djangorestframework
+djangorestframework-simplejwt==5.3.1
+django-cors-headers
+psycopg2-binary
+Pillow
+PyJWT==2.8.0
+resend==0.8.0
+reportlab==4.0.7
+cryptography==41.0.7
+pandas==2.2.3
+requests
+
+gunicorn==21.2.0
+whitenoise==6.6.0
+dj-database-url==2.1.0

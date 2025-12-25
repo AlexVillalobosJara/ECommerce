@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body style="margin:0;padding:0;font-family:Arial,sans-serif;background-color:#fafafa;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafafa;">
+        <tr>
+            <td align="center" style="padding:40px 20px;">
+                <table width="600" cellpadding="0" cellspacing="0" border="0"
+                    style="background-color:#ffffff;border-radius:12px;">
+                    <tr>
+                        <td align="center"
+                            style="padding:48px 40px;background-color:#8b5cf6;border-radius:12px 12px 0 0;">
+                            <h1 style="margin:0 0 12px 0;color:#ffffff;font-size:32px;font-weight:bold;">Tu Cotizacion
+                                esta Lista</h1>
+                            <p style="margin:0;color:#ffffff;font-size:16px;">Hemos preparado tu cotizacion
+                                personalizada</p>
+                            <div
+                                style="margin-top:20px;display:inline-block;padding:8px 20px;background-color:rgba(255,255,255,0.2);border-radius:20px;">
+                                <span style="color:#ffffff;font-size:13px;font-weight:bold;">COTIZACION ENVIADA</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:40px;">
+                            <p style="margin:0 0 12px 0;font-size:16px;color:#1f2937;">Hola <strong>{{ customer_name
+                                    }}</strong>,</p>
+                            <p style="margin:0 0 32px 0;font-size:16px;color:#4b5563;">Nos complace informarte que tu
+                                cotizacion esta lista. Encontraras todos los detalles en el PDF adjunto.</p>
+                            <table width="100%" cellpadding="20" cellspacing="0" border="0"
+                                style="margin-bottom:32px;background-color:#f3e8ff;border:2px solid #8b5cf6;border-radius:8px;">
+                                <tr>
+                                    <td align="center">
+                                        <div style="font-size:24px;margin-bottom:8px;">Adjunto</div>
+                                        <div style="font-weight:bold;color:#6b21a8;margin-bottom:4px;font-size:16px;">
+                                            Cotizacion Adjunta</div>
+                                        <p style="margin:0;color:#7c3aed;font-size:14px;">Revisa el archivo PDF adjunto
+                                            para ver todos los detalles</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table width="100%" cellpadding="20" cellspacing="0" border="0"
+                                style="margin-bottom:32px;background-color:#f9fafb;border-left:4px solid #8b5cf6;border-radius:8px;">
+                                <tr>
+                                    <td>
+                                        <table width="100%" cellpadding="8" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="color:#6b7280;font-size:14px;">Numero de Cotizacion:</td>
+                                                <td align="right"
+                                                    style="color:#111827;font-size:14px;font-weight:bold;">{{
+                                                    order.order_number }}</td>
+                                            </tr>
+                                            {% if order.quote_valid_until %}
+                                            <tr>
+                                                <td style="color:#6b7280;font-size:14px;">Valida hasta:</td>
+                                                <td align="right"
+                                                    style="color:#111827;font-size:14px;font-weight:bold;">{{
+                                                    order.quote_valid_until|date:"d/m/Y" }}</td>
+                                            </tr>
+                                            {% endif %}
+                                            <tr>
+                                                <td style="color:#6b7280;font-size:14px;">Total:</td>
+                                                <td align="right"
+                                                    style="color:#8b5cf6;font-size:18px;font-weight:bold;">${{
+                                                    total|floatformat:0 }}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% if order.quote_valid_until %}
+                            <table width="100%" cellpadding="20" cellspacing="0" border="0"
+                                style="margin-bottom:24px;background-color:#fef3c7;border-left:4px solid #f59e0b;border-radius:6px;">
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:bold;color:#92400e;margin-bottom:8px;font-size:15px;">
+                                            Validez de la Cotizacion</div>
+                                        <p style="margin:0;color:#78350f;font-size:14px;">Esta cotizacion es valida
+                                            hasta el <strong>{{ order.quote_valid_until|date:"d/m/Y" }}</strong>.
+                                            Despues de esta fecha, los precios podrian variar.</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% endif %}
+                            <table width="100%" cellpadding="24" cellspacing="0" border="0"
+                                style="margin-bottom:24px;background-color:#eff6ff;border-radius:8px;">
+                                <tr>
+                                    <td>
+                                        <div style="font-weight:bold;color:#1e40af;margin-bottom:16px;font-size:16px;">
+                                            Proximos Pasos</div>
+                                        <table width="100%" cellpadding="6" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="color:#1e40af;font-size:14px;">Revisa el PDF adjunto con
+                                                    todos los detalles</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color:#1e40af;font-size:14px;">Si estas de acuerdo,
+                                                    contactanos para proceder</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color:#1e40af;font-size:14px;">Coordinaremos el pago y la
+                                                    entrega</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            {% if order.internal_notes %}
+                            <h3 style="margin:32px 0 12px 0;font-size:16px;font-weight:bold;color:#111827;">Notas
+                                Adicionales</h3>
+                            <div
+                                style="background-color:#f9fafb;padding:20px;border-radius:8px;color:#4b5563;font-size:14px;">
+                                {{ order.internal_notes }}</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center"
+                            style="padding:32px 40px;border-top:1px solid #e5e7eb;background-color:#fafafa;border-radius:0 0 12px 12px;">
+                            <p style="margin:0 0 8px 0;font-size:15px;font-weight:bold;color:#111827;">Tienes preguntas?
+                            </p>
+                            <p style="margin:0 0 20px 0;font-size:14px;color:#6b7280;">Responde a este email o
+                                contactanos directamente.</p>
+                            <p style="margin:0;font-size:12px;color:#9ca3af;">Este es un email automatico del sistema de
+                                cotizaciones de <strong style="color:#8b5cf6;">Zumi</strong>.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>

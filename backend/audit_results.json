@@ -1,0 +1,44 @@
+[
+  {
+    "id": "911d3045-6723-41aa-87de-85593c30645e",
+    "name": "Santiago Centro",
+    "raw_db_codes": "[\"Santiago\", \"Providencia\", \"Las Condes\", \"Vitacura\", \"\u00d1u\u00f1oa\"]",
+    "raw_type": "<class 'str'>",
+    "api_output_codes": [
+      "Santiago",
+      "Providencia",
+      "Las Condes",
+      "Vitacura",
+      "\u00d1u\u00f1oa"
+    ],
+    "api_count": 5
+  },
+  {
+    "id": "8626df53-c6fc-4f12-8491-ffe804d3a01c",
+    "name": "Gran Santiago",
+    "raw_db_codes": "[\"Maip\u00fa\", \"La Florida\", \"Puente Alto\", \"San Bernardo\", \"Quilicura\"]",
+    "raw_type": "<class 'str'>",
+    "api_output_codes": [
+      "Maip\u00fa",
+      "La Florida",
+      "Puente Alto",
+      "San Bernardo",
+      "Quilicura"
+    ],
+    "api_count": 5
+  },
+  {
+    "id": "7cc110d6-02b3-4e22-a6c3-51089b59865f",
+    "name": "Regiones",
+    "raw_db_codes": "[\"Valpara\u00edso\", \"Vi\u00f1a del Mar\", \"Concepci\u00f3n\", \"Temuco\", \"Puerto Montt\"]",
+    "raw_type": "<class 'str'>",
+    "api_output_codes": [
+      "Valpara\u00edso",
+      "Vi\u00f1a del Mar",
+      "Concepci\u00f3n",
+      "Temuco",
+      "Puerto Montt"
+    ],
+    "api_count": 5
+  }
+]

@@ -1,0 +1,107 @@
+from django.urls import path
+from .views import admin_login, admin_logout, admin_me, tenant_settings, dashboard_stats
+from .admin_product_views import (
+    product_list_create,
+    product_detail,
+    product_publish,
+    product_archive,
+    category_list_create,
+    category_detail,
+    category_reorder,
+    variant_create,
+    variant_detail,
+    image_upload,
+    image_detail,
+    image_set_primary,
+)
+from .admin_order_views import (
+    order_list,
+    order_detail,
+    order_update_status,
+    order_cancel,
+    order_stats,
+    respond_quote,
+)
+from .admin_payment_views import (
+    list_payment_gateways,
+    configure_payment_gateway,
+    test_payment_gateway,
+    delete_payment_gateway,
+)
+from .admin_shipping_views import (
+    AdminShippingZoneViewSet,
+    AdminShippingCarrierConfigViewSet,
+    CommuneViewSet,
+)
+from .admin_customer_views import CustomerViewSet
+from .admin_coupon_views import DiscountCouponViewSet
+
+app_name = 'admin_api'
+
+urlpatterns = [
+    # Authentication
+    path('auth/login/', admin_login, name='admin_login'),
+    path('auth/logout/', admin_logout, name='admin_logout'),
+    path('auth/me/', admin_me, name='admin_me'),
+    
+    # Tenant Settings
+    path('settings/tenant/', tenant_settings, name='tenant_settings'),
+    path('dashboard/stats/', dashboard_stats, name='dashboard_stats'),
+    
+    # Products
+    path('products/', product_list_create, name='product_list_create'),
+    path('products/<uuid:product_id>/', product_detail, name='product_detail'),
+    path('products/<uuid:product_id>/publish/', product_publish, name='product_publish'),
+    path('products/<uuid:product_id>/archive/', product_archive, name='product_archive'),
+    
+    # Categories
+    path('categories/', category_list_create, name='category_list_create'),
+    path('categories/reorder/', category_reorder, name='category_reorder'),
+    path('categories/<uuid:category_id>/', category_detail, name='category_detail'),
+    
+    # Variants
+    path('products/<uuid:product_id>/variants/', variant_create, name='variant_create'),
+    path('products/<uuid:product_id>/variants/<uuid:variant_id>/', variant_detail, name='variant_detail'),
+    
+    # Images
+    path('products/<uuid:product_id>/images/upload/', image_upload, name='image_upload'),
+    path('products/<uuid:product_id>/images/<uuid:image_id>/', image_detail, name='image_detail'),
+    path('products/<uuid:product_id>/images/<uuid:image_id>/set-primary/', image_set_primary, name='image_set_primary'),
+    
+    # Orders
+    path('orders/', order_list, name='order_list'),
+    path('orders/stats/', order_stats, name='order_stats'),
+    path('orders/<uuid:pk>/', order_detail, name='order_detail'),
+    path('orders/<uuid:pk>/status/', order_update_status, name='order_update_status'),
+    path('orders/<uuid:pk>/cancel/', order_cancel, name='order_cancel'),
+    path('orders/<uuid:pk>/respond_quote/', respond_quote, name='respond_quote'),
+    
+    # Payment Gateway Configuration
+    path('payment-gateways/', list_payment_gateways, name='list_payment_gateways'),
+    path('payment-gateways/<str:gateway>/', configure_payment_gateway, name='configure_payment_gateway'),
+    path('payment-gateways/<str:gateway>/test/', test_payment_gateway, name='test_payment_gateway'),
+    path('payment-gateways/<str:gateway>/delete/', delete_payment_gateway, name='delete_payment_gateway'),
+    
+    # Shipping Zones
+    path('shipping-zones/', AdminShippingZoneViewSet.as_view({'get': 'list', 'post': 'create'}), name='shipping_zone_list'),
+    path('shipping-zones/<uuid:pk>/', AdminShippingZoneViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='shipping_zone_detail'),
+    
+    # Shipping Carriers
+    path('shipping-carriers/', AdminShippingCarrierConfigViewSet.as_view({'get': 'list', 'post': 'create'}), name='shipping_carrier_list'),
+    path('shipping-carriers/<uuid:pk>/', AdminShippingCarrierConfigViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='shipping_carrier_detail'),
+
+    
+    # Communes
+    path('communes/', CommuneViewSet.as_view({'get': 'list'}), name='commune_list'),
+    path('communes/by-region/', CommuneViewSet.as_view({'get': 'by_region'}), name='commune_by_region'),
+    path('communes/search/', CommuneViewSet.as_view({'get': 'search'}), name='commune_search'),
+    path('communes/<uuid:pk>/', CommuneViewSet.as_view({'get': 'retrieve'}), name='commune_detail'),
+    
+    # Customers
+    path('customers/', CustomerViewSet.as_view({'get': 'list', 'post': 'create'}), name='customer_list'),
+    path('customers/<uuid:pk>/', CustomerViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='customer_detail'),
+    
+    # Coupons
+    path('coupons/', DiscountCouponViewSet.as_view({'get': 'list', 'post': 'create'}), name='coupon_list'),
+    path('coupons/<uuid:pk>/', DiscountCouponViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='coupon_detail'),
+]

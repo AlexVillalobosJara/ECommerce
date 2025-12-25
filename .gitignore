@@ -1,0 +1,43 @@
+# General
+.DS_Store
+Thumbs.db
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+.venv/
+venv/
+*.log
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Node / Next.js
+node_modules/
+.next/
+dist/
+out/
+build/
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment Variables
+.env
+
+# Editor
+.vscode/
+.idea/
+
+# Project Specific
+chilexpress_debug.log
+paso/
