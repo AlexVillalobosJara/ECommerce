@@ -12,7 +12,7 @@ export function getAbsoluteMediaUrl(url: string | null | undefined): string | nu
     }
 
     // Convert relative URL to absolute
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
     // Remove leading slash if present to avoid double slashes
     const cleanUrl = url.startsWith('/') ? url.slice(1) : url
