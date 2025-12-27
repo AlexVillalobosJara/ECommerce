@@ -186,10 +186,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS Settings
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^http://[\w-]+\.localhost:3000$",
+    r"^https://[\w-]+\.vercel\.app$",
 ]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://doctorinox.cl",
+    "https://www.doctorinox.cl",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -216,6 +219,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://*.localhost:3000",
     "https://*.onrender.com", # Auto-trust Render subdomains
     "https://*.railway.app", # Auto-trust Railway subdomains
+    "https://doctorinox.cl",
+    "https://www.doctorinox.cl",
+    "https://*.vercel.app",
 ]
 
 # Explicit Logging Configuration
