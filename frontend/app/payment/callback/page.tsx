@@ -122,7 +122,7 @@ export default function PaymentCallbackPage() {
 
     return (
         <div className="flex min-h-screen flex-col">
-            <Header cartItemsCount={0} logoText={tenant?.name} />
+            <Header />
 
             <main className="flex-1 bg-secondary/30">
                 <div className="container mx-auto px-4 py-12 lg:py-16">

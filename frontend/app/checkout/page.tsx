@@ -269,7 +269,7 @@ export default function CheckoutPage() {
 
     return (
         <div className="flex min-h-screen flex-col">
-            <Header cartItemsCount={getTotalItems()} logoText={tenant?.name} />
+            <Header />
 
             <main className="flex-1 bg-secondary/30">
                 <div className="container mx-auto px-4 py-12 lg:py-16">
