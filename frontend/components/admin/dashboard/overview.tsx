@@ -28,7 +28,7 @@ export function Overview({ data }: OverviewProps) {
                 <Tooltip
                     cursor={{ fill: 'transparent' }}
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value: number) => [`$${value.toLocaleString()}`, 'Ventas']}
+                    formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Ventas']}
                 />
                 <Bar
                     dataKey="total"

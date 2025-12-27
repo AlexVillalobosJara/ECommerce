@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { CheckCircle, FileText, Mail } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { storefrontApi } from "@/services/storefront-api"
+import { Suspense } from "react"
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [orderNumber, setOrderNumber] = useState<string | null>(null)
@@ -125,5 +126,13 @@ export default function CheckoutSuccessPage() {
                 )}
             </div>
         </div>
+    )
+}
+
+export default function CheckoutSuccessPage() {
+    return (
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-gray-50 px-4"><p className="text-muted-foreground">Cargando...</p></div>}>
+            <CheckoutSuccessContent />
+        </Suspense>
     )
 }

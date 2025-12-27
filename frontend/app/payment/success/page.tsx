@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useCart } from "@/hooks/useCart"
 import Link from "next/link"
+import { Suspense } from "react"
 
-export default function PaymentSuccessPage() {
+function PaymentSuccessContent() {
     const searchParams = useSearchParams()
     const { clearCart } = useCart()
     const [orderNumber, setOrderNumber] = useState<string | null>(null)
@@ -102,5 +103,13 @@ export default function PaymentSuccessPage() {
                 </div>
             </Card>
         </div>
+    )
+}
+
+export default function PaymentSuccessPage() {
+    return (
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-secondary/30 px-4"><p className="text-muted-foreground">Cargando...</p></div>}>
+            <PaymentSuccessContent />
+        </Suspense>
     )
 }

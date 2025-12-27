@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, GripVertical } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -22,6 +23,7 @@ import { getCategories, deleteCategory } from "@/services/adminCategoryService"
 import type { AdminCategory } from "@/types/admin"
 
 export function CategoryListView() {
+    const router = useRouter()
     const [categories, setCategories] = useState<AdminCategory[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
@@ -204,7 +206,7 @@ export function CategoryListView() {
                         Organiza tus productos en categorías y subcategorías
                     </p>
                 </div>
-                <Button onClick={handleCreate}>
+                <Button onClick={() => router.push("/admin/categories/new")}>
                     <Plus className="mr-2 h-4 w-4" />
                     Nueva Categoría
                 </Button>
@@ -266,14 +268,7 @@ export function CategoryListView() {
                 </CardContent>
             </Card>
 
-            {/* Category Editor Dialog */}
-            <CategoryEditor
-                open={editorOpen}
-                onOpenChange={setEditorOpen}
-                category={selectedCategory}
-                categories={categories}
-                onSuccess={loadCategories}
-            />
+
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

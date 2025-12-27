@@ -10,8 +10,9 @@ import { Footer } from "@/components/storefront/footer"
 import { useTenant } from "@/contexts/TenantContext"
 import { storefrontApi, type Order } from "@/services/storefront-api"
 import { formatPrice } from "@/lib/format-price"
+import { Suspense } from "react"
 
-export default function PaymentPage() {
+function PaymentContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { tenant, loading: tenantLoading } = useTenant()
@@ -237,5 +238,13 @@ export default function PaymentPage() {
 
             <Footer />
         </div>
+    )
+}
+
+export default function PaymentPage() {
+    return (
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><p className="text-lg text-muted-foreground">Cargando...</p></div>}>
+            <PaymentContent />
+        </Suspense>
     )
 }

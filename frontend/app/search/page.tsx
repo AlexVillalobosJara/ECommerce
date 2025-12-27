@@ -11,8 +11,9 @@ import { useCart } from "@/hooks/useCart"
 import { storefrontApi } from "@/services/storefront-api"
 import type { ProductList } from "@/types/product"
 import { useRouter } from "next/navigation"
+import { Suspense } from "react"
 
-export default function SearchPage() {
+function SearchContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const query = searchParams.get("q") || ""
@@ -164,5 +165,13 @@ export default function SearchPage() {
                 onCheckout={handleCheckout}
             />
         </div>
+    )
+}
+
+export default function SearchPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-white flex flex-col items-center justify-center"><p className="text-muted-foreground">Buscando...</p></div>}>
+            <SearchContent />
+        </Suspense>
     )
 }

@@ -1,0 +1,20 @@
+components/admin/category-list-view.tsx(271,17): error TS2322: Type '{ open: boolean; onOpenChange: Dispatch<SetStateAction<boolean>>; category: AdminCategory | null; categories: AdminCategory[]; onSuccess: () => Promise<...>; }' is not assignable to type 'IntrinsicAttributes & CategoryEditorProps'.
+  Property 'open' does not exist on type 'IntrinsicAttributes & CategoryEditorProps'.
+components/admin/dashboard/overview.tsx(31,21): error TS2322: Type '(value: number) => [string, "Ventas"]' is not assignable to type 'Formatter<number, "Ventas">'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+components/admin/gateway-config-dialog.tsx(243,38): error TS2304: Cannot find name 'XCircle'.
+components/admin/product-variants-editor.tsx(174,87): error TS2345: Argument of type '([key, value]: [string, string]) => JSX.Element' is not assignable to parameter of type '(value: [string, unknown], index: number, array: [string, unknown][]) => Element'.
+  Types of parameters '__0' and 'value' are incompatible.
+    Type '[string, unknown]' is not assignable to type '[string, string]'.
+      Type at position 1 in source is not compatible with type at position 1 in target.
+        Type 'unknown' is not assignable to type 'string'.
+components/ui/calendar.tsx(57,17): error TS2353: Object literal may only specify known properties, and 'IconLeft' does not exist in type 'Partial<CustomComponents>'.
+contexts/TenantContext.tsx(42,21): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+contexts/TenantContext.tsx(54,25): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+hooks/use-toast.ts(5,18): error TS2395: Individual declarations in merged declaration 'Toast' must be all exported or all local.
+hooks/use-toast.ts(140,11): error TS2395: Individual declarations in merged declaration 'Toast' must be all exported or all local.
+hooks/use-toast.ts(163,13): error TS2353: Object literal may only specify known properties, and 'open' does not exist in type 'ToasterToast'.

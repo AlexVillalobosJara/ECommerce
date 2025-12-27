@@ -9,8 +9,9 @@ import { Footer } from "@/components/storefront/footer"
 import { useTenant } from "@/contexts/TenantContext"
 import { storefrontApi } from "@/services/storefront-api"
 import { Loader2, CheckCircle2, XCircle, AlertCircle } from "lucide-react"
+import { Suspense } from "react"
 
-export default function PaymentCallbackPage() {
+function PaymentCallbackContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const { tenant } = useTenant()
@@ -237,5 +238,13 @@ export default function PaymentCallbackPage() {
 
             <Footer />
         </div>
+    )
+}
+
+export default function PaymentCallbackPage() {
+    return (
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-secondary/30 px-4"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>}>
+            <PaymentCallbackContent />
+        </Suspense>
     )
 }

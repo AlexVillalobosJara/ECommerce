@@ -39,7 +39,7 @@ export function TenantProvider({ children, tenantSlug }: TenantProviderProps) {
                 let slug = tenantSlug
 
                 if (!slug && typeof window !== 'undefined') {
-                    slug = getTenantSlug(window.location.hostname)
+                    slug = getTenantSlug(window.location.hostname) as string | undefined
                     console.log('[TenantContext] Slug from hostname:', slug)
 
                     // Fallback: check query parameter
@@ -51,7 +51,7 @@ export function TenantProvider({ children, tenantSlug }: TenantProviderProps) {
 
                     // Fallback: check localStorage (useful for dev/localhost navigation)
                     if (!slug) {
-                        slug = localStorage.getItem('tenant_slug')
+                        slug = localStorage.getItem('tenant_slug') as string | undefined
                         console.log('[TenantContext] Slug from localStorage:', slug)
                     }
                 }

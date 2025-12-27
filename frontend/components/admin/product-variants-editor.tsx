@@ -171,9 +171,9 @@ export function ProductVariantsEditor({ variants, onChange, isQuoteOnly, basePri
                                 <div className="space-y-2">
                                     <Label className="text-xs">Atributos</Label>
                                     <div className="flex flex-wrap gap-2">
-                                        {Object.entries(variant.attributes || {}).map(([key, value]: [string, string]) => (
+                                        {Object.entries(variant.attributes || {}).map(([key, value]) => (
                                             <Badge key={key} variant="secondary" className="gap-1">
-                                                <span className="font-medium">{key}:</span> {value}
+                                                <span className="font-medium">{key}:</span> {value as string}
                                                 <button
                                                     onClick={() => removeAttribute(index, key)}
                                                     className="ml-1 hover:text-destructive"

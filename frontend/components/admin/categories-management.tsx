@@ -78,7 +78,7 @@ export function CategoriesManagement() {
         }
     }
 
-    const getCategoryParentName = (parentId: string | null) => {
+    const getCategoryParentName = (parentId: string | null | undefined) => {
         if (!parentId) return null
         const parent = categories.find((c) => c.id === parentId)
         return parent?.name
