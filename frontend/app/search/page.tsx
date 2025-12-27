@@ -108,8 +108,6 @@ export default function SearchPage() {
         <div className="min-h-screen bg-white">
             <Header
                 onCartClick={() => setCartOpen(true)}
-                cartItemsCount={getTotalItems()}
-                logoText={tenant?.name}
             />
 
             <main className="container mx-auto px-4 py-12">

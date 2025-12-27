@@ -155,14 +155,12 @@ export default function ProductDetailPage() {
         ? `http://localhost:8000${product.images[selectedImageIndex].url}`
         : "/placeholder-product.jpg"
 
-    const isOutOfStock = !product.is_quote_only && product.manage_stock && selectedVariant && selectedVariant.available_stock === 0
+    const isOutOfStock = !product.is_quote_only && Boolean(product.manage_stock) && !!selectedVariant && selectedVariant.available_stock === 0
 
     return (
         <div className="min-h-screen bg-white">
             <Header
                 onCartClick={() => setCartOpen(true)}
-                cartItemsCount={getTotalItems()}
-                logoText={tenant?.name}
             />
 
             <main className="container mx-auto px-4 py-12 pt-16">
