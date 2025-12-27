@@ -36,7 +36,9 @@ export function getTenantIdentifier(hostname: string): { slug?: string, domain?:
 
     // If it's not a known platform domain and looks like a full domain, treat as custom domain
     if (parts.length >= 2) {
-        return { domain: host }
+        // Strip 'www.' if present for cleaner database matching
+        const cleanDomain = host.startsWith('www.') ? host.substring(4) : host
+        return { domain: cleanDomain }
     }
 
     return null
