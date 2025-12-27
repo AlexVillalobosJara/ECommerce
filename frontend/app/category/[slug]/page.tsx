@@ -158,7 +158,7 @@ export default function CategoryPage() {
     if (tenantLoading || loading) {
         return (
             <div className="flex min-h-screen flex-col">
-                <Header cartItemsCount={getTotalItems()} logoText={tenant?.name} />
+                <Header />
                 <main className="flex-1 container mx-auto px-4 py-12">
                     <div className="mb-8 h-8 w-48 animate-pulse rounded bg-muted"></div>
                     <ProductGridSkeleton count={6} />
@@ -171,7 +171,7 @@ export default function CategoryPage() {
     if (error || !category) {
         return (
             <div className="flex min-h-screen flex-col">
-                <Header cartItemsCount={getTotalItems()} logoText={tenant?.name} />
+                <Header />
                 <main className="flex-1 flex items-center justify-center p-4">
                     <div className="text-center">
                         <p className="text-xl text-muted-foreground mb-4">{error || "Categoría no encontrada"}</p>
@@ -189,8 +189,6 @@ export default function CategoryPage() {
         <div className="flex min-h-screen flex-col bg-white">
             <Header
                 onCartClick={() => setCartOpen(true)}
-                cartItemsCount={getTotalItems()}
-                logoText={tenant?.name}
             />
 
             <main className="flex-1">
