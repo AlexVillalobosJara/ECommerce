@@ -16,11 +16,16 @@ class TenantViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
     
     def get_queryset(self):
-        """Exclude soft-deleted tenants and filter by slug if provided"""
+        """Exclude soft-deleted tenants and filter by slug or domain if provided"""
         queryset = Tenant.objects.filter(deleted_at__isnull=True)
         slug = self.request.query_params.get('slug')
+        domain = self.request.query_params.get('domain')
+        
         if slug:
             queryset = queryset.filter(slug=slug)
+        elif domain:
+            queryset = queryset.filter(custom_domain=domain)
+            
         return queryset
     
     def destroy(self, request, *args, **kwargs):

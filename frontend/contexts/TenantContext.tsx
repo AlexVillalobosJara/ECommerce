@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { getTenantSlug, fetchTenantConfig, applyTenantBranding, type TenantConfig } from '@/lib/tenant'
+import { getTenantIdentifier, fetchTenantConfig, applyTenantBranding, type TenantConfig } from '@/lib/tenant'
 
 interface TenantContextType {
     tenant: TenantConfig | null
@@ -35,42 +35,46 @@ export function TenantProvider({ children, tenantSlug }: TenantProviderProps) {
                 setLoading(true)
                 setError(null)
 
-                // Get tenant slug from hostname or prop
+                // Get tenant identifier from hostname or prop
                 let slug = tenantSlug
+                let domain: string | undefined
 
                 if (!slug && typeof window !== 'undefined') {
-                    slug = getTenantSlug(window.location.hostname) as string | undefined
-                    console.log('[TenantContext] Slug from hostname:', slug)
+                    const identifier = getTenantIdentifier(window.location.hostname)
+                    slug = identifier?.slug
+                    domain = identifier?.domain
+
+                    console.log('[TenantContext] Identifier from hostname:', { slug, domain })
 
                     // Fallback: check query parameter
                     const params = new URLSearchParams(window.location.search)
-                    if (!slug && params.has('tenant')) {
+                    if (!slug && !domain && params.has('tenant')) {
                         slug = params.get('tenant')!
                         console.log('[TenantContext] Slug from query param:', slug)
                     }
 
-                    // Fallback: check localStorage (useful for dev/localhost navigation)
-                    if (!slug) {
+                    // Fallback: check localStorage
+                    if (!slug && !domain) {
                         slug = localStorage.getItem('tenant_slug') as string | undefined
                         console.log('[TenantContext] Slug from localStorage:', slug)
                     }
                 }
 
-                console.log('[TenantContext] Final slug:', slug)
-
-                if (!slug) {
-                    console.error('[TenantContext] No tenant slug found')
+                if (!slug && !domain) {
+                    console.error('[TenantContext] No tenant identifier found')
                     setError('No tenant specified')
                     setLoading(false)
                     return
                 }
 
-                // Persist successful slug
-                localStorage.setItem('tenant_slug', slug)
+                // Persist successful slug if found
+                if (slug) {
+                    localStorage.setItem('tenant_slug', slug)
+                }
 
                 // Fetch tenant configuration
-                console.log('[TenantContext] Fetching config for slug:', slug)
-                const config = await fetchTenantConfig(slug)
+                console.log('[TenantContext] Fetching config for:', { slug, domain })
+                const config = await fetchTenantConfig({ slug, domain })
                 console.log('[TenantContext] Config received:', config)
 
                 if (!config) {
