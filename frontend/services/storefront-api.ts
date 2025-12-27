@@ -37,6 +37,7 @@ export interface OrderCreate {
     shipping_postal_code?: string
     is_store_pickup: boolean
     shipping_zone_id?: string
+    shipping_method?: string
     items: OrderItemCreate[]
     customer_notes?: string
     coupon_code?: string
