@@ -17,6 +17,9 @@ import {
     FolderTree,
     CreditCard,
     Truck,
+    ChevronLeft,
+    ChevronRight,
+    UserCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -30,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { useAdminAuth } from "@/contexts/AdminAuthContext"
+import { DashboardHeader } from "./dashboard-header"
 
 const navigation = [
     { name: "Inicio", href: "/admin", icon: LayoutDashboard },
@@ -38,8 +42,8 @@ const navigation = [
     { name: "Pedidos", href: "/admin/orders", icon: ShoppingCart },
     { name: "Clientes", href: "/admin/customers", icon: Users },
     { name: "Cupones", href: "/admin/coupons", icon: FileText },
-    { name: "Zonas de Reparto", href: "/admin/shipping-zones", icon: Truck },
-    { name: "Pasarelas de Pago", href: "/admin/settings/payments", icon: CreditCard },
+    { name: "Zonas de Reparto", href: "/admin/shipping-zones", icon: Truck, roles: ['Owner', 'Admin'] },
+    { name: "Pasarelas de Pago", href: "/admin/settings/payments", icon: CreditCard, roles: ['Owner', 'Admin'] },
 ]
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -47,6 +51,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const { user, logout, isLoading } = useAdminAuth()
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
     useEffect(() => {
         if (!isLoading && !user) {
@@ -83,45 +88,87 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex h-screen overflow-hidden bg-background">
             {/* Sidebar */}
-            <aside className="hidden lg:flex lg:flex-col lg:w-64 border-r border-border bg-card">
+            <aside className={cn(
+                "hidden lg:flex lg:flex-col border-r border-border bg-card transition-all duration-300 relative",
+                sidebarCollapsed ? "lg:w-20" : "lg:w-64"
+            )}>
                 <div className="flex flex-col flex-1 min-h-0">
                     {/* Logo */}
-                    <div className="flex items-center h-16 px-6 border-b border-border">
-                        <h1 className="text-2xl font-bold text-primary">Zumi</h1>
+                    <div className="flex items-center h-16 px-6 border-b border-border overflow-hidden">
+                        <h1 className={cn(
+                            "text-2xl font-bold text-primary transition-opacity duration-300",
+                            sidebarCollapsed ? "opacity-0 invisible w-0" : "opacity-100 visible"
+                        )}>
+                            Zumi
+                        </h1>
+                        {sidebarCollapsed && (
+                            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold shrink-0 mx-auto">
+                                Z
+                            </div>
+                        )}
                     </div>
+
+                    {/* Collapse Toggle */}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute -right-3 top-20 h-6 w-6 rounded-full border border-border bg-card hidden lg:flex items-center justify-center z-50 hover:bg-accent"
+                        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    >
+                        {sidebarCollapsed ? (
+                            <ChevronRight className="h-3 w-3" />
+                        ) : (
+                            <ChevronLeft className="h-3 w-3" />
+                        )}
+                    </Button>
 
                     {/* Navigation */}
                     <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-                        {navigation.map((item) => {
-                            const isActive = pathname === item.href
-                            return (
-                                <Link
-                                    key={item.name}
-                                    href={item.href}
-                                    className={cn(
-                                        "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors",
-                                        isActive
-                                            ? "bg-primary text-primary-foreground"
-                                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                                    )}
-                                >
-                                    <item.icon className="w-5 h-5" />
-                                    {item.name}
-                                </Link>
-                            )
-                        })}
+                        {navigation
+                            .filter(item => !item.roles || (user.role && item.roles.includes(user.role)))
+                            .map((item) => {
+                                const isActive = pathname === item.href
+                                return (
+                                    <Link
+                                        key={item.name}
+                                        href={item.href}
+                                        className={cn(
+                                            "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors group relative",
+                                            isActive
+                                                ? "bg-primary text-primary-foreground shadow-sm"
+                                                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                                            sidebarCollapsed && "justify-center px-0 mx-2"
+                                        )}
+                                        title={sidebarCollapsed ? item.name : ""}
+                                    >
+                                        <item.icon className={cn("w-5 h-5 shrink-0", !isActive && "text-muted-foreground group-hover:text-accent-foreground")} />
+                                        <span className={cn(
+                                            "transition-opacity duration-300 truncate",
+                                            sidebarCollapsed ? "opacity-0 invisible w-0" : "opacity-100 visible"
+                                        )}>
+                                            {item.name}
+                                        </span>
+                                    </Link>
+                                )
+                            })}
                     </nav>
 
                     <div className="p-4 border-t border-border">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <button className="flex items-center gap-3 w-full mb-3 hover:bg-accent rounded-lg p-2 transition-colors">
-                                    <Avatar className="w-9 h-9">
+                                <button className={cn(
+                                    "flex items-center gap-3 w-full mb-3 hover:bg-accent rounded-lg p-2 transition-colors overflow-hidden",
+                                    sidebarCollapsed && "justify-center p-0 mb-6"
+                                )}>
+                                    <Avatar className="w-9 h-9 shrink-0">
                                         <AvatarFallback className="bg-primary text-primary-foreground">
                                             {getUserInitials()}
                                         </AvatarFallback>
                                     </Avatar>
-                                    <div className="flex-1 min-w-0 text-left">
+                                    <div className={cn(
+                                        "flex-1 min-w-0 text-left transition-opacity duration-300",
+                                        sidebarCollapsed ? "opacity-0 invisible w-0" : "opacity-100 visible"
+                                    )}>
                                         <p className="text-sm font-medium truncate">{getUserDisplayName()}</p>
                                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                                     </div>
@@ -130,18 +177,22 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                             <DropdownMenuContent align="end" className="w-56">
                                 <DropdownMenuLabel>Mi cuenta</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem asChild>
-                                    <Link href="/" target="_blank" className="cursor-pointer">
-                                        <ExternalLink className="mr-2 h-4 w-4" />
-                                        <span>Ver mi tienda</span>
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link href="/admin/settings" className="cursor-pointer">
-                                        <Settings className="mr-2 h-4 w-4" />
-                                        <span>Configuración</span>
-                                    </Link>
-                                </DropdownMenuItem>
+                                {(user.role === 'Owner' || user.role === 'Admin') && (
+                                    <>
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/admin/settings" className="cursor-pointer">
+                                                <Settings className="mr-2 h-4 w-4" />
+                                                <span>Configuración</span>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/admin/users" className="cursor-pointer">
+                                                <UserCircle className="mr-2 h-4 w-4" />
+                                                <span>Gestión de Usuarios</span>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    </>
+                                )}
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
                                     <LogOut className="mr-2 h-4 w-4" />
@@ -149,10 +200,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
-                        <Button variant="outline" size="sm" className="w-full justify-start gap-2 bg-transparent" asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className={cn(
+                                "w-full justify-start gap-2 bg-transparent overflow-hidden",
+                                sidebarCollapsed && "justify-center px-0 w-10 mx-auto"
+                            )}
+                            asChild
+                        >
                             <Link href="/" target="_blank">
-                                <ExternalLink className="w-4 h-4" />
-                                Ver mi tienda
+                                <ExternalLink className="w-4 h-4 shrink-0" />
+                                {!sidebarCollapsed && <span>Ver mi tienda</span>}
                             </Link>
                         </Button>
                     </div>
@@ -167,8 +226,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Main content */}
-            <main className="flex-1 overflow-y-auto">
-                <div className="max-w-7xl mx-auto p-6 lg:p-8">{children}</div>
+            <main className="flex-1 overflow-hidden flex flex-col">
+                <DashboardHeader />
+                <div className="flex-1 overflow-y-auto">
+                    <div className="max-w-7xl mx-auto p-6 lg:p-8">{children}</div>
+                </div>
             </main>
         </div>
     )

@@ -12,6 +12,7 @@ from tenants.models import Tenant
 from tenants.payment_config_models import PaymentGatewayConfig
 from orders.payment_models import PaymentGateway
 from orders.payment_services import PaymentServiceFactory, PaymentGatewayError
+from .admin_user_views import IsTenantAdmin
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ def list_payment_gateways(request):
 
 
 @api_view(['GET', 'POST', 'PUT'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def configure_payment_gateway(request, gateway):
     """
     Get or configure a payment gateway.
@@ -185,7 +186,7 @@ def configure_payment_gateway(request, gateway):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def test_payment_gateway(request, gateway):
     """
     Test payment gateway connection with provided credentials.
@@ -258,7 +259,7 @@ def test_payment_gateway(request, gateway):
 
 
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def delete_payment_gateway(request, gateway):
     """
     Delete payment gateway configuration.

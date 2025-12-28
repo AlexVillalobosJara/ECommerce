@@ -12,6 +12,7 @@ interface User {
     last_name: string
     is_staff: boolean
     is_superuser: boolean
+    role?: 'Owner' | 'Admin' | 'Operator'
 }
 
 interface AuthContextType {

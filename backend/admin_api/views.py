@@ -1,11 +1,12 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from .serializers import UserSerializer
 from .jwt_serializers import TenantTokenObtainPairSerializer
+from .admin_user_views import IsTenantAdmin
 
 
 @api_view(['POST'])
@@ -29,7 +30,10 @@ def admin_login(request):
     else:
         user = authenticate(username=username_or_email, password=password)
     
-    if user is not None and user.is_staff:
+    from tenants.models import TenantUser
+    is_tenant_user = TenantUser.objects.filter(user=user, is_active=True).exists() if user else False
+
+    if user is not None and (user.is_staff or is_tenant_user):
         # Generate JWT tokens with tenant information
         serializer = TenantTokenObtainPairSerializer()
         token = serializer.get_token(user)
@@ -83,10 +87,23 @@ def admin_login(request):
             token['tenant_id'] = str(tenant.id)
             token['tenant_slug'] = tenant.slug
             token['tenant_name'] = tenant.name
+            
+            # Get user role for this tenant
+            if user.is_superuser:
+                token['role'] = 'Owner' # Superusers act as Owners
+            else:
+                from tenants.models import TenantUser
+                tu = TenantUser.objects.filter(user=user, tenant=tenant).first()
+                if tu:
+                    token['role'] = tu.role
+                else:
+                    token['role'] = 'Operator' # Fallback
         
-        user_serializer = UserSerializer(user)
+        user_data = UserSerializer(user).data
+        user_data['role'] = token.get('role', 'Operator')
+        
         return Response({
-            'user': user_serializer.data,
+            'user': user_data,
             'access': str(token.access_token),
             'refresh': str(token),
             'message': 'Login successful'
@@ -99,22 +116,33 @@ def admin_login(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def admin_logout(request):
     """Admin logout endpoint - for JWT, client just discards the token"""
     return Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def admin_me(request):
     """Get current admin user information"""
     serializer = UserSerializer(request.user)
-    return Response(serializer.data)
+    user_data = serializer.data
+    
+    # Add role if tenant is present
+    if hasattr(request, 'tenant') and request.tenant:
+        from tenants.models import TenantUser
+        tu = TenantUser.objects.filter(user=request.user, tenant=request.tenant).first()
+        if tu:
+            user_data['role'] = tu.role
+        elif request.user.is_superuser:
+            user_data['role'] = 'Owner'
+    
+    return Response(user_data)
 
 
 @api_view(['GET', 'PATCH'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def tenant_settings(request):
     """
     Get or update current tenant settings.
@@ -141,7 +169,7 @@ def tenant_settings(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def dashboard_stats(request):
     """
     Get dashboard statistics for the current tenant.

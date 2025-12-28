@@ -5,7 +5,8 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
+from .admin_user_views import IsTenantAdmin
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.db.models import Q
 from django.conf import settings
@@ -26,7 +27,7 @@ from .admin_product_serializers import (
 # ============================================================================
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def product_list_create(request):
     """
     GET: List all products with filtering
@@ -79,7 +80,7 @@ def product_list_create(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def product_detail(request, product_id):
     """
     GET: Get product details
@@ -126,7 +127,7 @@ def product_detail(request, product_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def product_publish(request, product_id):
     """Publish a product"""
     tenant = request.tenant
@@ -152,7 +153,7 @@ def product_publish(request, product_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def product_archive(request, product_id):
     """Archive a product"""
     tenant = request.tenant
@@ -181,7 +182,7 @@ def product_archive(request, product_id):
 # ============================================================================
 
 @api_view(['GET', 'POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def category_list_create(request):
     """
     GET: List all categories
@@ -207,7 +208,7 @@ def category_list_create(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def category_detail(request, category_id):
     """
     GET: Get category details
@@ -267,7 +268,7 @@ def category_detail(request, category_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def category_reorder(request):
     """
     POST: Reorder categories
@@ -311,7 +312,7 @@ def category_reorder(request):
 # ============================================================================
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def variant_create(request, product_id):
     """Create a new variant for a product"""
     tenant = request.tenant
@@ -340,7 +341,7 @@ def variant_create(request, product_id):
 
 
 @api_view(['PUT', 'DELETE'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def variant_detail(request, product_id, variant_id):
     """
     PUT: Update variant
@@ -385,7 +386,7 @@ def variant_detail(request, product_id, variant_id):
 # ============================================================================
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 @parser_classes([MultiPartParser, FormParser])
 def image_upload(request, product_id):
     """Upload an image for a product"""
@@ -476,7 +477,7 @@ def image_upload(request, product_id):
 
 
 @api_view(['PUT', 'DELETE'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def image_detail(request, product_id, image_id):
     """
     PUT: Update image metadata
@@ -522,7 +523,7 @@ def image_detail(request, product_id, image_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def image_set_primary(request, product_id, image_id):
     """Set an image as primary"""
     tenant = request.tenant

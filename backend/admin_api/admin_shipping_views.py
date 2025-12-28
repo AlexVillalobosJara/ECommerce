@@ -8,14 +8,13 @@ from django.db.models import Q
 from core.models import Commune
 from orders.models import ShippingZone, ShippingCarrierConfig
 from orders.serializers import ShippingZoneSerializer, CommuneSerializer, CommunesByRegionSerializer, ShippingCarrierConfigSerializer
+from .admin_user_views import IsTenantAdmin
+from rest_framework.permissions import IsAuthenticated
 
 
 class AdminShippingZoneViewSet(viewsets.ModelViewSet):
-    """
-    Admin CRUD operations for shipping zones
-    """
     serializer_class = ShippingZoneSerializer
-    
+    permission_classes = [IsAuthenticated, IsTenantAdmin]
     def get_queryset(self):
         tenant = self.request.tenant
         
@@ -54,6 +53,7 @@ class AdminShippingCarrierConfigViewSet(viewsets.ModelViewSet):
     Admin CRUD for Shipping Carrier Configs
     """
     serializer_class = ShippingCarrierConfigSerializer
+    permission_classes = [IsAuthenticated, IsTenantAdmin]
 
     def get_queryset(self):
         tenant = self.request.tenant

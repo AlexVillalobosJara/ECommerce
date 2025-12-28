@@ -289,3 +289,44 @@ export interface OrderStats {
     by_status: Record<OrderStatus, number>
     by_type: Record<OrderType, number>
 }
+
+// User Management
+export type TenantUserRole = 'Owner' | 'Admin' | 'Operator'
+
+export interface AdminUser {
+    id: number
+    username: string
+    email: string
+    first_name: string
+    last_name: string
+    is_active: boolean
+    date_joined: string
+    last_login?: string
+}
+
+export interface AdminTenantUser {
+    id: string
+    user: AdminUser
+    role: TenantUserRole
+    tenant: string
+    tenant_name: string
+    is_active: boolean
+    created_at: string
+}
+
+export interface UserFormData {
+    username: string
+    email: string
+    password?: string
+    first_name: string
+    last_name: string
+    role: TenantUserRole
+    is_active?: boolean
+    tenant?: string // For superusers
+}
+
+export interface UserFilters {
+    search?: string
+    role?: string
+    status?: string
+}

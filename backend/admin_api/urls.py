@@ -35,6 +35,7 @@ from .admin_shipping_views import (
 )
 from .admin_customer_views import CustomerViewSet
 from .admin_coupon_views import DiscountCouponViewSet
+from .admin_user_views import AdminUserViewSet
 
 app_name = 'admin_api'
 
@@ -104,4 +105,8 @@ urlpatterns = [
     # Coupons
     path('coupons/', DiscountCouponViewSet.as_view({'get': 'list', 'post': 'create'}), name='coupon_list'),
     path('coupons/<uuid:pk>/', DiscountCouponViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='coupon_detail'),
+    
+    # Users
+    path('users/', AdminUserViewSet.as_view({'get': 'list', 'post': 'create'}), name='user_list'),
+    path('users/<uuid:pk>/', AdminUserViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='user_detail'),
 ]

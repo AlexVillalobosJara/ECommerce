@@ -158,9 +158,9 @@ class TenantUser(models.Model):
     Determines which users have access to which tenants.
     """
     ROLE_CHOICES = [
-        ('Owner', 'Owner'),
-        ('Admin', 'Admin'),
-        ('Staff', 'Staff'),
+        ('Owner', 'Propietario'),  # Full access
+        ('Admin', 'Administrador'), # High access, restricted to tenant
+        ('Operator', 'Operador'),   # Read-only/Limited access
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

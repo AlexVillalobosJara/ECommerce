@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
+from .admin_user_views import IsTenantAdmin
 from rest_framework.response import Response
 from django.utils import timezone
 from django.db.models import Q, Count
@@ -13,7 +14,7 @@ from .admin_order_serializers import (
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def order_list(request):
     """
     GET: List all orders with filters
@@ -60,7 +61,7 @@ def order_list(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def order_detail(request, pk):
     """
     GET: Get single order detail
@@ -100,7 +101,7 @@ def order_detail(request, pk):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def order_update_status(request, pk):
     """
     POST: Update order status
@@ -154,7 +155,7 @@ def order_update_status(request, pk):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def order_cancel(request, pk):
     """
     POST: Cancel an order
@@ -198,7 +199,7 @@ def order_cancel(request, pk):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def order_stats(request):
     """
     GET: Get order statistics
@@ -263,7 +264,7 @@ def order_stats(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated, IsAdminUser])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
 def respond_quote(request, pk):
     """
     POST: Respond to a quote request with pricing

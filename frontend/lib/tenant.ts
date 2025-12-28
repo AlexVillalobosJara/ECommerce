@@ -27,10 +27,18 @@ export function getTenantIdentifier(hostname: string): { slug?: string, domain?:
     // Simplified logic: If it contains "onrender.com" or "vercel.app", it's a subdomain/environment host.
     const isPlatformDomain = host.includes('onrender.com') || host.includes('vercel.app') || host.includes('localhost')
 
-    if (isPlatformDomain && parts.length >= 3) {
-        const subdomain = parts[0]
-        if (subdomain !== 'www' && subdomain !== 'api') {
-            return { slug: subdomain }
+    // If it's a platform subdomain (e.g. *.localhost, *.onrender.com, *.vercel.app)
+    if (isPlatformDomain) {
+        // demo-store.localhost has 2 parts
+        if (host.includes('localhost') && parts.length >= 2 && parts[0] !== 'localhost') {
+            return { slug: parts[0] }
+        }
+        // demo-store.onrender.com has 3 parts
+        if (parts.length >= 3) {
+            const subdomain = parts[0]
+            if (subdomain !== 'www' && subdomain !== 'api') {
+                return { slug: subdomain }
+            }
         }
     }
 
