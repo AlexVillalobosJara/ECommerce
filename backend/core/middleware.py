@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
+from django.db.models import Q
 from tenants.models import Tenant
 
 
@@ -13,57 +14,73 @@ class TenantMiddleware(MiddlewareMixin):
     
     def process_request(self, request):
         # Get the host from the request
-        host = request.get_host().split(':')[0]  # Remove port if present
+        host = request.get_host().split(':')[0].lower()  # Remove port and normalize to lowercase
         
-        # Extract subdomain
-        # For development: tenant1.localhost
-        # For production: tenant1.yourdomain.com
-        parts = host.split('.')
-        
-        # Skip tenant resolution for Django admin panel
-        if request.path.startswith('/admin/'):
-            request.tenant = None
-            return None
-        
-        # For admin API, tenant is set by TenantJWTAuthentication
-        # We don't need to do anything here, just skip
-        if request.path.startswith('/api/admin/'):
-            # Tenant will be set by JWT authentication
-            # If not set, it means user is not authenticated yet
+        # Skip tenant resolution for global paths
+        if request.path.startswith('/admin/') or request.path.startswith('/api/admin/'):
             if not hasattr(request, 'tenant'):
                 request.tenant = None
             return None
         
-        # Determine tenant slug for storefront
-        tenant_slug = None
+        # 1. Try to match by custom domain first
+        # We look for a tenant whose custom_domain matches the current host exactly
+        # or matches host excluding 'www.'
+        clean_host = host[4:] if host.startsWith('www.') else host
         
-        if len(parts) >= 2:
-            # Has subdomain
-            tenant_slug = parts[0]
-        elif 'tenant' in request.GET:
-            # Fallback: tenant in query string (for testing)
-            tenant_slug = request.GET.get('tenant')
-        
-        if not tenant_slug or tenant_slug in ['www', 'api', 'admin']:
-            # No tenant or reserved subdomain
-            request.tenant = None
-            return None
-        
-        # Look up tenant
         try:
-            tenant = Tenant.objects.get(
-                slug=tenant_slug,
+            # First, check if the host (completely or without www) is a custom domain
+            tenant = Tenant.objects.filter(
+                Q(custom_domain=host) | Q(custom_domain=clean_host),
                 status='Active',
                 deleted_at__isnull=True
-            )
-            request.tenant = tenant
-        except Tenant.DoesNotExist:
-            # Tenant not found - return 404 for storefront requests
-            if request.path.startswith('/api/storefront/'):
-                return JsonResponse({
-                    'error': 'Tenant not found',
-                    'detail': f'No active tenant found for slug: {tenant_slug}'
-                }, status=404)
-            request.tenant = None
+            ).first()
+            
+            if tenant:
+                request.tenant = tenant
+                return None
+        except Exception:
+            pass
+
+        # 2. Try to match by slug (subdomain)
+        parts = host.split('.')
+        tenant_slug = None
         
+        # Logic for platform domains (localhost, onrender, vercel)
+        platform_domains = ['localhost', 'onrender.com', 'vercel.app', 'railway.app']
+        is_platform = any(d in host for d in platform_domains)
+        
+        if is_platform:
+            # For slug.localhost or slug.onrender.com
+            if len(parts) >= 2:
+                # If it's something.localhost, slug is parts[0]
+                # If it's something.onrender.com, slug is parts[0]
+                potentially_slug = parts[0]
+                if potentially_slug not in ['www', 'api', 'admin', 'localhost']:
+                    tenant_slug = potentially_slug
+        
+        # 3. Fallback: tenant in query string (mainly for testing/local dev)
+        if not tenant_slug and 'tenant' in request.GET:
+            tenant_slug = request.GET.get('tenant')
+            
+        if tenant_slug:
+            try:
+                tenant = Tenant.objects.get(
+                    slug=tenant_slug,
+                    status='Active',
+                    deleted_at__isnull=True
+                )
+                request.tenant = tenant
+                return None
+            except Tenant.DoesNotExist:
+                pass
+        
+        # If we reach here, we didn't find a tenant
+        # Return 404 for storefront API requests
+        if request.path.startswith('/api/storefront/'):
+            return JsonResponse({
+                'error': 'Tenant not found',
+                'detail': f'No active tenant found for host: {host}'
+            }, status=404)
+        
+        request.tenant = None
         return None
