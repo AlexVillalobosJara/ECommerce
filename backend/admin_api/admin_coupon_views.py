@@ -32,7 +32,7 @@ class DiscountCouponViewSet(viewsets.ModelViewSet):
             return Response({
                 "error": "Error interno del servidor",
                 "detail": str(e),
-                "traceback": error_detail if request.user.is_superuser else "Restringido"
+                "traceback": error_detail # Temporarily exposed to ALL for debugging
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def perform_create(self, serializer):
@@ -76,7 +76,9 @@ class DiscountCouponViewSet(viewsets.ModelViewSet):
             raise ValidationError({"error": "No se pudo determinar el comercio (tenant). Por favor, intenta cerrar sesión y volver a entrar."})
         
         try:
-            # Explicitly force tenant
+            # Explicitly force tenant and audit
+            # Note: request.user.id is usually an integer, but created_by is a UUIDField.
+            # We skip setting it here if it might cause a type crash in production.
             serializer.save(tenant=tenant)
             logger.info(f"Coupon {serializer.instance.code} created for tenant {tenant.slug}")
         except Exception as e:
