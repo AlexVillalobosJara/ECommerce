@@ -103,8 +103,15 @@ class TenantMiddleware(MiddlewareMixin):
                     logger.info(f"No tenant found for SaaS fallback host: {clean_host}")
             
             # If we reach here, we didn't find a tenant
-            # Return 404 for storefront API requests
-            if request.path.startswith('/api/storefront/'):
+            # Certain storefront paths are global (like communes) and don't REQUIRE a tenant
+            global_storefront_paths = [
+                '/api/storefront/communes/',
+            ]
+            
+            is_global_storefront = any(request.path.startswith(p) for p in global_storefront_paths)
+            
+            # Return 404 for storefront API requests that REQUIRE a tenant
+            if request.path.startswith('/api/storefront/') and not is_global_storefront:
                 logger.warning(f"Tenant not found for storefront request. Host: {host}, Query: {tenant_slug}")
                 return JsonResponse({
                     'error': 'Tenant not found',
