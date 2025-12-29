@@ -29,7 +29,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-lu45k=!8etf5t3nodhv-pemvtx
 # Default to True locally, False if RENDER/RAILWAY env var is present
 DEBUG = 'RENDER' not in os.environ
 
-ALLOWED_HOSTS = ['demo-store-payments.loca.lt', 'localhost', '127.0.0.1', '.localhost']
+ALLOWED_HOSTS = ['*']
 
 # Add Render/Railway URL to ALLOWED_HOSTS if available
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
