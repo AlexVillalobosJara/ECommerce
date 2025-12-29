@@ -15,6 +15,9 @@ class DiscountCouponSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'tenant', 'current_uses', 'created_at', 'updated_at']
 
+    applicable_to_categories = serializers.ListField(child=serializers.UUIDField(), required=False, allow_null=True)
+    applicable_to_products = serializers.ListField(child=serializers.UUIDField(), required=False, allow_null=True)
+
     def validate(self, data):
         """
         Check valid dates.
