@@ -109,9 +109,9 @@ export function CouponEditor({ couponId }: CouponEditorProps) {
                 toast.success("Cupón creado")
             }
             router.push("/admin/coupons")
-        } catch (error) {
+        } catch (error: any) {
             console.error(error)
-            toast.error("Error al guardar cupón")
+            toast.error(error.message || "Error al guardar cupón")
         } finally {
             setSaving(false)
         }
