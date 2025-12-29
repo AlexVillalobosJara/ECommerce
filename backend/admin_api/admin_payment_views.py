@@ -163,10 +163,10 @@ def configure_payment_gateway(request, gateway):
                 config.config_data = request.data['config_data']
             
             # Set audit fields
-            if hasattr(request, 'user') and request.user.is_authenticated:
-                if created:
-                    config.created_by = request.user.id
-                config.updated_by = request.user.id
+            # if hasattr(request, 'user') and request.user.is_authenticated:
+            #     if created:
+            #         config.created_by = request.user.id
+            #     config.updated_by = request.user.id
             
             config.save()
             

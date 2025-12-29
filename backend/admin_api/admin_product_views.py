@@ -291,7 +291,7 @@ def category_reorder(request):
                 deleted_at__isnull=True
             )
             category.sort_order = item['sort_order']
-            category.updated_by = request.user.id
+            # category.updated_by = request.user.id # Skip: Int vs UUID mismatch
             category.save()
         
         return Response({'message': 'Categories reordered successfully'})
