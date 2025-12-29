@@ -9,10 +9,13 @@ logger = logging.getLogger(__name__)
 
 class TenantMiddleware(MiddlewareMixin):
     """
-    Middleware to resolve tenant from subdomain or JWT token.
+    Middleware to resolve tenant from domain, subdomain, or query parameter.
     
-    For Admin API: Tenant is extracted from JWT token by TenantJWTAuthentication
-    For Storefront: Tenant is extracted from subdomain
+    Priority:
+    1. Custom Domain Match (host matches custom_domain field)
+    2. Query Parameter (?tenant=slug)
+    3. Platform Subdomain (slug.onrender.com)
+    4. SaaS Fallback (host itself is the slug)
     """
     
     def process_request(self, request):
@@ -28,11 +31,7 @@ class TenantMiddleware(MiddlewareMixin):
                 return None
             
             # 1. Try to match by custom domain first
-            # We look for a tenant whose custom_domain matches the current host exactly
-            # or matches host excluding 'www.'
             clean_host = host[4:] if host.startswith('www.') else host
-            
-            # First, check if the host (completely or without www) is a custom domain
             try:
                 tenant = Tenant.objects.filter(
                     Q(custom_domain=host) | Q(custom_domain=clean_host),
@@ -46,31 +45,9 @@ class TenantMiddleware(MiddlewareMixin):
                     return None
             except Exception as inner_e:
                 logger.warning(f"Error in custom domain lookup: {str(inner_e)}")
-                pass
 
-            # 2. Try to match by slug (subdomain)
-            parts = host.split('.')
-            tenant_slug = None
-            
-            # Logic for platform domains (localhost, onrender, vercel)
-            platform_domains = ['localhost', 'onrender.com', 'vercel.app', 'railway.app']
-            is_platform = any(d in host for d in platform_domains)
-            
-            if is_platform:
-                # For slug.localhost or slug.onrender.com
-                if len(parts) >= 2:
-                    potentially_slug = parts[0]
-                    if potentially_slug not in ['www', 'api', 'admin', 'localhost']:
-                        tenant_slug = potentially_slug
-            else:
-                # SaaS Fallback: Check if the clean host is exactly a slug
-                # This handles cases like doctorinox.cl where doctorinox.cl IS the slug
-                tenant_slug = clean_host
-            
-            # 3. Fallback: tenant in query string (mainly for testing/local dev)
-            if not tenant_slug and 'tenant' in request.GET:
-                tenant_slug = request.GET.get('tenant')
-                
+            # 2. Try to match by query parameter (High priority for cross-domain/testing)
+            tenant_slug = request.GET.get('tenant')
             if tenant_slug:
                 try:
                     tenant = Tenant.objects.get(
@@ -79,19 +56,56 @@ class TenantMiddleware(MiddlewareMixin):
                         deleted_at__isnull=True
                     )
                     request.tenant = tenant
-                    logger.info(f"Tenant resolved by slug: {tenant.slug}")
+                    logger.info(f"Tenant resolved by query param: {tenant.slug}")
                     return None
                 except Tenant.DoesNotExist:
-                    logger.info(f"No tenant found for slug: {tenant_slug}")
-                    pass
-                except Exception as inner_e:
-                    logger.error(f"Error in slug lookup: {str(inner_e)}")
-                    pass
+                    logger.warning(f"Tenant not found for query param: {tenant_slug}")
+                    # Continue to other methods if query param failed
+
+            # 3. Try to match by platform subdomain (e.g. slug.onrender.com)
+            parts = host.split('.')
+            platform_domains = ['localhost', 'onrender.com', 'vercel.app', 'railway.app']
+            is_platform = any(d in host for d in platform_domains)
+            
+            platform_slug = None
+            if is_platform and len(parts) >= 2:
+                potentially_slug = parts[0]
+                if potentially_slug not in ['www', 'api', 'admin', 'localhost']:
+                    platform_slug = potentially_slug
+            
+            if platform_slug:
+                try:
+                    tenant = Tenant.objects.get(
+                        slug=platform_slug,
+                        status='Active',
+                        deleted_at__isnull=True
+                    )
+                    request.tenant = tenant
+                    logger.info(f"Tenant resolved by platform subdomain: {tenant.slug}")
+                    return None
+                except Tenant.DoesNotExist:
+                    logger.info(f"No tenant found for platform subdomain: {platform_slug}")
+                    # Continue to SaaS fallback
+
+            # 4. SaaS Fallback: Check if the clean host is exactly a slug
+            # This handles cases like doctorinox.cl where doctorinox.cl IS the slug
+            if not is_platform:
+                try:
+                    tenant = Tenant.objects.get(
+                        slug=clean_host,
+                        status='Active',
+                        deleted_at__isnull=True
+                    )
+                    request.tenant = tenant
+                    logger.info(f"Tenant resolved by SaaS fallback (host as slug): {tenant.slug}")
+                    return None
+                except Tenant.DoesNotExist:
+                    logger.info(f"No tenant found for SaaS fallback host: {clean_host}")
             
             # If we reach here, we didn't find a tenant
             # Return 404 for storefront API requests
             if request.path.startswith('/api/storefront/'):
-                logger.warning(f"Tenant not found for storefront request: {host}")
+                logger.warning(f"Tenant not found for storefront request. Host: {host}, Query: {tenant_slug}")
                 return JsonResponse({
                     'error': 'Tenant not found',
                     'detail': f'No active tenant found for host: {host}'
@@ -110,5 +124,4 @@ class TenantMiddleware(MiddlewareMixin):
                     'error': 'Internal Server Error',
                     'detail': f'Error resolving tenant: {str(e)}'
                 }, status=500)
-            # Re-raise for non-API requests
             raise e
