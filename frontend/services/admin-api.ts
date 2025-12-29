@@ -44,12 +44,18 @@ async function authFetch(url: string, options: RequestInit = {}) {
         }
 
         // Handle specific error fields or detail
-        let errorMessage = errorData.error || errorData.detail
+        let errorMessage = errorData.error || errorData.detail || errorData.message
+
+        // If we have a detailed backend error (debug mode), prioritize it
+        if (errorData.detail && errorData.error) {
+            errorMessage = `${errorData.error}: ${errorData.detail}`
+        }
 
         // If no explicit error message found, try to extract validation errors
-        if (!errorMessage) {
+        if (!errorMessage || Object.keys(errorData).length > 1) {
             // DRF validation errors are usually { field: ["error1", "error2"] }
             const fieldErrors = Object.entries(errorData)
+                .filter(([key]) => !['error', 'detail', 'traceback', 'message'].includes(key))
                 .map(([key, msgs]) => {
                     const msg = Array.isArray(msgs) ? msgs.join(', ') : String(msgs)
                     // If the key is 'non_field_errors', don't prefix
@@ -57,10 +63,16 @@ async function authFetch(url: string, options: RequestInit = {}) {
                 })
                 .join('\n')
 
-            if (fieldErrors) errorMessage = fieldErrors
+            if (fieldErrors) {
+                errorMessage = errorMessage ? `${errorMessage}\n${fieldErrors}` : fieldErrors
+            }
         }
 
-        throw new Error(errorMessage || `Request failed (${response.status})`)
+        const finalError = new Error(errorMessage || `Request failed (${response.status})`)
+        // @ts-ignore - attaching extra info for logging
+        if (errorData.traceback) finalError.traceback = errorData.traceback
+
+        throw finalError
     }
 
     return response.json()
