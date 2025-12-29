@@ -1,0 +1,3 @@
+ID: 14f4e561-18b9-4ce8-bf5e-1ffb8f9501d3, Name: Auto Test Tenant, Slug: autotest, Domain: None, Status: Active
+ID: 044785a8-b61a-4143-b0aa-ad11153040df, Name: TechStore Demo, Slug: techstore, Domain: None, Status: Active
+ID: 00000000-0000-0000-0000-000000000001, Name: Doctorinox, Slug: demo-store, Domain: None, Status: Active

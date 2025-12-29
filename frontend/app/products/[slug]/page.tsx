@@ -93,10 +93,12 @@ export default function ProductDetailPage() {
             ...product,
             category_name: product.category?.name || null,
             primary_image: product.images && product.images.length > 0 ? product.images[0].url : null,
-            min_price: selectedVariant.price,
-            max_price: selectedVariant.price,
+            min_price: selectedVariant.selling_price,
+            max_price: selectedVariant.selling_price,
             variants_count: product.variants?.length || 0,
-            in_stock: selectedVariant.available_stock > 0,
+            in_stock: (selectedVariant.available_stock || 0) > 0,
+            has_discount: selectedVariant.has_discount,
+            min_compare_at_price: selectedVariant.original_price,
         }
 
         addToCart(productForCart, selectedVariant, quantity)
@@ -250,18 +252,18 @@ export default function ProductDetailPage() {
                         <div className="flex items-baseline gap-3">
                             {product.is_quote_only ? (
                                 <p className="font-serif text-3xl font-light text-primary">Cotización</p>
-                            ) : selectedVariant?.price ? (
+                            ) : selectedVariant?.selling_price ? (
                                 <>
-                                    {selectedVariant.compare_at_price && (
+                                    {selectedVariant.has_discount && selectedVariant.original_price && (
                                         <p className="text-xl text-muted-foreground line-through">
-                                            {formatPrice(selectedVariant.compare_at_price, tenant)}
+                                            {formatPrice(selectedVariant.original_price, tenant)}
                                         </p>
                                     )}
                                     <p className={cn(
                                         "font-serif text-4xl font-light",
-                                        selectedVariant.compare_at_price ? "text-destructive" : "text-gray-900"
+                                        selectedVariant.has_discount ? "text-destructive" : "text-gray-900"
                                     )}>
-                                        {formatPrice(selectedVariant.price, tenant)}
+                                        {formatPrice(selectedVariant.selling_price, tenant)}
                                         {!tenant?.prices_include_tax && tenant?.tax_rate && (
                                             <span className="ml-2 text-lg text-muted-foreground font-normal">
                                                 + IVA

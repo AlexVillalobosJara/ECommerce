@@ -24,7 +24,7 @@ export function ProductVariantsEditor({ variants, onChange, isQuoteOnly, basePri
             sku: `VAR-${Date.now()}`, // Auto-generate SKU
             name: "",
             price_adjustment: "0",
-            stock: "0",
+            stock_quantity: "0",
             attributes: {} as Record<string, string>,
             is_default: variants.length === 0,
         }
@@ -147,8 +147,8 @@ export function ProductVariantsEditor({ variants, onChange, isQuoteOnly, basePri
                                                         <Label className="text-xs">Stock</Label>
                                                         <Input
                                                             type="number"
-                                                            value={variant.stock}
-                                                            onChange={(e) => updateVariant(index, { stock: e.target.value })}
+                                                            value={variant.stock_quantity || ''}
+                                                            onChange={(e) => updateVariant(index, { stock_quantity: e.target.value })}
                                                             placeholder="0"
                                                             className="h-9"
                                                         />

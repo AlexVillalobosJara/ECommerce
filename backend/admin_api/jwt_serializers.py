@@ -20,26 +20,44 @@ class TenantTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['is_superuser'] = user.is_superuser
         
         # Add tenant information
-        # For now, use the first active tenant
-        # TODO: Implement TenantUser model for multi-tenant user assignment
+        # Better: find the tenant assigned to this user in TenantUser
+        from tenants.models import TenantUser
         try:
-            tenant = Tenant.objects.filter(
-                status='Active',
-                deleted_at__isnull=True
-            ).first()
+            # Get the first tenant user relationship for this user
+            tenant_user = TenantUser.objects.filter(
+                user=user,
+                is_active=True,
+                tenant__status='Active',
+                tenant__deleted_at__isnull=True
+            ).select_related('tenant').first()
             
-            if tenant:
+            if tenant_user:
+                tenant = tenant_user.tenant
                 token['tenant_id'] = str(tenant.id)
                 token['tenant_slug'] = tenant.slug
                 token['tenant_name'] = tenant.name
             else:
-                token['tenant_id'] = None
-                token['tenant_slug'] = None
-                token['tenant_name'] = None
+                # Fallback for superusers who might not have a TenantUser record
+                if user.is_superuser:
+                    tenant = Tenant.objects.filter(
+                        status='Active',
+                        deleted_at__isnull=True
+                    ).first()
+                    if tenant:
+                        token['tenant_id'] = str(tenant.id)
+                        token['tenant_slug'] = tenant.slug
+                        token['tenant_name'] = tenant.name
+                    else:
+                        token['tenant_id'] = None
+                else:
+                    token['tenant_id'] = None
+                    token['tenant_slug'] = None
+                    token['tenant_name'] = None
         except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error resolving tenant in JWT: {str(e)}")
             token['tenant_id'] = None
-            token['tenant_slug'] = None
-            token['tenant_name'] = None
         
         return token
 

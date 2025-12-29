@@ -85,7 +85,7 @@ export default function CheckoutPage() {
 
     // Calculate totals
     const subtotal = purchaseItems.reduce((sum, item) => {
-        return sum + parseFloat(item.variant.price || "0") * item.quantity
+        return sum + parseFloat(item.variant.selling_price || "0") * item.quantity
     }, 0)
 
     // Tax Logic

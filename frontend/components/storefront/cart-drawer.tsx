@@ -35,7 +35,7 @@ export function CartDrawer({
 
     const calculateSubtotal = () => {
         return purchaseItems.reduce((total, item) => {
-            const price = parseFloat(item.variant.price || "0")
+            const price = parseFloat(item.variant.selling_price || "0")
             return total + price * item.quantity
         }, 0)
     }
@@ -209,7 +209,14 @@ function CartItemCard({ item, onUpdateQuantity, onRemove, formatPrice, isQuote }
                         {isQuote ? (
                             <span className="text-muted-foreground">Cotizar</span>
                         ) : (
-                            formatPrice(item.variant.price)
+                            <div className="flex flex-col items-end">
+                                {item.variant.has_discount && item.variant.original_price && (
+                                    <span className="text-xs text-muted-foreground line-through">
+                                        {formatPrice(item.variant.original_price)}
+                                    </span>
+                                )}
+                                <span>{formatPrice(item.variant.selling_price)}</span>
+                            </div>
                         )}
                     </div>
                 </div>

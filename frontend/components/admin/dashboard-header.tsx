@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTenant } from "@/contexts/TenantContext"
 import { useAdminAuth } from "@/contexts/AdminAuthContext"
+import { useAdminUI } from "@/contexts/AdminUIContext"
 
 const routeLabels: Record<string, string> = {
     "/admin": "Inicio",
@@ -28,6 +29,7 @@ export function DashboardHeader() {
     const pathname = usePathname()
     const { tenant } = useTenant()
     const { user } = useAdminAuth()
+    const { title: dynamicTitle, description: dynamicDescription } = useAdminUI()
 
     // Generate breadcrumbs from pathname
     const generateBreadcrumbs = () => {
@@ -44,22 +46,24 @@ export function DashboardHeader() {
     }
 
     const breadcrumbs = generateBreadcrumbs()
-    const pageTitle = breadcrumbs[breadcrumbs.length - 1].label
+
+    // Use dynamic title if provided, otherwise fallback to breadcrumb label
+    const pageTitle = dynamicTitle || breadcrumbs[breadcrumbs.length - 1].label
 
     return (
         <header className="h-16 border-b border-border bg-card sticky top-0 z-20">
             <div className="h-full px-6 flex items-center justify-between">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 min-w-0">
                     <div className="flex flex-col min-w-0">
                         {/* Breadcrumbs */}
-                        <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-0.5">
+                        <nav className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
                             {breadcrumbs.map((crumb, index) => (
                                 <div key={crumb.href} className="flex items-center gap-1">
-                                    {index > 0 && <ChevronRight className="w-3.5 h-3.5" />}
+                                    {index > 0 && <ChevronRight className="w-3 h-3" />}
                                     <span
                                         className={cn(
-                                            "truncate",
-                                            index === breadcrumbs.length - 1
+                                            "truncate max-w-[150px]",
+                                            (index === breadcrumbs.length - 1 && !dynamicTitle)
                                                 ? "text-foreground font-medium"
                                                 : "hover:text-foreground transition-colors",
                                         )}
@@ -69,8 +73,17 @@ export function DashboardHeader() {
                                 </div>
                             ))}
                         </nav>
-                        {/* Page Title */}
-                        <h1 className="text-xl font-semibold text-foreground truncate">{pageTitle}</h1>
+                        {/* Page Title & Description */}
+                        <div className="flex flex-col min-w-0">
+                            <h1 className="text-base font-semibold text-foreground truncate leading-tight">
+                                {pageTitle}
+                            </h1>
+                            {dynamicDescription && (
+                                <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">
+                                    {dynamicDescription}
+                                </p>
+                            )}
+                        </div>
                     </div>
                 </div>
 

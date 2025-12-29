@@ -33,13 +33,28 @@ class AdminShippingZoneViewSet(viewsets.ModelViewSet):
         ).order_by('-created_at')
     
     def perform_create(self, serializer):
-        """Create shipping zone for current tenant"""
-        tenant = self.request.tenant
-        if not tenant:
-            from tenants.models import Tenant
-            tenant = Tenant.objects.filter(status='Active', deleted_at__isnull=True).first()
+        import logging
+        logger = logging.getLogger(__name__)
         
-        serializer.save(tenant=tenant)
+        tenant = getattr(self.request, 'tenant', None)
+        
+        # Robust fallback for tenant
+        if not tenant:
+            tenant_slug = self.request.headers.get('X-Tenant-Slug')
+            if tenant_slug:
+                from tenants.models import Tenant
+                tenant = Tenant.objects.filter(slug=tenant_slug, deleted_at__isnull=True).first()
+                logger.info(f"Tenant resolved via header for shipping zone: {tenant}")
+
+        if not tenant:
+             logger.error("No tenant found during shipping zone creation")
+
+        try:
+            serializer.save(tenant=tenant)
+            logger.info(f"Shipping zone {serializer.instance.name} created for tenant {tenant}")
+        except Exception as e:
+            logger.exception(f"Error saving shipping zone: {str(e)}")
+            raise
     
     def perform_destroy(self, instance):
         """Soft delete shipping zone"""
@@ -67,11 +82,25 @@ class AdminShippingCarrierConfigViewSet(viewsets.ModelViewSet):
         return ShippingCarrierConfig.objects.filter(tenant=tenant).order_by('carrier_name')
 
     def perform_create(self, serializer):
-        tenant = self.request.tenant
+        import logging
+        logger = logging.getLogger(__name__)
+
+        tenant = getattr(self.request, 'tenant', None)
+        
+        # Robust fallback for tenant
         if not tenant:
-             from tenants.models import Tenant
-             tenant = Tenant.objects.filter(status='Active', deleted_at__isnull=True).first()
-        serializer.save(tenant=tenant)
+            tenant_slug = self.request.headers.get('X-Tenant-Slug')
+            if tenant_slug:
+                from tenants.models import Tenant
+                tenant = Tenant.objects.filter(slug=tenant_slug, deleted_at__isnull=True).first()
+                logger.info(f"Tenant resolved via header for carrier config: {tenant}")
+
+        try:
+            serializer.save(tenant=tenant)
+            logger.info(f"Carrier config {serializer.instance.carrier_name} created for tenant {tenant}")
+        except Exception as e:
+            logger.exception(f"Error saving carrier config: {str(e)}")
+            raise
 
 
 

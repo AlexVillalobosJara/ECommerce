@@ -87,17 +87,18 @@ export function ProductCard({ product, onAddToCart, onRequestQuote, className, a
 
                 <div className="flex items-center justify-between">
                     {!product.is_quote_only && product.min_price ? (
-                        <div className="flex items-baseline gap-2">
-                            {product.min_price !== product.max_price && product.max_price && (
-                                <p className="text-sm text-muted-foreground line-through">
-                                    {formatPrice(product.max_price, tenant)}
+                        <div className="flex flex-col">
+                            {product.min_compare_at_price && (
+                                <p className="text-xs text-muted-foreground line-through">
+                                    {formatPrice(parseFloat(product.min_compare_at_price), tenant)}
                                 </p>
                             )}
                             <p className={cn(
-                                "text-lg font-semibold",
-                                product.min_price !== product.max_price && product.max_price && "text-destructive"
+                                "text-lg font-semibold tracking-tight",
+                                product.has_discount ? "text-destructive" : "text-foreground"
                             )}>
-                                {formatPrice(product.min_price, tenant)}
+                                {product.min_price !== product.max_price && <span className="text-sm font-normal text-muted-foreground mr-1">Desde</span>}
+                                {formatPrice(parseFloat(product.min_price), tenant)}
                             </p>
                         </div>
                     ) : (

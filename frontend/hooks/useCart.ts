@@ -99,7 +99,7 @@ export function useCart() {
 
     const getTotalPrice = () => {
         return cart.purchaseItems.reduce((total, item) => {
-            const price = parseFloat(item.variant.price || '0')
+            const price = parseFloat(item.variant.selling_price || '0')
             return total + price * item.quantity
         }, 0)
     }

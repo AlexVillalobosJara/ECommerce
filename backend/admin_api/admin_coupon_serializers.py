@@ -22,7 +22,7 @@ class DiscountCouponSerializer(serializers.ModelSerializer):
         valid_from = data.get('valid_from')
         valid_until = data.get('valid_until')
 
-        if valid_from and valid_until and valid_from > valid_until:
-             raise serializers.ValidationError({"valid_until": "End date must be after start date."})
+        if valid_from and valid_until and valid_from >= valid_until:
+             raise serializers.ValidationError({"valid_until": "End date must be strictly after start date."})
         
         return data

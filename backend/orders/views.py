@@ -296,7 +296,19 @@ class OrderViewSet(viewsets.ModelViewSet):
                     )
             
             # Calculate item total (use 0 for quotes if no price)
-            unit_price = variant.price or Decimal('0')
+            # Smart Price logic: Selling price is the minimum of price and compare_at_price
+            p = variant.price
+            cp = variant.compare_at_price
+            
+            if p and cp:
+                unit_price = min(p, cp)
+            elif p:
+                unit_price = p
+            elif cp:
+                unit_price = cp
+            else:
+                unit_price = Decimal('0')
+            
             quantity = item_data['quantity']
             item_subtotal = unit_price * quantity
             

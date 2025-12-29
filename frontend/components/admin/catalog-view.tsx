@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Plus, Pencil, Trash2, AlertTriangle, Search } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import type { AdminProductListItem, ProductFilters } from "@/types/admin"
 import { getProducts, deleteProduct } from "@/services/adminProductService"
 import { useTenant } from "@/contexts/TenantContext"
@@ -214,13 +215,29 @@ export function CatalogView() {
                                                 </Badge>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    {(product.total_stock ?? 0) < 5 && (product.total_stock ?? 0) > 0 && (
-                                                        <AlertTriangle className="w-4 h-4 text-destructive" />
+                                                <div className="flex flex-col gap-1">
+                                                    {product.is_quote_only ? (
+                                                        <span className="text-sm text-muted-foreground">—</span>
+                                                    ) : (
+                                                        <>
+                                                            <div className="flex items-center gap-2">
+                                                                {(product.total_available ?? 0) < 5 && (product.total_available ?? 0) > 0 && (
+                                                                    <AlertTriangle className="w-4 h-4 text-destructive" />
+                                                                )}
+                                                                <span className={cn(
+                                                                    "text-sm font-medium",
+                                                                    (product.total_available ?? 0) < 5 && (product.total_available ?? 0) > 0 ? "text-destructive" : "text-foreground"
+                                                                )}>
+                                                                    {product.total_available ?? "0"} Disponibles
+                                                                </span>
+                                                            </div>
+                                                            {product.total_reserved !== undefined && product.total_reserved !== null && product.total_reserved > 0 && (
+                                                                <div className="text-[11px] text-muted-foreground">
+                                                                    {product.total_reserved} Reservados
+                                                                </div>
+                                                            )}
+                                                        </>
                                                     )}
-                                                    <span className={(product.total_stock ?? 0) < 5 && (product.total_stock ?? 0) > 0 ? "text-destructive font-medium" : ""}>
-                                                        {product.is_quote_only ? "—" : product.total_stock ?? "—"}
-                                                    </span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">

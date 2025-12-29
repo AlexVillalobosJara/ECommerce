@@ -34,7 +34,7 @@ export function OrderSummary({ purchaseItems, quoteItems, subtotal, shipping, ta
             <div className="space-y-4">
                 {allItems.map((item) => {
                     const isQuote = quoteItems.some(q => q.variant.id === item.variant.id)
-                    const itemPrice = parseFloat(item.variant.price || "0")
+                    const itemPrice = parseFloat(item.variant.selling_price || "0")
 
                     return (
                         <div key={item.variant.id} className="flex gap-4">

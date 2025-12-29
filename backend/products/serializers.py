@@ -1,3 +1,4 @@
+from django.db import models
 from rest_framework import serializers
 from .models import Category, Product, ProductVariant, ProductImage, ProductReview
 
@@ -19,14 +20,37 @@ class ProductReviewSerializer(serializers.ModelSerializer):
 
 class ProductVariantSerializer(serializers.ModelSerializer):
     available_stock = serializers.ReadOnlyField()
+    has_discount = serializers.SerializerMethodField()
+    selling_price = serializers.SerializerMethodField()
+    original_price = serializers.SerializerMethodField()
     
     class Meta:
         model = ProductVariant
         fields = [
             'id', 'sku', 'name', 'attributes', 'price', 'compare_at_price',
+            'selling_price', 'original_price', 'has_discount',
             'stock_quantity', 'reserved_quantity', 'available_stock',
             'is_active', 'is_default', 'image_url'
         ]
+
+    def get_has_discount(self, obj):
+        if not obj.price or not obj.compare_at_price:
+            return False
+        return obj.price != obj.compare_at_price
+
+    def get_selling_price(self, obj):
+        if not obj.price:
+            return obj.compare_at_price
+        if not obj.compare_at_price:
+            return obj.price
+        return min(obj.price, obj.compare_at_price)
+
+    def get_original_price(self, obj):
+        if not obj.price or not obj.compare_at_price:
+            return None
+        if obj.price == obj.compare_at_price:
+            return None
+        return max(obj.price, obj.compare_at_price)
 
 
 class ProductVariantWriteSerializer(serializers.ModelSerializer):
@@ -110,6 +134,8 @@ class ProductListSerializer(serializers.ModelSerializer):
     primary_image = serializers.SerializerMethodField()
     min_price = serializers.SerializerMethodField()
     max_price = serializers.SerializerMethodField()
+    min_compare_at_price = serializers.SerializerMethodField()
+    has_discount = serializers.SerializerMethodField()
     variants_count = serializers.SerializerMethodField()
     in_stock = serializers.SerializerMethodField()
     
@@ -118,8 +144,8 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'short_description', 'category_name',
             'is_quote_only', 'is_featured', 'status', 'primary_image',
-            'min_price', 'max_price', 'variants_count', 'in_stock',
-            'average_rating', 'review_count'
+            'min_price', 'max_price', 'min_compare_at_price', 'has_discount',
+            'variants_count', 'in_stock', 'average_rating', 'review_count'
         ]
     
     def get_primary_image(self, obj):
@@ -133,16 +159,66 @@ class ProductListSerializer(serializers.ModelSerializer):
     def get_min_price(self, obj):
         if obj.is_quote_only:
             return None
-        variants = obj.variants.filter(is_active=True, deleted_at__isnull=True, price__isnull=False)
-        prices = [v.price for v in variants if v.price]
+        variants = obj.variants.filter(is_active=True, deleted_at__isnull=True)
+        prices = []
+        for v in variants:
+            if v.price and v.compare_at_price:
+                prices.append(min(v.price, v.compare_at_price))
+            elif v.price:
+                prices.append(v.price)
+            elif v.compare_at_price:
+                prices.append(v.compare_at_price)
         return min(prices) if prices else None
     
     def get_max_price(self, obj):
         if obj.is_quote_only:
             return None
-        variants = obj.variants.filter(is_active=True, deleted_at__isnull=True, price__isnull=False)
-        prices = [v.price for v in variants if v.price]
+        variants = obj.variants.filter(is_active=True, deleted_at__isnull=True)
+        prices = []
+        for v in variants:
+            if v.price and v.compare_at_price:
+                prices.append(min(v.price, v.compare_at_price))
+            elif v.price:
+                prices.append(v.price)
+            elif v.compare_at_price:
+                prices.append(v.compare_at_price)
         return max(prices) if prices else None
+
+    def get_min_compare_at_price(self, obj):
+        if obj.is_quote_only:
+            return None
+        
+        # Find the variant with the minimum selling price and return its reference (max) price
+        variant = None
+        min_selling = None
+        
+        variants = obj.variants.filter(is_active=True, deleted_at__isnull=True)
+        for v in variants:
+            selling = None
+            if v.price and v.compare_at_price:
+                selling = min(v.price, v.compare_at_price)
+            elif v.price:
+                selling = v.price
+            elif v.compare_at_price:
+                selling = v.compare_at_price
+            
+            if selling is not None:
+                if min_selling is None or selling < min_selling:
+                    min_selling = selling
+                    variant = v
+        
+        if variant and variant.price and variant.compare_at_price and variant.price != variant.compare_at_price:
+            return max(variant.price, variant.compare_at_price)
+        return None
+
+    def get_has_discount(self, obj):
+        if obj.is_quote_only:
+            return False
+        # Any variant has a discount if price != compare_at_price
+        for v in obj.variants.filter(is_active=True, deleted_at__isnull=True):
+            if v.price and v.compare_at_price and v.price != v.compare_at_price:
+                return True
+        return False
     
     def get_variants_count(self, obj):
         return obj.variants.filter(is_active=True, deleted_at__isnull=True).count()

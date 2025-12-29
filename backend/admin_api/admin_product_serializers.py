@@ -100,13 +100,15 @@ class ProductListAdminSerializer(serializers.ModelSerializer):
     variants_count = serializers.SerializerMethodField()
     in_stock = serializers.SerializerMethodField()
     total_stock = serializers.SerializerMethodField()
+    total_available = serializers.SerializerMethodField()
+    total_reserved = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
         fields = ['id', 'name', 'slug', 'sku', 'brand', 'short_description', 'category_name',
                   'is_quote_only', 'is_featured', 'status', 'primary_image',
                   'min_price', 'max_price', 'variants_count', 'in_stock', 'total_stock',
-                  'created_at', 'updated_at', 'published_at']
+                  'total_available', 'total_reserved', 'created_at', 'updated_at', 'published_at']
     
     def get_primary_image(self, obj):
         primary = obj.images.filter(is_primary=True, deleted_at__isnull=True).first()
@@ -144,7 +146,23 @@ class ProductListAdminSerializer(serializers.ModelSerializer):
     def get_total_stock(self, obj):
         if obj.is_quote_only or not obj.manage_stock:
             return None
+        return sum(v.stock_quantity for v in obj.variants.filter(
+            is_active=True, 
+            deleted_at__isnull=True
+        ))
+
+    def get_total_available(self, obj):
+        if obj.is_quote_only or not obj.manage_stock:
+            return None
         return sum(v.available_stock for v in obj.variants.filter(
+            is_active=True, 
+            deleted_at__isnull=True
+        ))
+
+    def get_total_reserved(self, obj):
+        if obj.is_quote_only or not obj.manage_stock:
+            return None
+        return sum(v.reserved_quantity for v in obj.variants.filter(
             is_active=True, 
             deleted_at__isnull=True
         ))

@@ -16,6 +16,7 @@ import type { AdminProduct } from "@/types/admin"
 import { getProduct, createProduct, updateProduct, getCategories, createVariant, updateVariant, deleteVariant } from "@/services/adminProductService"
 import { useTenant } from "@/contexts/TenantContext"
 import { formatPrice } from "@/lib/format-price"
+import { useAdminUI } from "@/contexts/AdminUIContext"
 
 interface ProductEditorProps {
     productId?: string
@@ -26,6 +27,7 @@ interface ProductEditorProps {
 export function ProductEditor({ productId }: ProductEditorProps) {
     const router = useRouter()
     const { tenant } = useTenant()
+    const { setTitle, setDescription } = useAdminUI()
     const [isSaving, setIsSaving] = useState(false)
     const [loading, setLoading] = useState(!!productId)
     const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([])
@@ -51,6 +53,25 @@ export function ProductEditor({ productId }: ProductEditorProps) {
     })
 
     const isEditing = !!productId
+
+    // Clear UI context on unmount
+    useEffect(() => {
+        return () => {
+            setTitle(null)
+            setDescription(null)
+        }
+    }, [setTitle, setDescription])
+
+    // Update dynamic title when formData.name changes
+    useEffect(() => {
+        if (isEditing) {
+            setTitle(formData.name || "Editar Producto")
+            setDescription(formData.short_description || null)
+        } else {
+            setTitle("Nuevo Producto")
+            setDescription("Crea un nuevo producto en tu catálogo")
+        }
+    }, [formData.name, formData.short_description, isEditing, setTitle, setDescription])
 
     // Load categories on mount
     useEffect(() => {
@@ -126,70 +147,56 @@ export function ProductEditor({ productId }: ProductEditorProps) {
             orig => !orig.id?.startsWith('temp-') && !currentVariants.find(curr => curr.id === orig.id)
         )
 
-        console.log('Variant sync:', {
-            create: variantsToCreate.length,
-            update: variantsToUpdate.length,
-            delete: variantsToDelete.length,
-            toDelete: variantsToDelete.map(v => ({ id: v.id, sku: v.sku }))
-        })
-
         try {
             // Delete removed variants
             for (const variant of variantsToDelete) {
                 try {
-                    console.log('Deleting variant:', variant.id, variant.sku)
                     await deleteVariant(productId, variant.id)
-                    console.log('Successfully deleted variant:', variant.id)
                 } catch (deleteError: any) {
-                    // If variant not found (404), it's already deleted, continue
                     const errorMsg = deleteError.message?.toLowerCase() || ''
-                    if (errorMsg.includes('variant not found') || errorMsg.includes('404')) {
-                        console.warn('Variant already deleted or not found:', variant.id)
-                        continue
-                    }
-                    // For other errors, re-throw
+                    if (errorMsg.includes('variant not found') || errorMsg.includes('404')) continue
                     throw deleteError
                 }
             }
 
             // Create new variants
             for (const variant of variantsToCreate) {
-                // Skip variants with empty SKU
-                if (!variant.sku || variant.sku.trim() === '') {
-                    console.warn('Skipping variant with empty SKU:', variant)
-                    continue
-                }
+                if (!variant.sku || variant.sku.trim() === '') continue
 
                 const variantData = {
                     sku: variant.sku,
                     name: variant.name,
                     attributes: variant.attributes || {},
-                    price: variant.price_adjustment ? parseFloat(variant.price_adjustment) : undefined,
+                    price: variant.price ? parseFloat(variant.price.toString()) : undefined,
                     compare_at_price: variant.compare_at_price ? parseFloat(variant.compare_at_price.toString()) : undefined,
-                    stock_quantity: variant.stock ? parseInt(variant.stock) : 0,
+                    stock_quantity: variant.stock_quantity !== undefined ? parseInt(variant.stock_quantity.toString()) : 0,
                     is_default: variant.is_default || false,
                     is_active: true,
                     low_stock_threshold: 10,
                 }
-                console.log('Creating variant with data:', variantData)
                 await createVariant(productId, variantData)
             }
 
             // Update existing variants
             for (const variant of variantsToUpdate) {
-                console.log('Updating variant:', variant.id, 'Current data:', variant)
-
-                const variantData = {
+                const variantData: any = {
                     sku: variant.sku,
                     name: variant.name,
                     attributes: variant.attributes || {},
-                    price: variant.price && variant.price !== "0.00" ? parseFloat(variant.price.toString()) : undefined,
-                    compare_at_price: variant.compare_at_price && variant.compare_at_price !== "0.00" ? parseFloat(variant.compare_at_price.toString()) : undefined,
-                    stock_quantity: variant.stock_quantity !== undefined ? variant.stock_quantity : 0,
                     is_default: variant.is_default || false,
                     is_active: variant.is_active !== undefined ? variant.is_active : true,
                 }
-                console.log('Sending variant update data:', variantData)
+
+                if (variant.price !== undefined && variant.price !== null) {
+                    variantData.price = parseFloat(variant.price.toString())
+                }
+                if (variant.compare_at_price !== undefined && variant.compare_at_price !== null) {
+                    variantData.compare_at_price = parseFloat(variant.compare_at_price.toString())
+                }
+                if (variant.stock_quantity !== undefined && variant.stock_quantity !== null) {
+                    variantData.stock_quantity = parseInt(variant.stock_quantity.toString())
+                }
+
                 await updateVariant(productId, variant.id, variantData)
             }
 
@@ -197,8 +204,6 @@ export function ProductEditor({ productId }: ProductEditorProps) {
             setOriginalVariants(formData.variants.filter(v => !v.id?.startsWith('temp-')))
         } catch (error: any) {
             console.error('Error syncing variants:', error)
-            console.error('Error message:', error.message)
-            // Re-throw with more context
             throw new Error(`Error al sincronizar variantes: ${error.message}`)
         }
     }
@@ -264,25 +269,20 @@ export function ProductEditor({ productId }: ProductEditorProps) {
     }
 
     return (
-        <div className="min-h-screen bg-muted/30">
+        <div className="min-h-screen bg-muted/30 pb-12">
             {/* Header */}
-            <div className="bg-background border-b border-border sticky top-0 z-10">
+            <div className="bg-background border-b border-border sticky top-0 z-10 transition-all">
                 <div className="max-w-7xl mx-auto px-6 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <Button variant="ghost" size="sm" onClick={() => router.push("/admin/catalog")} className="gap-2">
                                 <ArrowLeft className="w-4 h-4" />
-                                Volver
+                                Volver al catálogo
                             </Button>
-                            <div className="h-6 w-px bg-border" />
-                            <div>
-                                <h1 className="text-xl font-semibold">{isEditing ? "Editar Producto" : "Nuevo Producto"}</h1>
-                                {formData.name && <p className="text-sm text-muted-foreground">{formData.name}</p>}
-                            </div>
                         </div>
-                        <Button onClick={handleSave} disabled={isSaving} className="gap-2">
+                        <Button onClick={handleSave} disabled={isSaving} className="gap-2 min-w-[120px]">
                             <Save className="w-4 h-4" />
-                            {isSaving ? "Guardando..." : "Guardar"}
+                            {isSaving ? "Guardando..." : "Guardar Cambios"}
                         </Button>
                     </div>
                 </div>

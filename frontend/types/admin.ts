@@ -109,6 +109,8 @@ export interface AdminProductListItem {
     variants_count: number
     in_stock: boolean
     total_stock?: number | null
+    total_available?: number | null
+    total_reserved?: number | null
     created_at: string
     updated_at: string
     published_at?: string | null

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext"
+import { AdminUIProvider } from "@/contexts/AdminUIContext"
 import "./admin.css"
 
 export const metadata: Metadata = {
@@ -15,7 +16,9 @@ export default function AdminLayout({
     return (
         <div className="admin-theme">
             <AdminAuthProvider>
-                {children}
+                <AdminUIProvider>
+                    {children}
+                </AdminUIProvider>
             </AdminAuthProvider>
         </div>
     )

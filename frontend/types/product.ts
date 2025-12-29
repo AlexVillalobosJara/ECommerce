@@ -5,8 +5,12 @@ export interface ProductVariant {
     sku: string
     name: string | null
     attributes: Record<string, string>
-    price: string | null
+    price: string
     compare_at_price: string | null
+    selling_price: string
+    original_price: string | null
+    has_discount: boolean
+    cost: string | null
     stock_quantity: number
     reserved_quantity: number
     available_stock: number
@@ -49,8 +53,12 @@ export interface ProductList {
     primary_image: string | null
     min_price: string | null
     max_price: string | null
+    min_compare_at_price: string | null
+    has_discount: boolean
     variants_count: number
     in_stock: boolean
+    total_stock: number | null
+    total_reserved: number | null
     average_rating?: string
     review_count?: number
 }
