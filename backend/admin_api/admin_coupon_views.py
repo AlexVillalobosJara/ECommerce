@@ -19,6 +19,22 @@ class DiscountCouponViewSet(viewsets.ModelViewSet):
             
         return DiscountCoupon.objects.filter(tenant=tenant).order_by('-created_at')
 
+    def create(self, request, *args, **kwargs):
+        """Override create to catch any crash and return detail"""
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            import traceback
+            import logging
+            logger = logging.getLogger(__name__)
+            error_detail = traceback.format_exc()
+            logger.error(f"DEBUG_COUPON_CREATE_ERROR: {error_detail}")
+            return Response({
+                "error": "Error interno del servidor",
+                "detail": str(e),
+                "traceback": error_detail if request.user.is_superuser else "Restringido"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     def perform_create(self, serializer):
         import logging
         logger = logging.getLogger(__name__)
