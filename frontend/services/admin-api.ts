@@ -68,6 +68,10 @@ async function authFetch(url: string, options: RequestInit = {}) {
             }
         }
 
+        if (errorData.traceback) {
+            errorMessage = `${errorMessage || 'Error'}\n\nTechnical Details:\n${errorData.traceback}`
+        }
+
         const finalError = new Error(errorMessage || `Request failed (${response.status})`)
         // @ts-ignore - attaching extra info for logging
         if (errorData.traceback) finalError.traceback = errorData.traceback
