@@ -71,7 +71,7 @@ class ShippingZone(models.Model):
     tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE, related_name='shipping_zones')
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
-    commune_codes = models.JSONField(default=list)
+    commune_codes = ArrayField(models.CharField(max_length=100), default=list)
     base_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     cost_per_kg = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     free_shipping_threshold = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)

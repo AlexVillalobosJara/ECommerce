@@ -25,6 +25,7 @@ class ShippingZoneSerializer(serializers.ModelSerializer):
             'cost_per_kg', 'free_shipping_threshold', 'estimated_days',
             'allows_store_pickup', 'is_active', 'commune_count'
         ]
+        read_only_fields = ['id', 'commune_count']
     
     def get_commune_count(self, obj):
         # Handle count logic in to_representation for consistency with patched data
