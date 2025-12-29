@@ -33,12 +33,38 @@ class TenantJWTAuthentication(JWTAuthentication):
                     )
                     # Attach tenant to request
                     request.tenant = tenant
-                    logger.info(f'Tenant attached to request: {tenant.slug}')
+                    logger.info(f'Tenant attached to request from token: {tenant.slug}')
                 except Tenant.DoesNotExist:
                     request.tenant = None
                     logger.warning(f'Tenant not found for ID: {tenant_id}')
             else:
-                request.tenant = None
-                logger.warning('No tenant_id in token')
+                # Fallback: Resolve via TenantUser relationship for the authenticated user
+                from tenants.models import TenantUser
+                try:
+                    tenant_user = TenantUser.objects.filter(
+                        user=user,
+                        is_active=True,
+                        tenant__status='Active',
+                        tenant__deleted_at__isnull=True
+                    ).select_related('tenant').first()
+                    
+                    if tenant_user:
+                        request.tenant = tenant_user.tenant
+                        logger.info(f'Tenant attached from TenantUser: {request.tenant.slug}')
+                    elif user.is_superuser:
+                        # Superuser fallback: Use the first active tenant
+                        tenant = Tenant.objects.filter(
+                            status='Active',
+                            deleted_at__isnull=True
+                        ).first()
+                        request.tenant = tenant
+                        if tenant:
+                            logger.info(f'Tenant attached via superuser fallback: {tenant.slug}')
+                    else:
+                        request.tenant = None
+                        logger.warning(f'No tenant found for user: {user.username}')
+                except Exception as e:
+                    request.tenant = None
+                    logger.error(f'Error resolving tenant fallback: {str(e)}')
         
         return result

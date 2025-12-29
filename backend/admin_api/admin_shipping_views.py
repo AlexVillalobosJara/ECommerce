@@ -38,20 +38,43 @@ class AdminShippingZoneViewSet(viewsets.ModelViewSet):
         
         tenant = getattr(self.request, 'tenant', None)
         
-        # Robust fallback for tenant
+        # 1. Fallback: Resolve via Header
         if not tenant:
             tenant_slug = self.request.headers.get('X-Tenant-Slug')
             if tenant_slug:
                 from tenants.models import Tenant
                 tenant = Tenant.objects.filter(slug=tenant_slug, deleted_at__isnull=True).first()
-                logger.info(f"Tenant resolved via header for shipping zone: {tenant}")
+                if tenant:
+                    logger.info(f"Tenant resolved via header for shipping zone: {tenant.slug}")
+
+        # 2. Fallback: Resolve via TenantUser relationship
+        if not tenant and self.request.user.is_authenticated:
+            from tenants.models import TenantUser
+            tenant_user = TenantUser.objects.filter(
+                user=self.request.user, 
+                is_active=True,
+                tenant__status='Active',
+                tenant__deleted_at__isnull=True
+            ).select_related('tenant').first()
+            if tenant_user:
+                tenant = tenant_user.tenant
+                logger.info(f"Tenant resolved via TenantUser for shipping zone: {tenant.slug}")
+
+        # 3. Fallback: For superusers, take the first active tenant
+        if not tenant and self.request.user.is_superuser:
+            from tenants.models import Tenant
+            tenant = Tenant.objects.filter(status='Active', deleted_at__isnull=True).first()
+            if tenant:
+                logger.info(f"Tenant resolved as superuser fallback for shipping zone: {tenant.slug}")
 
         if not tenant:
-             logger.error("No tenant found during shipping zone creation")
-
+            logger.error(f"Failed to resolve tenant for shipping zone creation. User: {self.request.user}")
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"error": "No se pudo determinar el comercio (tenant). Por favor, intenta cerrar sesión y volver a entrar."})
+        
         try:
             serializer.save(tenant=tenant)
-            logger.info(f"Shipping zone {serializer.instance.name} created for tenant {tenant}")
+            logger.info(f"Shipping zone {serializer.instance.name} created for tenant {tenant.slug}")
         except Exception as e:
             logger.exception(f"Error saving shipping zone: {str(e)}")
             raise
@@ -87,17 +110,43 @@ class AdminShippingCarrierConfigViewSet(viewsets.ModelViewSet):
 
         tenant = getattr(self.request, 'tenant', None)
         
-        # Robust fallback for tenant
+        # 1. Fallback: Resolve via Header
         if not tenant:
             tenant_slug = self.request.headers.get('X-Tenant-Slug')
             if tenant_slug:
                 from tenants.models import Tenant
                 tenant = Tenant.objects.filter(slug=tenant_slug, deleted_at__isnull=True).first()
-                logger.info(f"Tenant resolved via header for carrier config: {tenant}")
+                if tenant:
+                    logger.info(f"Tenant resolved via header for carrier config: {tenant.slug}")
+
+        # 2. Fallback: Resolve via TenantUser relationship
+        if not tenant and self.request.user.is_authenticated:
+            from tenants.models import TenantUser
+            tenant_user = TenantUser.objects.filter(
+                user=self.request.user, 
+                is_active=True,
+                tenant__status='Active',
+                tenant__deleted_at__isnull=True
+            ).select_related('tenant').first()
+            if tenant_user:
+                tenant = tenant_user.tenant
+                logger.info(f"Tenant resolved via TenantUser for carrier config: {tenant.slug}")
+
+        # 3. Fallback: For superusers, take the first active tenant
+        if not tenant and self.request.user.is_superuser:
+            from tenants.models import Tenant
+            tenant = Tenant.objects.filter(status='Active', deleted_at__isnull=True).first()
+            if tenant:
+                logger.info(f"Tenant resolved as superuser fallback for carrier config: {tenant.slug}")
+
+        if not tenant:
+            logger.error(f"Failed to resolve tenant for carrier config creation. User: {self.request.user}")
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"error": "No se pudo determinar el comercio (tenant). Por favor, intenta cerrar sesión y volver a entrar."})
 
         try:
             serializer.save(tenant=tenant)
-            logger.info(f"Carrier config {serializer.instance.carrier_name} created for tenant {tenant}")
+            logger.info(f"Carrier config {serializer.instance.carrier_name} created for tenant {tenant.slug}")
         except Exception as e:
             logger.exception(f"Error saving carrier config: {str(e)}")
             raise

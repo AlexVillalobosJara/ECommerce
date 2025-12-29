@@ -25,32 +25,43 @@ class DiscountCouponViewSet(viewsets.ModelViewSet):
         
         tenant = getattr(self.request, 'tenant', None)
         
-        # Robust fallback for tenant
+        # 1. Fallback: Resolve via Header
         if not tenant:
             tenant_slug = self.request.headers.get('X-Tenant-Slug')
             if tenant_slug:
                 from tenants.models import Tenant
                 tenant = Tenant.objects.filter(slug=tenant_slug, deleted_at__isnull=True).first()
-                logger.info(f"Tenant resolved via header for coupon: {tenant}")
-        
+                if tenant:
+                    logger.info(f"Tenant resolved via header for coupon: {tenant.slug}")
+
+        # 2. Fallback: Resolve via TenantUser relationship
+        if not tenant and self.request.user.is_authenticated:
+            from tenants.models import TenantUser
+            tenant_user = TenantUser.objects.filter(
+                user=self.request.user, 
+                is_active=True,
+                tenant__status='Active',
+                tenant__deleted_at__isnull=True
+            ).select_related('tenant').first()
+            if tenant_user:
+                tenant = tenant_user.tenant
+                logger.info(f"Tenant resolved via TenantUser for coupon: {tenant.slug}")
+
+        # 3. Fallback: For superusers, take the first active tenant
+        if not tenant and self.request.user.is_superuser:
+            from tenants.models import Tenant
+            tenant = Tenant.objects.filter(status='Active', deleted_at__isnull=True).first()
+            if tenant:
+                logger.info(f"Tenant resolved as superuser fallback for coupon: {tenant.slug}")
+
         if not tenant:
-             logger.error("No tenant found during coupon creation")
-             # DRF will handle integrity error if tenant is null, 
-             # but we want to know why it happened.
-        
-        # Fix UUID issue: if created_by is UUIDField, don't pass int ID
-        # Many of our models use UUID for created_by, but auth.User uses int.
-        # We can pass None or a special system UUID if needed, but for now 
-        # let's just avoid the crash by not passing it if it's the source of 500.
-        # Products app uses request.user.id which works, so if it fails here 
-        # it might be a specific DB constraint in production.
+            logger.error(f"Failed to resolve tenant for coupon creation. User: {self.request.user}")
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"error": "No se pudo determinar el comercio (tenant). Por favor, intenta cerrar sesión y volver a entrar."})
         
         try:
-            serializer.save(
-                tenant=tenant,
-                # created_by=self.request.user.id # Potential source of 500 if DB is strict
-            )
-            logger.info(f"Coupon {serializer.instance.code} created for tenant {tenant}")
+            serializer.save(tenant=tenant)
+            logger.info(f"Coupon {serializer.instance.code} created for tenant {tenant.slug}")
         except Exception as e:
             logger.exception(f"Error saving coupon: {str(e)}")
             raise

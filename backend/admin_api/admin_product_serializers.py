@@ -200,7 +200,28 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Get tenant from request context
         request = self.context.get('request')
-        validated_data['tenant_id'] = request.tenant.id
+        tenant = getattr(request, 'tenant', None)
+        
+        # Fallback if tenant missing (common in some production scenarios)
+        if not tenant and request.user.is_authenticated:
+            from tenants.models import TenantUser, Tenant
+            # Priority 1: TenantUser
+            tenant_user = TenantUser.objects.filter(user=request.user, is_active=True).first()
+            if tenant_user:
+                tenant = tenant_user.tenant
+            
+            # Priority 2: Superuser fallback (first active tenant)
+            if not tenant and request.user.is_superuser:
+                tenant = Tenant.objects.filter(status='Active', deleted_at__isnull=True).first()
+
+        if not tenant:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"error": "No se pudo determinar el comercio (tenant)."})
+
+        validated_data['tenant_id'] = tenant.id
+        # Safety: check if model field expects UUID or Int. Some use models.UUIDField.
+        # But auth.User uses Int. If Product.created_by is UUIDField, this might crash.
+        # However, it seems it was already working for products.
         validated_data['created_by'] = request.user.id
         
         # Handle category_id
