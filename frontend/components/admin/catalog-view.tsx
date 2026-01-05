@@ -190,7 +190,9 @@ export function CatalogView() {
                                                     <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                                                         {product.primary_image ? (
                                                             <img
-                                                                src={`http://localhost:8000${product.primary_image}`}
+                                                                src={product.primary_image.startsWith('http')
+                                                                    ? product.primary_image
+                                                                    : `http://localhost:8000${product.primary_image}`}
                                                                 alt={product.name}
                                                                 className="w-full h-full object-cover"
                                                             />

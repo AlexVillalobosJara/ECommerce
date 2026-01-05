@@ -38,6 +38,11 @@ const nextConfig: NextConfig = {
         hostname: '**.onrender.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'ztwtkwvgxavwwyvdzibz.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
     ],
   },
   // Disable static optimization for API routes

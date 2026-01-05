@@ -227,6 +227,13 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                 status: formData.status,
                 is_featured: formData.is_featured,
                 specifications: formData.specifications,
+                // Include images with Supabase URLs
+                images_data: formData.images.map(img => ({
+                    url: img.url,
+                    alt_text: img.alt_text || '',
+                    sort_order: img.sort_order,
+                    is_primary: img.is_primary
+                })),
                 // Note: variants are synced separately via API
             }
 
@@ -327,7 +334,9 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                                 {formData.images[0] && (
                                     <div className="aspect-square rounded-lg overflow-hidden bg-muted">
                                         <img
-                                            src={`http://localhost:8000${formData.images[0].url}` || "/placeholder.svg"}
+                                            src={formData.images[0].url.startsWith('http')
+                                                ? formData.images[0].url
+                                                : `http://localhost:8000${formData.images[0].url}`}
                                             alt="Preview"
                                             className="w-full h-full object-cover"
                                         />

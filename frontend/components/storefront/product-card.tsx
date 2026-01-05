@@ -46,7 +46,11 @@ export function ProductCard({ product, onAddToCart, onRequestQuote, className, a
                 aspectRatio === "portrait" ? "aspect-[3/4]" : "aspect-square"
             )}>
                 <img
-                    src={product.primary_image ? `http://localhost:8000${product.primary_image}` : "/placeholder.svg"}
+                    src={product.primary_image
+                        ? (product.primary_image.startsWith('http')
+                            ? product.primary_image
+                            : `http://localhost:8000${product.primary_image}`)
+                        : "/placeholder.svg"}
                     alt={product.name}
                     className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />

@@ -154,7 +154,9 @@ export default function ProductDetailPage() {
     }
 
     const currentImage = product.images?.[selectedImageIndex]?.url
-        ? `http://localhost:8000${product.images[selectedImageIndex].url}`
+        ? (product.images[selectedImageIndex].url.startsWith('http')
+            ? product.images[selectedImageIndex].url
+            : `http://localhost:8000${product.images[selectedImageIndex].url}`)
         : "/placeholder-product.jpg"
 
     const isOutOfStock = !product.is_quote_only && Boolean(product.manage_stock) && !!selectedVariant && selectedVariant.available_stock === 0
@@ -208,7 +210,9 @@ export default function ProductDetailPage() {
                                         )}
                                     >
                                         <img
-                                            src={`http://localhost:8000${image.url}`}
+                                            src={image.url.startsWith('http')
+                                                ? image.url
+                                                : `http://localhost:8000${image.url}`}
                                             alt={`${product.name} view ${index + 1}`}
                                             className="w-full h-full object-cover"
                                         />

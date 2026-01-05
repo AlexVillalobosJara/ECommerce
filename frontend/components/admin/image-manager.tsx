@@ -174,7 +174,9 @@ export function ImageManager({ productId, images, onImagesChange }: ImageManager
                             {/* Image Preview */}
                             <div className="relative aspect-square rounded-md overflow-hidden bg-muted mb-2">
                                 <Image
-                                    src={`http://localhost:8000${image.url}`}
+                                    src={image.url.startsWith('http')
+                                        ? image.url
+                                        : `http://localhost:8000${image.url}`}
                                     alt={image.alt_text || "Product image"}
                                     fill
                                     className="object-cover"

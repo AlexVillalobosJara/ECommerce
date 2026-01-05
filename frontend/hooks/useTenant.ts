@@ -21,14 +21,44 @@ export function useTenant(): TenantInfo {
         if (typeof window === 'undefined') return
 
         try {
-            const adminUserStr = localStorage.getItem('admin_user')
-            if (adminUserStr) {
-                const adminUser = JSON.parse(adminUserStr)
-                setTenantInfo({
-                    tenantId: adminUser.tenant_id || null,
-                    tenantSlug: adminUser.tenant_slug || null,
-                    isLoading: false,
-                })
+            // Get JWT token from localStorage
+            const token = localStorage.getItem('admin_access_token')
+
+            if (token) {
+                // Decode JWT to get tenant_id (client-side decode, no verification)
+                try {
+                    const base64Url = token.split('.')[1]
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+                    const jsonPayload = decodeURIComponent(
+                        atob(base64)
+                            .split('')
+                            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                            .join('')
+                    )
+                    const payload = JSON.parse(jsonPayload)
+
+                    if (payload && payload.tenant_id) {
+                        setTenantInfo({
+                            tenantId: payload.tenant_id,
+                            tenantSlug: payload.tenant_slug || null,
+                            isLoading: false,
+                        })
+                    } else {
+                        console.warn('No tenant_id found in JWT token')
+                        setTenantInfo({
+                            tenantId: null,
+                            tenantSlug: null,
+                            isLoading: false,
+                        })
+                    }
+                } catch (decodeError) {
+                    console.error('Failed to decode JWT:', decodeError)
+                    setTenantInfo({
+                        tenantId: null,
+                        tenantSlug: null,
+                        isLoading: false,
+                    })
+                }
             } else {
                 setTenantInfo({
                     tenantId: null,
@@ -37,7 +67,7 @@ export function useTenant(): TenantInfo {
                 })
             }
         } catch (error) {
-            console.error('Failed to parse admin user from localStorage:', error)
+            console.error('Failed to extract tenant from JWT:', error)
             setTenantInfo({
                 tenantId: null,
                 tenantSlug: null,

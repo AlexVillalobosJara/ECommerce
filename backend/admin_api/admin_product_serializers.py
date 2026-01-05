@@ -174,6 +174,12 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
     category_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
     variants = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    images_data = serializers.ListField(
+        child=serializers.DictField(),
+        write_only=True,
+        required=False,
+        help_text="Array of image objects with url, alt_text, sort_order, is_primary"
+    )
     
     def get_variants(self, obj):
         """Return only non-deleted variants"""
@@ -192,7 +198,7 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
                   'is_quote_only', 'manage_stock', 'status', 'is_featured',
                   'meta_title', 'meta_description', 'meta_keywords',
                   'weight_kg', 'length_cm', 'width_cm', 'height_cm',
-                  'views_count', 'sales_count', 'variants', 'images',
+                  'views_count', 'sales_count', 'variants', 'images', 'images_data',
                   'created_at', 'updated_at', 'published_at']
         read_only_fields = ['id', 'views_count', 'sales_count', 'created_at', 
                             'updated_at', 'published_at']
@@ -219,9 +225,6 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
             raise ValidationError({"error": "No se pudo determinar el comercio (tenant)."})
 
         validated_data['tenant_id'] = tenant.id
-        # Safety: check if model field expects UUID or Int. Some use models.UUIDField.
-        # But auth.User uses Int. If Product.created_by is UUIDField, this might crash.
-        # However, it seems it was already working for products.
         validated_data['created_by'] = request.user.id
         
         # Handle category_id
@@ -229,7 +232,25 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
         if category_id:
             validated_data['category_id'] = category_id
         
-        return super().create(validated_data)
+        # Extract images_data before creating product
+        images_data = validated_data.pop('images_data', [])
+        
+        # Create product
+        product = super().create(validated_data)
+        
+        # Create images from Supabase URLs
+        for img_data in images_data:
+            ProductImage.objects.create(
+                product=product,
+                tenant_id=tenant.id,
+                url=img_data.get('url'),
+                alt_text=img_data.get('alt_text', ''),
+                sort_order=img_data.get('sort_order', 0),
+                is_primary=img_data.get('is_primary', False),
+                created_by=request.user.id
+            )
+        
+        return product
     
     def update(self, instance, validated_data):
         # Track who updated
@@ -241,4 +262,27 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
         if category_id is not None:
             validated_data['category_id'] = category_id
         
-        return super().update(instance, validated_data)
+        # Extract images_data before updating product
+        images_data = validated_data.pop('images_data', None)
+        
+        # Update product
+        product = super().update(instance, validated_data)
+        
+        # Update images if provided
+        if images_data is not None:
+            # Delete existing images
+            instance.images.all().delete()
+            
+            # Create new images from Supabase URLs
+            for img_data in images_data:
+                ProductImage.objects.create(
+                    product=product,
+                    tenant_id=instance.tenant_id,
+                    url=img_data.get('url'),
+                    alt_text=img_data.get('alt_text', ''),
+                    sort_order=img_data.get('sort_order', 0),
+                    is_primary=img_data.get('is_primary', False),
+                    created_by=request.user.id
+                )
+        
+        return product
