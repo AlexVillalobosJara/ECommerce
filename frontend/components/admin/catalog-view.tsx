@@ -13,6 +13,7 @@ import type { AdminProductListItem, ProductFilters } from "@/types/admin"
 import { getProducts, deleteProduct } from "@/services/adminProductService"
 import { useTenant } from "@/contexts/TenantContext"
 import { formatPrice } from "@/lib/format-price"
+import { getProductImageUrl } from "@/lib/image-utils"
 import {
     Select,
     SelectContent,
@@ -190,9 +191,7 @@ export function CatalogView() {
                                                     <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                                                         {product.primary_image ? (
                                                             <img
-                                                                src={product.primary_image.startsWith('http')
-                                                                    ? product.primary_image
-                                                                    : `http://localhost:8000${product.primary_image}`}
+                                                                src={getProductImageUrl(product.primary_image)}
                                                                 alt={product.name}
                                                                 className="w-full h-full object-cover"
                                                             />

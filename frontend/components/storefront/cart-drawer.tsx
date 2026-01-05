@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useTenant } from "@/contexts/TenantContext"
 import { formatPrice } from "@/lib/format-price"
+import { getProductImageUrl } from "@/lib/image-utils"
 import type { CartItem } from "@/types/product"
 
 interface CartDrawerProps {
@@ -146,11 +147,7 @@ function CartItemCard({ item, onUpdateQuantity, onRemove, formatPrice, isQuote }
             {/* Image */}
             <div className="size-20 flex-shrink-0 overflow-hidden rounded-md bg-muted">
                 <img
-                    src={item.product.primary_image
-                        ? (item.product.primary_image.startsWith('http')
-                            ? item.product.primary_image
-                            : `http://localhost:8000${item.product.primary_image}`)
-                        : "/placeholder.svg"}
+                    src={getProductImageUrl(item.product.primary_image)}
                     alt={item.product.name}
                     className="size-full object-cover"
                 />

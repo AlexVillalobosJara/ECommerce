@@ -24,6 +24,7 @@ import { RelatedProducts } from "@/components/storefront/related-products"
 import { ProductReviews } from "@/components/storefront/product-reviews"
 import { TechnicalSpecs } from "@/components/storefront/technical-specs"
 import { formatPrice } from "@/lib/format-price"
+import { getProductImageUrl } from "@/lib/image-utils"
 
 export default function ProductDetailPage() {
     const params = useParams()
@@ -153,11 +154,7 @@ export default function ProductDetailPage() {
         )
     }
 
-    const currentImage = product.images?.[selectedImageIndex]?.url
-        ? (product.images[selectedImageIndex].url.startsWith('http')
-            ? product.images[selectedImageIndex].url
-            : `http://localhost:8000${product.images[selectedImageIndex].url}`)
-        : "/placeholder-product.jpg"
+    const currentImage = getProductImageUrl(product.images?.[selectedImageIndex]?.url)
 
     const isOutOfStock = !product.is_quote_only && Boolean(product.manage_stock) && !!selectedVariant && selectedVariant.available_stock === 0
 
@@ -210,9 +207,7 @@ export default function ProductDetailPage() {
                                         )}
                                     >
                                         <img
-                                            src={image.url.startsWith('http')
-                                                ? image.url
-                                                : `http://localhost:8000${image.url}`}
+                                            src={getProductImageUrl(image.url)}
                                             alt={`${product.name} view ${index + 1}`}
                                             className="w-full h-full object-cover"
                                         />

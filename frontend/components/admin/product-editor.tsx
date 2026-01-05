@@ -12,6 +12,7 @@ import { ProductPricing } from "./product-pricing"
 import { ProductVariantsEditor } from "./product-variants-editor"
 import { ProductSettings } from "./product-settings"
 import { ProductSpecifications } from "./product-specifications"
+import { getProductImageUrl } from "@/lib/image-utils"
 import type { AdminProduct } from "@/types/admin"
 import { getProduct, createProduct, updateProduct, getCategories, createVariant, updateVariant, deleteVariant } from "@/services/adminProductService"
 import { useTenant } from "@/contexts/TenantContext"
@@ -334,9 +335,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                                 {formData.images[0] && (
                                     <div className="aspect-square rounded-lg overflow-hidden bg-muted">
                                         <img
-                                            src={formData.images[0].url.startsWith('http')
-                                                ? formData.images[0].url
-                                                : `http://localhost:8000${formData.images[0].url}`}
+                                            src={getProductImageUrl(formData.images[0].url)}
                                             alt="Preview"
                                             className="w-full h-full object-cover"
                                         />

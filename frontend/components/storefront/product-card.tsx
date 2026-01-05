@@ -8,6 +8,7 @@ import type { ProductList } from "@/types/product"
 import { StarRating } from "@/components/ui/star-rating"
 import { useTenant } from "@/contexts/TenantContext"
 import { formatPrice } from "@/lib/format-price"
+import { getProductImageUrl } from "@/lib/image-utils"
 
 interface ProductCardProps {
     product: ProductList
@@ -46,11 +47,7 @@ export function ProductCard({ product, onAddToCart, onRequestQuote, className, a
                 aspectRatio === "portrait" ? "aspect-[3/4]" : "aspect-square"
             )}>
                 <img
-                    src={product.primary_image
-                        ? (product.primary_image.startsWith('http')
-                            ? product.primary_image
-                            : `http://localhost:8000${product.primary_image}`)
-                        : "/placeholder.svg"}
+                    src={getProductImageUrl(product.primary_image)}
                     alt={product.name}
                     className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
