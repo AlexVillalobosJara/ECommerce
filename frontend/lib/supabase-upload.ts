@@ -40,6 +40,10 @@ export async function uploadImageToSupabase(
     // Construct path with tenant isolation: {tenant_id}/{folder}/{filename}
     const path = `${tenantId}/${folder}/${filename}`
 
+    if (!supabase) {
+        throw new Error('Supabase no está configurado. Por favor, revisa las variables de entorno.')
+    }
+
     try {
         // Upload to Supabase Storage
         const { data, error } = await supabase.storage
@@ -78,6 +82,8 @@ export async function uploadImageToSupabase(
  * @param path - The storage path of the image
  */
 export async function deleteImageFromSupabase(path: string): Promise<void> {
+    if (!supabase) return
+
     try {
         const { error } = await supabase.storage
             .from(SUPABASE_BUCKET)
