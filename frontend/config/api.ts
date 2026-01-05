@@ -7,8 +7,11 @@
  * - Consider using same domain with reverse proxy
  */
 
-// Get API URL from environment variable or use default for development
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// Get API URL from environment variable
+const envApiUrl = process.env.NEXT_PUBLIC_API_URL
+
+// Default to production domain if no env var is found in production environment
+export const API_BASE_URL = envApiUrl || (process.env.NODE_ENV === 'production' ? 'https://ecommerce-backend-7v9a.onrender.com' : 'http://localhost:8000')
 
 // Admin API base
 export const API_BASE = `${API_BASE_URL}/api/admin`
