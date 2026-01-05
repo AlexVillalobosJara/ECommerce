@@ -6,8 +6,12 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Upload } from "lucide-react"
+import { Upload, Loader2 } from "lucide-react"
 import { useState, useRef } from "react"
+import { supabase, SUPABASE_BUCKET } from "@/lib/supabase"
+import { useTenant } from "@/contexts/TenantContext"
+import { toast } from "sonner"
+import { optimizeImage, OPTIMIZATION_PRESETS } from "@/lib/image-optimizer"
 
 interface TenantStoreSettingsProps {
     data: any
@@ -18,14 +22,50 @@ export function TenantStoreSettings({ data, onChange }: TenantStoreSettingsProps
     const [isDragging, setIsDragging] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (file) {
-            const reader = new FileReader()
-            reader.onload = (e) => {
-                onChange({ hero_image_url: e.target?.result as string })
-            }
-            reader.readAsDataURL(file)
+    const [isUploading, setIsUploading] = useState(false)
+    const { tenant } = useTenant()
+
+    const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement> | File) => {
+        const file = 'name' in e ? (e as any).target?.files?.[0] : e
+        if (!file || !file.type.startsWith("image/")) return
+
+        if (!tenant) {
+            toast.error("No se pudo identificar el comercio")
+            return
+        }
+
+        if (!supabase) {
+            toast.error("Supabase no está configurado")
+            return
+        }
+
+        try {
+            setIsUploading(true)
+
+            // Compress hero image
+            const { file: optimizedFile } = await optimizeImage(file, OPTIMIZATION_PRESETS.hero)
+
+            const fileExt = optimizedFile.name.split('.').pop() || 'webp'
+            const fileName = `hero_${Date.now()}.${fileExt}`
+            const filePath = `${tenant.slug}/store/hero/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from(SUPABASE_BUCKET)
+                .upload(filePath, optimizedFile)
+
+            if (uploadError) throw uploadError
+
+            const { data: { publicUrl } } = supabase.storage
+                .from(SUPABASE_BUCKET)
+                .getPublicUrl(filePath)
+
+            onChange({ hero_image_url: publicUrl })
+            toast.success("Imagen subida y optimizada")
+        } catch (error) {
+            console.error("Error uploading hero image:", error)
+            toast.error("Error al subir la imagen")
+        } finally {
+            setIsUploading(false)
         }
     }
 
@@ -42,13 +82,7 @@ export function TenantStoreSettings({ data, onChange }: TenantStoreSettingsProps
         e.preventDefault()
         setIsDragging(false)
         const file = e.dataTransfer.files[0]
-        if (file && file.type.startsWith("image/")) {
-            const reader = new FileReader()
-            reader.onload = (e) => {
-                onChange({ hero_image_url: e.target?.result as string })
-            }
-            reader.readAsDataURL(file)
-        }
+        if (file) handleHeroImageUpload(file)
     }
 
     return (
@@ -94,10 +128,16 @@ export function TenantStoreSettings({ data, onChange }: TenantStoreSettingsProps
                             ) : (
                                 <div className="flex flex-col items-center gap-3">
                                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                        <Upload className="w-6 h-6 text-primary" />
+                                        {isUploading ? (
+                                            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                                        ) : (
+                                            <Upload className="w-6 h-6 text-primary" />
+                                        )}
                                     </div>
                                     <div>
-                                        <p className="font-medium">Arrastra la imagen hero o haz clic para subir</p>
+                                        <p className="font-medium">
+                                            {isUploading ? "Subiendo imagen..." : "Arrastra la imagen hero o haz clic para subir"}
+                                        </p>
                                         <p className="text-sm text-muted-foreground mt-1">Recomendado 1920x600px, PNG o JPG hasta 5MB</p>
                                     </div>
                                 </div>

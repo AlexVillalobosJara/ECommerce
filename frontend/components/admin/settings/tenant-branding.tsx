@@ -5,8 +5,12 @@ import type React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Upload, Check } from "lucide-react"
+import { Upload, Check, Loader2 } from "lucide-react"
 import { useState, useRef } from "react"
+import { supabase, SUPABASE_BUCKET } from "@/lib/supabase"
+import { useTenant } from "@/contexts/TenantContext"
+import { toast } from "sonner"
+import { optimizeImage, OPTIMIZATION_PRESETS } from "@/lib/image-optimizer"
 
 interface TenantBrandingProps {
     data: any
@@ -207,14 +211,50 @@ export function TenantBranding({ data, onChange }: TenantBrandingProps) {
     const [isDragging, setIsDragging] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
-    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0]
-        if (file) {
-            const reader = new FileReader()
-            reader.onload = (e) => {
-                onChange({ logo_url: e.target?.result as string })
-            }
-            reader.readAsDataURL(file)
+    const [isUploading, setIsUploading] = useState(false)
+    const { tenant } = useTenant()
+
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement> | File) => {
+        const file = 'name' in e ? (e as any).target?.files?.[0] : e
+        if (!file || !file.type.startsWith("image/")) return
+
+        if (!tenant) {
+            toast.error("No se pudo identificar el comercio")
+            return
+        }
+
+        if (!supabase) {
+            toast.error("Supabase no está configurado")
+            return
+        }
+
+        try {
+            setIsUploading(true)
+
+            // Compress logo
+            const { file: optimizedFile } = await optimizeImage(file, OPTIMIZATION_PRESETS.logo)
+
+            const fileExt = optimizedFile.name.split('.').pop() || 'webp'
+            const fileName = `logo_${Date.now()}.${fileExt}`
+            const filePath = `${tenant.slug}/branding/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from(SUPABASE_BUCKET)
+                .upload(filePath, optimizedFile)
+
+            if (uploadError) throw uploadError
+
+            const { data: { publicUrl } } = supabase.storage
+                .from(SUPABASE_BUCKET)
+                .getPublicUrl(filePath)
+
+            onChange({ logo_url: publicUrl })
+            toast.success("Logo subido y optimizado")
+        } catch (error) {
+            console.error("Error uploading logo:", error)
+            toast.error("Error al subir el logo")
+        } finally {
+            setIsUploading(false)
         }
     }
 
@@ -231,13 +271,7 @@ export function TenantBranding({ data, onChange }: TenantBrandingProps) {
         e.preventDefault()
         setIsDragging(false)
         const file = e.dataTransfer.files[0]
-        if (file && file.type.startsWith("image/")) {
-            const reader = new FileReader()
-            reader.onload = (e) => {
-                onChange({ logo_url: e.target?.result as string })
-            }
-            reader.readAsDataURL(file)
-        }
+        if (file) handleLogoUpload(file)
     }
 
     const applyPalette = (palette: (typeof COLOR_PALETTES)[0]) => {
@@ -336,10 +370,16 @@ export function TenantBranding({ data, onChange }: TenantBrandingProps) {
                         ) : (
                             <div className="flex flex-col items-center gap-3">
                                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <Upload className="w-6 h-6 text-primary" />
+                                    {isUploading ? (
+                                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                                    ) : (
+                                        <Upload className="w-6 h-6 text-primary" />
+                                    )}
                                 </div>
                                 <div>
-                                    <p className="font-medium">Arrastra tu logo o haz clic para subir</p>
+                                    <p className="font-medium">
+                                        {isUploading ? "Subiendo logo..." : "Arrastra tu logo o haz clic para subir"}
+                                    </p>
                                     <p className="text-sm text-muted-foreground mt-1">PNG, JPG, SVG hasta 5MB</p>
                                 </div>
                             </div>

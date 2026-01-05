@@ -4,8 +4,12 @@ import { useState, useRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Upload, X, Image as ImageIcon } from "lucide-react"
+import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react"
 import Image from "next/image"
+import { supabase, SUPABASE_BUCKET } from "@/lib/supabase"
+import { useTenant } from "@/contexts/TenantContext"
+import { toast } from "sonner"
+import { optimizeImage, OPTIMIZATION_PRESETS } from "@/lib/image-optimizer"
 
 interface CategoryMediaUploadProps {
     data: {
@@ -16,16 +20,50 @@ interface CategoryMediaUploadProps {
 
 export function CategoryMediaUpload({ data, onChange }: CategoryMediaUploadProps) {
     const [isDragging, setIsDragging] = useState(false)
+    const [isUploading, setIsUploading] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const { tenant } = useTenant()
 
-    const handleFileSelect = (file: File) => {
-        if (file && file.type.startsWith("image/")) {
-            // In a real app, upload to server and get URL
-            const reader = new FileReader()
-            reader.onload = (e) => {
-                onChange({ image_url: e.target?.result as string })
-            }
-            reader.readAsDataURL(file)
+    const handleFileSelect = async (file: File) => {
+        if (!file || !file.type.startsWith("image/")) return
+
+        if (!tenant) {
+            toast.error("No se pudo identificar el comercio para la subida")
+            return
+        }
+
+        if (!supabase) {
+            toast.error("Supabase no está configurado")
+            return
+        }
+
+        try {
+            setIsUploading(true)
+
+            // Compress image
+            const { file: optimizedFile } = await optimizeImage(file, OPTIMIZATION_PRESETS.category)
+
+            const fileExt = optimizedFile.name.split('.').pop() || 'webp'
+            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
+            const filePath = `${tenant.slug}/categories/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from(SUPABASE_BUCKET)
+                .upload(filePath, optimizedFile)
+
+            if (uploadError) throw uploadError
+
+            const { data: { publicUrl } } = supabase.storage
+                .from(SUPABASE_BUCKET)
+                .getPublicUrl(filePath)
+
+            onChange({ image_url: publicUrl })
+            toast.success("Imagen subida y optimizada")
+        } catch (error) {
+            console.error("Error uploading category image:", error)
+            toast.error("Error al subir la imagen")
+        } finally {
+            setIsUploading(false)
         }
     }
 
@@ -99,9 +137,14 @@ export function CategoryMediaUpload({ data, onChange }: CategoryMediaUploadProps
                                                 size="sm"
                                                 className="mt-2"
                                                 onClick={() => fileInputRef.current?.click()}
+                                                disabled={isUploading}
                                             >
-                                                <Upload className="w-4 h-4 mr-2" />
-                                                Seleccionar Imagen
+                                                {isUploading ? (
+                                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                ) : (
+                                                    <Upload className="w-4 h-4 mr-2" />
+                                                )}
+                                                {isUploading ? "Subiendo..." : "Seleccionar Imagen"}
                                             </Button>
                                             <input
                                                 ref={fileInputRef}
