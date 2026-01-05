@@ -8,6 +8,8 @@ export const metadata: Metadata = {
     description: "Modern e-commerce admin dashboard for SME owners",
 }
 
+import { EnvDebugger } from "@/components/admin/env-debugger"
+
 export default function AdminLayout({
     children,
 }: {
@@ -18,6 +20,7 @@ export default function AdminLayout({
             <AdminAuthProvider>
                 <AdminUIProvider>
                     {children}
+                    <EnvDebugger />
                 </AdminUIProvider>
             </AdminAuthProvider>
         </div>
