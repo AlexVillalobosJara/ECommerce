@@ -2,7 +2,9 @@
  * Admin API service for authenticated admin operations
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+import { API_BASE_URL } from "@/config/api"
+
+const API_URL = API_BASE_URL
 
 // Helper to get auth token from localStorage
 function getAuthToken(): string | null {

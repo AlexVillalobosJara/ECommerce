@@ -27,6 +27,12 @@ export function getHeaders(includeContentType = true): HeadersInit {
         headers['Authorization'] = `Bearer ${token}`
     }
 
+    // Add tenant slug from localStorage to help backend resolve tenant
+    const tenantSlug = typeof window !== 'undefined' ? localStorage.getItem('tenant_slug') : null
+    if (tenantSlug) {
+        headers['X-Tenant'] = tenantSlug
+    }
+
     if (includeContentType) {
         headers['Content-Type'] = 'application/json'
     }

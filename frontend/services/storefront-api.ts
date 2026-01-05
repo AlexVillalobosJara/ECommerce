@@ -1,6 +1,8 @@
 import type { Category, ProductList, ProductDetail } from "@/types/product"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+import { API_BASE_URL } from "@/config/api"
+
+const API_URL = API_BASE_URL
 
 // Order types
 export interface ShippingZone {

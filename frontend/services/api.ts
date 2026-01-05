@@ -1,6 +1,8 @@
 import type { Tenant } from "@/types/tenant"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+import { API_BASE_URL } from "@/config/api"
+
+const API_URL = API_BASE_URL
 
 export const api = {
     async getTenants(): Promise<Tenant[]> {

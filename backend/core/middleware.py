@@ -24,11 +24,26 @@ class TenantMiddleware(MiddlewareMixin):
             host = request.get_host().split(':')[0].lower()  # Remove port and normalize to lowercase
             logger.info(f"TenantMiddleware resolving host: {host}")
             
-            # Skip tenant resolution for global paths
-            if request.path.startswith('/admin/') or request.path.startswith('/api/admin/'):
+            # Skip tenant resolution for global Django admin (if any)
+            if request.path.startswith('/admin/'):
                 if not hasattr(request, 'tenant'):
                     request.tenant = None
                 return None
+            
+            # 0. Try to match by X-Tenant header (High priority for cross-domain API calls)
+            header_tenant_slug = request.headers.get('X-Tenant')
+            if header_tenant_slug:
+                try:
+                    tenant = Tenant.objects.get(
+                        slug=header_tenant_slug,
+                        status='Active',
+                        deleted_at__isnull=True
+                    )
+                    request.tenant = tenant
+                    logger.info(f"Tenant resolved by X-Tenant header: {tenant.slug}")
+                    return None
+                except Tenant.DoesNotExist:
+                    logger.warning(f"Tenant not found for X-Tenant header: {header_tenant_slug}")
             
             # 1. Try to match by custom domain first
             clean_host = host[4:] if host.startswith('www.') else host

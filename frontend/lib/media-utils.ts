@@ -3,6 +3,8 @@
  * @param url - The URL to convert (can be relative or absolute)
  * @returns Absolute URL pointing to Django backend
  */
+import { API_BASE_URL } from "@/config/api"
+
 export function getAbsoluteMediaUrl(url: string | null | undefined): string | null {
     if (!url) return null
 
@@ -12,7 +14,7 @@ export function getAbsoluteMediaUrl(url: string | null | undefined): string | nu
     }
 
     // Convert relative URL to absolute
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+    const baseUrl = API_BASE_URL
 
     // Remove leading slash if present to avoid double slashes
     const cleanUrl = url.startsWith('/') ? url.slice(1) : url

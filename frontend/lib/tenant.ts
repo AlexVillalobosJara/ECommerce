@@ -3,6 +3,7 @@
  */
 
 import { Tenant } from "@/types/tenant"
+import { API_BASE_URL } from "@/config/api"
 
 export type TenantConfig = Tenant
 
@@ -65,7 +66,7 @@ export function getTenantSlug(hostname: string): string | null {
  */
 export async function fetchTenantConfig(params: { slug?: string, domain?: string } | string): Promise<TenantConfig | null> {
     try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+        const apiBase = API_BASE_URL
         let url = `${apiBase}/api/tenants/`
 
         if (typeof params === 'string') {

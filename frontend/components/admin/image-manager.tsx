@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import Image from "next/image"
 import type { AdminProductImage } from "@/types/admin"
 import { uploadProductImage, deleteProductImage, setProductImagePrimary, updateProductImage } from "@/services/adminProductService"
+import { getProductImageUrl } from "@/lib/image-utils"
 
 interface ImageManagerProps {
     productId: string
@@ -174,9 +175,7 @@ export function ImageManager({ productId, images, onImagesChange }: ImageManager
                             {/* Image Preview */}
                             <div className="relative aspect-square rounded-md overflow-hidden bg-muted mb-2">
                                 <Image
-                                    src={image.url.startsWith('http')
-                                        ? image.url
-                                        : `http://localhost:8000${image.url}`}
+                                    src={getProductImageUrl(image.url)}
                                     alt={image.alt_text || "Product image"}
                                     fill
                                     className="object-cover"
