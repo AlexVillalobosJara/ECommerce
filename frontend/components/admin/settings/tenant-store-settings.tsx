@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Upload, Loader2 } from "lucide-react"
 import { useState, useRef } from "react"
-import { supabase, SUPABASE_BUCKET } from "@/lib/supabase"
 import { useTenant } from "@/contexts/TenantContext"
 import { toast } from "sonner"
 import { optimizeImage, OPTIMIZATION_PRESETS } from "@/lib/image-optimizer"
+import { uploadImageToSupabase } from "@/lib/supabase-upload"
 
 interface TenantStoreSettingsProps {
     data: any
@@ -34,11 +34,6 @@ export function TenantStoreSettings({ data, onChange }: TenantStoreSettingsProps
             return
         }
 
-        if (!supabase) {
-            toast.error("Supabase no está configurado")
-            return
-        }
-
         try {
             setIsUploading(true)
 
@@ -48,20 +43,10 @@ export function TenantStoreSettings({ data, onChange }: TenantStoreSettingsProps
 
             console.log(`[TenantStoreSettings] Optimization: ${originalSize} -> ${optimizedSize} (${compressionRatio}% reduction)`)
 
-            const fileName = `hero_${Date.now()}.webp`
-            const filePath = `store/hero/${tenant.id}/${fileName}`
+            // Use shared upload utility for consistent path: {tenantId}/tenant/{filename}
+            const { url } = await uploadImageToSupabase(optimizedFile, 'tenant', tenant.id)
 
-            const { error: uploadError } = await supabase.storage
-                .from(SUPABASE_BUCKET)
-                .upload(filePath, optimizedFile)
-
-            if (uploadError) throw uploadError
-
-            const { data: { publicUrl } } = supabase.storage
-                .from(SUPABASE_BUCKET)
-                .getPublicUrl(filePath)
-
-            onChange({ hero_image_url: publicUrl })
+            onChange({ hero_image_url: url })
             toast.success("Imagen subida y optimizada")
         } catch (error) {
             console.error("Error uploading hero image:", error)

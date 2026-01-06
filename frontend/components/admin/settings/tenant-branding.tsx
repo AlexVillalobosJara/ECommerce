@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Upload, Check, Loader2 } from "lucide-react"
 import { useState, useRef } from "react"
-import { supabase, SUPABASE_BUCKET } from "@/lib/supabase"
 import { useTenant } from "@/contexts/TenantContext"
 import { toast } from "sonner"
 import { optimizeImage, OPTIMIZATION_PRESETS } from "@/lib/image-optimizer"
+import { uploadImageToSupabase } from "@/lib/supabase-upload"
 
 interface TenantBrandingProps {
     data: any
@@ -223,11 +223,6 @@ export function TenantBranding({ data, onChange }: TenantBrandingProps) {
             return
         }
 
-        if (!supabase) {
-            toast.error("Supabase no está configurado")
-            return
-        }
-
         try {
             setIsUploading(true)
 
@@ -237,20 +232,10 @@ export function TenantBranding({ data, onChange }: TenantBrandingProps) {
 
             console.log(`[TenantBranding] Optimization: ${originalSize} -> ${optimizedSize} (${compressionRatio}% reduction)`)
 
-            const fileName = `logo_${Date.now()}.webp`
-            const filePath = `branding/${tenant.id}/${fileName}`
+            // Use shared upload utility for consistent path: {tenantId}/tenant/{filename}
+            const { url } = await uploadImageToSupabase(optimizedFile, 'tenant', tenant.id)
 
-            const { error: uploadError } = await supabase.storage
-                .from(SUPABASE_BUCKET)
-                .upload(filePath, optimizedFile)
-
-            if (uploadError) throw uploadError
-
-            const { data: { publicUrl } } = supabase.storage
-                .from(SUPABASE_BUCKET)
-                .getPublicUrl(filePath)
-
-            onChange({ logo_url: publicUrl })
+            onChange({ logo_url: url })
             toast.success("Logo subido y optimizado")
         } catch (error) {
             console.error("Error uploading logo:", error)

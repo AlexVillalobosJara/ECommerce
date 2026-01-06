@@ -6,10 +6,10 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react"
 import Image from "next/image"
-import { supabase, SUPABASE_BUCKET } from "@/lib/supabase"
 import { useTenant } from "@/contexts/TenantContext"
 import { toast } from "sonner"
 import { optimizeImage, OPTIMIZATION_PRESETS } from "@/lib/image-optimizer"
+import { uploadImageToSupabase } from "@/lib/supabase-upload"
 
 interface CategoryMediaUploadProps {
     data: {
@@ -32,11 +32,6 @@ export function CategoryMediaUpload({ data, onChange }: CategoryMediaUploadProps
             return
         }
 
-        if (!supabase) {
-            toast.error("Supabase no está configurado")
-            return
-        }
-
         try {
             setIsUploading(true)
 
@@ -46,20 +41,10 @@ export function CategoryMediaUpload({ data, onChange }: CategoryMediaUploadProps
 
             console.log(`[CategoryMediaUpload] Optimization: ${originalSize} -> ${optimizedSize} (${compressionRatio}% reduction)`)
 
-            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.webp`
-            const filePath = `categories/${tenant.id}/${fileName}`
+            // Use shared upload utility for consistent path: {tenantId}/categories/{filename}
+            const { url } = await uploadImageToSupabase(optimizedFile, 'categories', tenant.id)
 
-            const { error: uploadError } = await supabase.storage
-                .from(SUPABASE_BUCKET)
-                .upload(filePath, optimizedFile)
-
-            if (uploadError) throw uploadError
-
-            const { data: { publicUrl } } = supabase.storage
-                .from(SUPABASE_BUCKET)
-                .getPublicUrl(filePath)
-
-            onChange({ image_url: publicUrl })
+            onChange({ image_url: url })
             toast.success("Imagen subida y optimizada")
         } catch (error) {
             console.error("Error uploading category image:", error)
