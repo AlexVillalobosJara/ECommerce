@@ -34,8 +34,9 @@ class TenantMiddleware(MiddlewareMixin):
             header_tenant_slug = request.headers.get('X-Tenant')
             if header_tenant_slug:
                 try:
+                    # Allow matching by slug or custom_domain in header
                     tenant = Tenant.objects.get(
-                        slug=header_tenant_slug,
+                        Q(slug=header_tenant_slug) | Q(custom_domain=header_tenant_slug),
                         status='Active',
                         deleted_at__isnull=True
                     )
@@ -65,8 +66,9 @@ class TenantMiddleware(MiddlewareMixin):
             tenant_slug = request.GET.get('tenant')
             if tenant_slug:
                 try:
+                    # Allow matching by slug or custom_domain in query param
                     tenant = Tenant.objects.get(
-                        slug=tenant_slug,
+                        Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
                         status='Active',
                         deleted_at__isnull=True
                     )

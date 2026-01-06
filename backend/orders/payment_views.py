@@ -79,13 +79,13 @@ def initiate_payment(request):
         
         # Build return URLs with order ID and tenant for callback
         # Use request.build_absolute_uri() to handle SaaS custom domains dynamically
-        # This fixes the issue where production was using localhost:8000
+        # Use the internal slug (not custom_domain) for backend-to-backend consistency
         return_url = request.build_absolute_uri(
-            f"/api/storefront/payments/return/{gateway}/?order={order_id}&tenant={tenant_slug}"
+            f"/api/storefront/payments/return/{gateway}/?order={order_id}&tenant={order.tenant.slug}"
         )
         
         confirmation_url = request.build_absolute_uri(
-            f"/api/storefront/payments/callback/{gateway}/?tenant={tenant_slug}"
+            f"/api/storefront/payments/callback/{gateway}/?tenant={order.tenant.slug}"
         )
         
         base_frontend_url = request.build_absolute_uri('/')
@@ -206,7 +206,11 @@ def payment_return_handler(request, gateway):
     # Preferred: Use tenant's custom domain if available
     tenant = None
     if tenant_slug:
-        tenant = Tenant.objects.filter(slug=tenant_slug, deleted_at__isnull=True).first()
+        # Flexible lookup: matches slug OR custom_domain
+        tenant = Tenant.objects.filter(
+            Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
+            deleted_at__isnull=True
+        ).first()
 
     if tenant and tenant.custom_domain:
         # Check if custom domain has protocol, if not add https
@@ -214,13 +218,15 @@ def payment_return_handler(request, gateway):
         if not base_url.startswith(('http://', 'https://')):
             base_url = f"https://{base_url}"
     else:
-        # Fallback to FRONTEND_URL setting or incoming request host if it looks like a frontend
+        # Fallback to FRONTEND_URL setting
         base_url = settings.FRONTEND_URL
     
     if base_url.endswith('/'):
         base_url = base_url[:-1]
     
-    redirect_url = f"{base_url}/payment/callback?order={order_id}&tenant={tenant_slug}"
+    # We pass the internal tenant slug to the frontend to ensure stable state
+    final_slug = tenant.slug if tenant else tenant_slug
+    redirect_url = f"{base_url}/payment/callback?order={order_id}&tenant={final_slug}"
     
     if token:
         redirect_url += f"&token={token}"
