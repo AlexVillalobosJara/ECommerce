@@ -1,0 +1,191 @@
+﻿--- Simulation Start ---
+Simulating for order DEMO-STORE-000081 (ID: 06b39641-3c55-447e-8e74-8c4f58a6be22)
+Step 1: Creating Payment record...
+  Payment created: 276e2137-e823-4cd4-888e-3ff87c6ca925
+Step 2: Getting Payment Service...
+.venv\Scripts\python.e
+xe : Using Flow 
+credentials for 
+tenant: demo-store
+En línea: 1 Carácter: 
+1
++ .venv\Scripts\python
+.exe backend\simulate_
+initiate_payment.py > 
+sim_o ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (Using Flow   
+  cred...ant: demo    
+-store:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+Using Flow 
+credentials for 
+tenant: demo-store
+  Service initialized: FlowService
+Step 3: Creating payment at gateway...
+Creating Flow payment 
+for order 
+DEMO-STORE-000081
+Creating Flow payment 
+for order 
+DEMO-STORE-000081
+Flow API error: 
+{'status_code': 400, 
+'response_text': '{"co
+de":1605,"message":"Th
+is commerceOrder 
+DEMO-STORE-000081 has 
+been previously 
+paid"}', 
+'request_params': 
+{'apiKey': '24FB0EA5-0
+7C6-4EEE-A4BD-378LFC91
+967D', 
+'commerceOrder': 
+'DEMO-STORE-000081', 
+'subject': 'Orden 
+DEMO-STORE-000081', 
+'currency': 'CLP', 
+'amount': '125000', 
+'email': 
+'admin@empresa.cl', 
+'urlConfirmation': 'ht
+tp://localhost:8000/ap
+i/storefront/payments/
+callback/Flow/?tenant=
+demo-store', 
+'urlReturn': 'http://l
+ocalhost:3000/callback
+'}}
+Flow API error: 
+{'status_code': 400, 
+'response_text': '{"co
+de":1605,"message":"Th
+is commerceOrder 
+DEMO-STORE-000081 has 
+been previously 
+paid"}', 
+'request_params': 
+{'apiKey': '24FB0EA5-0
+7C6-4EEE-A4BD-378LFC91
+967D', 
+'commerceOrder': 
+'DEMO-STORE-000081', 
+'subject': 'Orden 
+DEMO-STORE-000081', 
+'currency': 'CLP', 
+'amount': '125000', 
+'email': 
+'admin@empresa.cl', 
+'urlConfirmation': 'ht
+tp://localhost:8000/ap
+i/storefront/payments/
+callback/Flow/?tenant=
+demo-store', 
+'urlReturn': 'http://l
+ocalhost:3000/callback
+'}}
+Traceback (most 
+recent call last):
+  File "D:\source\repo
+sV2026\ecommerce\backe
+nd\simulate_initiate_p
+ayment.py", line 58, 
+in simulate
+    payment_result = p
+ayment_service.create_
+payment(
+  File "D:\source\repo
+sV2026\ecommerce\backe
+nd\orders\payment_serv
+ices\flow_service.py",
+ line 148, in 
+create_payment
+    raise 
+PaymentGatewayError(
+orders.payment_service
+s.base.PaymentGatewayE
+rror: [Flow] Flow API 
+error: 400 - {"code":1
+605,"message":"This 
+commerceOrder 
+DEMO-STORE-000081 has 
+been previously paid"}
+
+During handling of 
+the above exception, 
+another exception 
+occurred:
+
+Traceback (most 
+recent call last):
+  File "D:\source\repo
+sV2026\ecommerce\backe
+nd\simulate_initiate_p
+ayment.py", line 90, 
+in <module>
+    simulate()
+  File "D:\source\repo
+sV2026\ecommerce\backe
+nd\simulate_initiate_p
+ayment.py", line 83, 
+in simulate
+    print(f"\n\u274c 
+SIMULATION FAILED: 
+{e}")
+  File "D:\source\repo
+sV2026\ecommerce\.venv
+\lib\site-packages\col
+orama\ansitowin32.py",
+ line 47, in write
+    self.__convertor.w
+rite(text)
+  File "D:\source\repo
+sV2026\ecommerce\.venv
+\lib\site-packages\col
+orama\ansitowin32.py",
+ line 177, in write
+    self.write_and_con
+vert(text)
+  File "D:\source\repo
+sV2026\ecommerce\.venv
+\lib\site-packages\col
+orama\ansitowin32.py",
+ line 205, in 
+write_and_convert
+    self.write_plain_t
+ext(text, cursor, 
+len(text))
+  File "D:\source\repo
+sV2026\ecommerce\.venv
+\lib\site-packages\col
+orama\ansitowin32.py",
+ line 210, in 
+write_plain_text
+    self.wrapped.write
+(text[start:end])
+  File "C:\Program 
+Files (x86)\Microsoft 
+Visual Studio\Shared\P
+ython39_64\lib\encodin
+gs\cp1252.py", line 
+19, in encode
+    return codecs.char
+map_encode(input,self.
+errors,encoding_table)
+[0]
+UnicodeEncodeError: 
+'charmap' codec can't 
+encode character 
+'\u274c' in position 
+2: character maps to 
+<undefined>

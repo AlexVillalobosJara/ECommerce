@@ -1,0 +1,11 @@
+﻿--- Recent Failed Payments ---
+Time: 2026-01-06 17:43:11.889946+00:00, Order: TEST-4F84D6, Status: Failed
+  Error: [Flow] Flow API error: 400 - {"code":1620,"message":"The userEmail: test-initiate@example.com is not valid."}
+--------------------
+Time: 2025-12-18 20:49:53.220459+00:00, Order: DEMO-STORE-000051, Status: Failed
+  Error: [Flow] Flow API error: 400 - {"code":1620,"message":"The userEmail: test@test.cl is not valid."}
+--------------------
+Time: 2025-12-18 19:50:20.658147+00:00, Order: DEMO-STORE-000040, Status: Failed
+  Error: [Flow] Flow API error: 400 - {"code":1620,"message":"The userEmail: admin@demo.cl is not valid."}
+--------------------
+--- End ---

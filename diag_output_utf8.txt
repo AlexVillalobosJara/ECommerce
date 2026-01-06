@@ -1,0 +1,43 @@
+﻿--- Extended Diagnostic Start ---
+DEBUG: True
+FRONTEND_URL: http://localhost:3000
+PAYMENT_WEBHOOK_URL: http://localhost:8000/api/storefront
+Encryption Key length: 44
+Found 1 active Flow configs.
+
+Processing Tenant: demo-store
+  Credentials decrypted: API_KEY=Yes, SECRET_KEY=Yes
+.venv\Scripts\python.e
+xe : Using Flow 
+credentials for 
+tenant: demo-store
+En línea: 1 Carácter: 
+1
++ .venv\Scripts\python
+.exe backend\debug_pay
+ment_checkout.py > 
+diag_out ...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (Using Flow   
+  cred...ant: demo    
+-store:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+Using Flow 
+credentials for 
+tenant: demo-store
+  FlowService initialized. Base URL: https://sandbox.flow.cl/api
+  Attempting mock payment for order: DEMO-STORE-000081 (ID: 06b39641-3c55-447e-8e74-8c4f58a6be22)
+  Customer: admin@empresa.cl, Total: 125000.00
+  Signature generated successfully: b994c46707...
+  This is SANDBOX. You can manually run test_flow.py with these credentials.
+
+--- Extended Diagnostic End ---

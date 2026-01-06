@@ -1,0 +1,94 @@
+﻿Created Test Order: TEST-89A46D (ID: 8a934bed-9490-4b82-a4b6-0050d90c19c3)
+.venv\Scripts\python.exe : 
+Payment initiation requested 
+for tenant demo-store, order 
+8a934bed-9490-4b82-a4b6-0050d
+90c19c3, gateway Flow
+En línea: 1 Carácter: 1
++ .venv\Scripts\python.exe ba
+ckend\test_full_payment_flow.
+py > test_out ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpeci    fied: 
+(Payment in    itiat...3, 
+gatewa    y Flow:String) []  
+  , RemoteException
+    + FullyQualifiedE    
+rrorId : NativeCo    
+mmandError
+ 
+Payment initiation requested 
+for tenant demo-store, order 
+8a934bed-9490-4b82-a4b6-0050d
+90c19c3, gateway Flow
+Using Flow credentials for 
+tenant: demo-store
+Using Flow credentials for 
+tenant: demo-store
+Creating Flow payment for 
+order TEST-89A46D
+Creating Flow payment for 
+order TEST-89A46D
+Flow API error: 
+{'status_code': 400, 
+'response_text': 
+'{"code":1620,"message":"The 
+userEmail: 
+test-initiate@example.com is 
+not valid."}', 
+'request_params': {'apiKey': 
+'24FB0EA5-07C6-4EEE-A4BD-378L
+FC91967D', 'commerceOrder': 
+'TEST-89A46D', 'subject': 
+'Orden TEST-89A46D', 
+'currency': 'CLP', 'amount': 
+'5000', 'email': 
+'test-initiate@example.com', 
+'urlConfirmation': 'http://lo
+calhost:8000/api/storefront/p
+ayments/callback/Flow/?tenant
+=demo-store', 'urlReturn': 'h
+ttp://localhost:3000/payment/
+callback?order=8a934bed-9490-
+4b82-a4b6-0050d90c19c3&tenant
+=demo-store'}}
+Flow API error: 
+{'status_code': 400, 
+'response_text': 
+'{"code":1620,"message":"The 
+userEmail: 
+test-initiate@example.com is 
+not valid."}', 
+'request_params': {'apiKey': 
+'24FB0EA5-07C6-4EEE-A4BD-378L
+FC91967D', 'commerceOrder': 
+'TEST-89A46D', 'subject': 
+'Orden TEST-89A46D', 
+'currency': 'CLP', 'amount': 
+'5000', 'email': 
+'test-initiate@example.com', 
+'urlConfirmation': 'http://lo
+calhost:8000/api/storefront/p
+ayments/callback/Flow/?tenant
+=demo-store', 'urlReturn': 'h
+ttp://localhost:3000/payment/
+callback?order=8a934bed-9490-
+4b82-a4b6-0050d90c19c3&tenant
+=demo-store'}}
+Payment gateway error for 
+order TEST-89A46D: [Flow] 
+Flow API error: 400 - The 
+userEmail: 
+test-initiate@example.com is 
+not valid.
+Payment gateway error for 
+order TEST-89A46D: [Flow] 
+Flow API error: 400 - The 
+userEmail: 
+test-initiate@example.com is 
+not valid.
+Status Code: 500
+Response Data: {'error': 'Payment gateway error: [Flow] Flow API error: 400 - The userEmail: test-initiate@example.com is not valid.'}
