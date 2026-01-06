@@ -140,18 +140,45 @@ def configure_payment_gateway(request, gateway):
                 gateway=gateway
             )
             
-            # Update fields
-            if 'api_key' in request.data and request.data['api_key']:
-                config.api_key = request.data['api_key']
+            # Helper to check if a value is a masked placeholder from the backend
+            def is_masked(val):
+                if not val: return False
+                if val == "****": return True
+                # Check if it looks like ****1234
+                if len(val) > 4 and val.startswith('***') and all(c == '*' for c in val[:-4]):
+                    return True
+                return False
+
+            # Update fields - allow empty string for clearing, but ignore masked placeholders
+            if 'api_key' in request.data:
+                val = request.data['api_key']
+                if not is_masked(val):
+                    config.api_key = val
             
-            if 'secret_key' in request.data and request.data['secret_key']:
-                config.secret_key = request.data['secret_key']
+            if 'secret_key' in request.data:
+                val = request.data.get('secret_key')
+                if not is_masked(val):
+                    config.secret_key = val
             
-            if 'commerce_code' in request.data and request.data['commerce_code']:
-                config.commerce_code = request.data['commerce_code']
+            if 'commerce_code' in request.data:
+                val = request.data.get('commerce_code')
+                if not is_masked(val):
+                    config.commerce_code = val
             
-            if 'public_key' in request.data and request.data['public_key']:
-                config.public_key = request.data['public_key']
+            if 'public_key' in request.data:
+                val = request.data.get('public_key')
+                if not is_masked(val):
+                    config.public_key = val
+            
+            if 'access_token' in request.data:
+                # Mercado Pago calls it access_token in frontend but we store it as secret_key or in config_data
+                val = request.data.get('access_token')
+                if not is_masked(val):
+                    # For MP we use access_token -> secret_key mapping usually
+                    if gateway == 'MercadoPago':
+                        config.secret_key = val
+                    else:
+                        config.config_data['access_token'] = val
             
             if 'is_sandbox' in request.data:
                 config.is_sandbox = request.data['is_sandbox']

@@ -313,6 +313,7 @@ export function PaymentSettings() {
                                                     <Input
                                                         id={`${gateway.gateway}-api-key`}
                                                         type="text"
+                                                        autoComplete="off"
                                                         placeholder={gateway.credentials?.api_key || "Ingresa tu API Key de Flow"}
                                                         value={form.api_key || ""}
                                                         onChange={(e) => updateFormData(gateway.gateway, "api_key", e.target.value)}
@@ -324,6 +325,7 @@ export function PaymentSettings() {
                                                         <Input
                                                             id={`${gateway.gateway}-secret-key`}
                                                             type={showSecrets[`${gateway.gateway}-secret`] ? "text" : "password"}
+                                                            autoComplete="new-password"
                                                             placeholder={gateway.credentials?.secret_key || "Ingresa tu Secret Key de Flow"}
                                                             value={form.secret_key || ""}
                                                             onChange={(e) => updateFormData(gateway.gateway, "secret_key", e.target.value)}
@@ -348,6 +350,7 @@ export function PaymentSettings() {
                                                     <Input
                                                         id={`${gateway.gateway}-commerce-code`}
                                                         type="text"
+                                                        autoComplete="off"
                                                         placeholder={gateway.credentials?.commerce_code || "Ej: 597055555532"}
                                                         value={form.commerce_code || ""}
                                                         onChange={(e) => updateFormData(gateway.gateway, "commerce_code", e.target.value)}
@@ -359,6 +362,7 @@ export function PaymentSettings() {
                                                         <Input
                                                             id={`${gateway.gateway}-api-key`}
                                                             type={showSecrets[`${gateway.gateway}-secret`] ? "text" : "password"}
+                                                            autoComplete="new-password"
                                                             placeholder={gateway.credentials?.api_key || "Ingresa tu API Key de Transbank"}
                                                             value={form.api_key || ""}
                                                             onChange={(e) => updateFormData(gateway.gateway, "api_key", e.target.value)}
@@ -383,6 +387,7 @@ export function PaymentSettings() {
                                                     <Input
                                                         id={`${gateway.gateway}-public-key`}
                                                         type="text"
+                                                        autoComplete="off"
                                                         placeholder={gateway.credentials?.public_key || "APP_USR-xxxxxx-xxxxxx"}
                                                         value={form.public_key || ""}
                                                         onChange={(e) => updateFormData(gateway.gateway, "public_key", e.target.value)}
@@ -394,6 +399,7 @@ export function PaymentSettings() {
                                                         <Input
                                                             id={`${gateway.gateway}-access-token`}
                                                             type={showSecrets[`${gateway.gateway}-secret`] ? "text" : "password"}
+                                                            autoComplete="new-password"
                                                             placeholder="APP_USR-xxxxxx-xxxxxx"
                                                             value={form.access_token || ""}
                                                             onChange={(e) => updateFormData(gateway.gateway, "access_token", e.target.value)}

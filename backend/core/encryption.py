@@ -72,15 +72,17 @@ def decrypt_credential(encrypted_value: str) -> str:
 def mask_credential(value: str, visible_chars: int = 4) -> str:
     """
     Mask credential for display purposes.
+    Returns a string with a fixed prefix of stars followed by the last visible characters.
     
     Args:
         value: Credential to mask
         visible_chars: Number of characters to show at the end
         
     Returns:
-        Masked string like "****1234"
+        Masked string like "****************1234"
     """
     if not value or len(value) <= visible_chars:
-        return "****"
+        return "********"
     
-    return "*" * (len(value) - visible_chars) + value[-visible_chars:]
+    # Use a fixed number of stars (e.g., 20) to make it look uniform and recognizable
+    return "*" * 20 + value[-visible_chars:]
