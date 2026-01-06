@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.db import transaction
 import logging
@@ -78,7 +79,9 @@ def initiate_payment(request):
         
         # Build return URLs with order ID and tenant for callback
         # Flow will redirect user here after payment (browser redirect)
-        return_url = request.data.get('return_url', f"{settings.FRONTEND_URL}/payment/callback?order={order_id}&tenant={tenant_slug}")
+        # Use backend return handler to avoid 405 error on frontend (Flow uses POST for return)
+        backend_url = settings.PAYMENT_WEBHOOK_URL # Usually pointing to the backend API root
+        return_url = request.data.get('return_url', f"{backend_url}/payments/return/{gateway}/?order={order_id}&tenant={tenant_slug}")
         cancel_url = request.data.get('cancel_url', f"{settings.FRONTEND_URL}/payment/cancelled?order={order_id}&tenant={tenant_slug}")
         
         # Validate order can be paid
@@ -171,6 +174,31 @@ def initiate_payment(request):
             {'error': f'Internal server error: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['POST', 'GET'])
+def payment_return_handler(request, gateway):
+    """
+    Handle browser redirect from payment gateway.
+    Converts POST request (from Flow/others) to a GET redirect to the frontend.
+    """
+    token = request.data.get('token') if hasattr(request, 'data') else request.POST.get('token')
+    if not token and request.method == 'GET':
+        token = request.GET.get('token')
+        
+    order_id = request.GET.get('order')
+    tenant_slug = request.GET.get('tenant')
+    
+    logger.info(f"Payment return handled for {gateway}. Order: {order_id}, Tenant: {tenant_slug}, Token: {token}")
+    
+    # Construct frontend redirect URL
+    frontend_url = settings.FRONTEND_URL
+    redirect_url = f"{frontend_url}/payment/callback?order={order_id}&tenant={tenant_slug}"
+    
+    if token:
+        redirect_url += f"&token={token}"
+        
+    return HttpResponseRedirect(redirect_url)
 
 
 @api_view(['POST', 'GET'])
