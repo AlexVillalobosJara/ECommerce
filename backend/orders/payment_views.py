@@ -201,11 +201,22 @@ def payment_return_handler(request, gateway):
     tenant_slug = request.GET.get('tenant')
     
     logger.info(f"Payment return handled for {gateway}. Order: {order_id}, Tenant: {tenant_slug}, Token: {token}")
+
+    # Construct frontend redirect URL
+    # Preferred: Use tenant's custom domain if available
+    tenant = None
+    if tenant_slug:
+        tenant = Tenant.objects.filter(slug=tenant_slug, deleted_at__isnull=True).first()
+
+    if tenant and tenant.custom_domain:
+        # Check if custom domain has protocol, if not add https
+        base_url = tenant.custom_domain
+        if not base_url.startswith(('http://', 'https://')):
+            base_url = f"https://{base_url}"
+    else:
+        # Fallback to FRONTEND_URL setting or incoming request host if it looks like a frontend
+        base_url = settings.FRONTEND_URL
     
-    # Construct frontend redirect URL dynamically based on current host
-    # For SaaS, we want to stay on the same domain (e.g., doctorinox.cl)
-    # request.build_absolute_uri('/') gives us "https://domain.com/"
-    base_url = request.build_absolute_uri('/')
     if base_url.endswith('/'):
         base_url = base_url[:-1]
     
