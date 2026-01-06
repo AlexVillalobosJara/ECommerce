@@ -138,7 +138,7 @@ class FlowService(PaymentGatewayService):
                 'currency': 'CLP',
                 'amount': str(int(amount)),  # Convert to string for signature
                 'email': order.customer_email,
-                'urlConfirmation': f'{settings.PAYMENT_WEBHOOK_URL}/payments/callback/Flow/?tenant={order.tenant.slug}',
+                'urlConfirmation': kwargs.get('urlConfirmation') or f'{settings.PAYMENT_WEBHOOK_URL}/payments/callback/Flow/?tenant={order.tenant.slug}',
                 'urlReturn': return_url,
             }
             

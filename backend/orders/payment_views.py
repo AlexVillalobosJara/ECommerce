@@ -78,12 +78,21 @@ def initiate_payment(request):
         )
         
         # Build return URLs with order ID and tenant for callback
-        # Flow will redirect user here after payment (browser redirect)
-        # Use backend return handler to avoid 405 error on frontend (Flow uses POST for return)
-        # We FORCE the backend handler even if the frontend sends a return_url
-        backend_url = settings.PAYMENT_WEBHOOK_URL # Usually pointing to the backend API root
-        return_url = f"{backend_url}/payments/return/{gateway}/?order={order_id}&tenant={tenant_slug}"
-        cancel_url = request.data.get('cancel_url', f"{settings.FRONTEND_URL}/payment/cancelled?order={order_id}&tenant={tenant_slug}")
+        # Use request.build_absolute_uri() to handle SaaS custom domains dynamically
+        # This fixes the issue where production was using localhost:8000
+        return_url = request.build_absolute_uri(
+            f"/api/storefront/payments/return/{gateway}/?order={order_id}&tenant={tenant_slug}"
+        )
+        
+        confirmation_url = request.build_absolute_uri(
+            f"/api/storefront/payments/callback/{gateway}/?tenant={tenant_slug}"
+        )
+        
+        base_frontend_url = request.build_absolute_uri('/')
+        if base_frontend_url.endswith('/'):
+            base_frontend_url = base_frontend_url[:-1]
+            
+        cancel_url = request.data.get('cancel_url', f"{base_frontend_url}/payment/cancelled?order={order_id}&tenant={tenant_slug}")
         
         # Validate order can be paid
         valid_types = ['Sale', 'Quote']
@@ -119,7 +128,8 @@ def initiate_payment(request):
                 order=order,
                 amount=order.total,
                 return_url=return_url,
-                cancel_url=cancel_url
+                cancel_url=cancel_url,
+                urlConfirmation=confirmation_url # Pass dynamic confirmation URL
             )
             
             # Update payment record
@@ -192,9 +202,14 @@ def payment_return_handler(request, gateway):
     
     logger.info(f"Payment return handled for {gateway}. Order: {order_id}, Tenant: {tenant_slug}, Token: {token}")
     
-    # Construct frontend redirect URL
-    frontend_url = settings.FRONTEND_URL
-    redirect_url = f"{frontend_url}/payment/callback?order={order_id}&tenant={tenant_slug}"
+    # Construct frontend redirect URL dynamically based on current host
+    # For SaaS, we want to stay on the same domain (e.g., doctorinox.cl)
+    # request.build_absolute_uri('/') gives us "https://domain.com/"
+    base_url = request.build_absolute_uri('/')
+    if base_url.endswith('/'):
+        base_url = base_url[:-1]
+    
+    redirect_url = f"{base_url}/payment/callback?order={order_id}&tenant={tenant_slug}"
     
     if token:
         redirect_url += f"&token={token}"
