@@ -41,11 +41,13 @@ export function CategoryMediaUpload({ data, onChange }: CategoryMediaUploadProps
             setIsUploading(true)
 
             // Compress image
-            const { file: optimizedFile } = await optimizeImage(file, OPTIMIZATION_PRESETS.category)
+            const { file: optimizedFile, originalSize, optimizedSize, compressionRatio } =
+                await optimizeImage(file, OPTIMIZATION_PRESETS.category)
 
-            const fileExt = optimizedFile.name.split('.').pop() || 'webp'
-            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`
-            const filePath = `${tenant.slug}/categories/${fileName}`
+            console.log(`[CategoryMediaUpload] Optimization: ${originalSize} -> ${optimizedSize} (${compressionRatio}% reduction)`)
+
+            const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.webp`
+            const filePath = `categories/${tenant.id}/${fileName}`
 
             const { error: uploadError } = await supabase.storage
                 .from(SUPABASE_BUCKET)

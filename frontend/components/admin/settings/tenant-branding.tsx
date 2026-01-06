@@ -232,11 +232,13 @@ export function TenantBranding({ data, onChange }: TenantBrandingProps) {
             setIsUploading(true)
 
             // Compress logo
-            const { file: optimizedFile } = await optimizeImage(file, OPTIMIZATION_PRESETS.logo)
+            const { file: optimizedFile, originalSize, optimizedSize, compressionRatio } =
+                await optimizeImage(file, OPTIMIZATION_PRESETS.logo)
 
-            const fileExt = optimizedFile.name.split('.').pop() || 'webp'
-            const fileName = `logo_${Date.now()}.${fileExt}`
-            const filePath = `${tenant.slug}/branding/${fileName}`
+            console.log(`[TenantBranding] Optimization: ${originalSize} -> ${optimizedSize} (${compressionRatio}% reduction)`)
+
+            const fileName = `logo_${Date.now()}.webp`
+            const filePath = `branding/${tenant.id}/${fileName}`
 
             const { error: uploadError } = await supabase.storage
                 .from(SUPABASE_BUCKET)

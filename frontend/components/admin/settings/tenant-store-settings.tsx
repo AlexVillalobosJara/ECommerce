@@ -43,11 +43,13 @@ export function TenantStoreSettings({ data, onChange }: TenantStoreSettingsProps
             setIsUploading(true)
 
             // Compress hero image
-            const { file: optimizedFile } = await optimizeImage(file, OPTIMIZATION_PRESETS.hero)
+            const { file: optimizedFile, originalSize, optimizedSize, compressionRatio } =
+                await optimizeImage(file, OPTIMIZATION_PRESETS.hero)
 
-            const fileExt = optimizedFile.name.split('.').pop() || 'webp'
-            const fileName = `hero_${Date.now()}.${fileExt}`
-            const filePath = `${tenant.slug}/store/hero/${fileName}`
+            console.log(`[TenantStoreSettings] Optimization: ${originalSize} -> ${optimizedSize} (${compressionRatio}% reduction)`)
+
+            const fileName = `hero_${Date.now()}.webp`
+            const filePath = `store/hero/${tenant.id}/${fileName}`
 
             const { error: uploadError } = await supabase.storage
                 .from(SUPABASE_BUCKET)
