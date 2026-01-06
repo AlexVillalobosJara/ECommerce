@@ -374,11 +374,11 @@ def payment_callback(request, gateway):
 
 
 @api_view(['GET'])
-def payment_status_check(request, tenant_slug, order_id):
+def payment_status_check(request, order_id):
     """
     Check payment status for an order.
     
-    GET /api/storefront/{tenant_slug}/payments/status/{order_id}
+    GET /api/storefront/payments/status/{order_id}/?tenant=slug
     
     Returns:
         {
@@ -390,8 +390,19 @@ def payment_status_check(request, tenant_slug, order_id):
         }
     """
     try:
-        # Get tenant
-        tenant = get_object_or_404(Tenant, slug=tenant_slug, deleted_at__isnull=True)
+        # Get tenant from query parameter
+        tenant_slug = request.GET.get('tenant')
+        if not tenant_slug:
+            return Response({'error': 'tenant parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get tenant - flexible lookup by slug or custom_domain
+        tenant = Tenant.objects.filter(
+            Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
+            deleted_at__isnull=True
+        ).first()
+        
+        if not tenant:
+            return Response({'error': 'Tenant not found'}, status=status.HTTP_404_NOT_FOUND)
         
         # Get order
         order = get_object_or_404(
@@ -433,11 +444,11 @@ def payment_status_check(request, tenant_slug, order_id):
 
 
 @api_view(['GET'])
-def payment_status_by_token(request, tenant_slug, token):
+def payment_status_by_token(request, token):
     """
     Get payment status by Flow token.
     
-    GET /api/storefront/{tenant_slug}/payments/token/{token}
+    GET /api/storefront/payments/token/{token}/?tenant=slug
     
     Returns:
         {
@@ -450,8 +461,19 @@ def payment_status_by_token(request, tenant_slug, token):
         }
     """
     try:
-        # Get tenant
-        tenant = get_object_or_404(Tenant, slug=tenant_slug, deleted_at__isnull=True)
+        # Get tenant from query parameter
+        tenant_slug = request.GET.get('tenant')
+        if not tenant_slug:
+            return Response({'error': 'tenant parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get tenant - flexible lookup by slug or custom_domain
+        tenant = Tenant.objects.filter(
+            Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
+            deleted_at__isnull=True
+        ).first()
+        
+        if not tenant:
+            return Response({'error': 'Tenant not found'}, status=status.HTTP_404_NOT_FOUND)
         
         # Find payment by token
         payment = Payment.objects.filter(
