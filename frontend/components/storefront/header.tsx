@@ -9,6 +9,7 @@ import { SearchBar } from "./search-bar"
 import { useTenant } from "@/contexts/TenantContext"
 import { useCart } from "@/hooks/useCart"
 import { storefrontApi } from "@/services/storefront-api"
+import { getImageUrl } from "@/lib/image-utils"
 import type { Category } from "@/types/product"
 
 interface HeaderProps {
@@ -70,7 +71,7 @@ export function Header({ onCartClick }: HeaderProps) {
                         <Link href="/" className="flex items-center gap-3">
                             {tenant?.logo_url && (
                                 <img
-                                    src={tenant.logo_url}
+                                    src={getImageUrl(tenant.logo_url)}
                                     alt={tenant.name || "Logo"}
                                     className="h-8 w-auto object-contain"
                                 />
