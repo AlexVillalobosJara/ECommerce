@@ -80,8 +80,9 @@ def initiate_payment(request):
         # Build return URLs with order ID and tenant for callback
         # Flow will redirect user here after payment (browser redirect)
         # Use backend return handler to avoid 405 error on frontend (Flow uses POST for return)
+        # We FORCE the backend handler even if the frontend sends a return_url
         backend_url = settings.PAYMENT_WEBHOOK_URL # Usually pointing to the backend API root
-        return_url = request.data.get('return_url', f"{backend_url}/payments/return/{gateway}/?order={order_id}&tenant={tenant_slug}")
+        return_url = f"{backend_url}/payments/return/{gateway}/?order={order_id}&tenant={tenant_slug}"
         cancel_url = request.data.get('cancel_url', f"{settings.FRONTEND_URL}/payment/cancelled?order={order_id}&tenant={tenant_slug}")
         
         # Validate order can be paid
