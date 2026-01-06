@@ -448,12 +448,23 @@ export const storefrontApi = {
         paid_at: string | null
     }> {
         const response = await fetch(
-            `${API_URL}/api/storefront/${tenantSlug}/payments/status/${orderId}/`
+            `${API_URL}/api/storefront/payments/status/${orderId}/?tenant=${tenantSlug}`,
+            {
+                headers: {
+                    'X-Tenant': tenantSlug
+                }
+            }
         )
 
         if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.error || "Failed to get payment status")
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.error || error.detail || "Failed to get payment status")
+            } else {
+                const text = await response.text();
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
         }
 
         return response.json()
@@ -478,12 +489,23 @@ export const storefrontApi = {
         paid_at: string | null
     }> {
         const response = await fetch(
-            `${API_URL}/api/storefront/${tenantSlug}/payments/token/${token}/`
+            `${API_URL}/api/storefront/payments/token/${token}/?tenant=${tenantSlug}`,
+            {
+                headers: {
+                    'X-Tenant': tenantSlug
+                }
+            }
         )
 
         if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.error || "Failed to get payment status")
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.error || error.detail || "Failed to get payment status")
+            } else {
+                const text = await response.text();
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
         }
 
         return response.json()
