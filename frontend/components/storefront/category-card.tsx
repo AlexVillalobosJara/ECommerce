@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { Category } from "@/types/product"
+import { getImageUrl } from "@/lib/image-utils"
 
 interface CategoryCardProps {
     category: Category
@@ -15,7 +16,7 @@ export function CategoryCard({ category, className = "" }: CategoryCardProps) {
             {/* Image */}
             <div className="aspect-[4/3] overflow-hidden">
                 <img
-                    src={category.image_url || "/placeholder.svg"}
+                    src={getImageUrl(category.image_url)}
                     alt={category.name}
                     className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />

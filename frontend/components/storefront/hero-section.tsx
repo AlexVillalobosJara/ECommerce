@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { getImageUrl } from "@/lib/image-utils"
 
 interface HeroSectionProps {
     title: string
@@ -16,7 +17,7 @@ export function HeroSection({
     subtitle,
     ctaText = "Explorar",
     ctaHref,
-    backgroundImage = "/hero-stainless-kitchen.jpg",
+    backgroundImage,
     onCtaClick,
 }: HeroSectionProps) {
     return (
@@ -24,7 +25,7 @@ export function HeroSection({
             {/* Background Image */}
             <div className="absolute inset-0">
                 <img
-                    src={backgroundImage || "/placeholder.svg"}
+                    src={getImageUrl(backgroundImage)}
                     alt="Hero background"
                     className="size-full object-cover scale-105 animate-fade-in"
                 />

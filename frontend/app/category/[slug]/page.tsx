@@ -14,6 +14,7 @@ import { storefrontApi } from "@/services/storefront-api"
 import type { Category, ProductList } from "@/types/product"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { getImageUrl } from "@/lib/image-utils"
 
 export default function CategoryPage() {
     const params = useParams()
@@ -193,8 +194,18 @@ export default function CategoryPage() {
 
             <main className="flex-1">
                 {/* Hero / Header Section */}
-                <div className="relative bg-muted/30 py-12 md:py-16">
-                    <div className="container mx-auto px-4 text-center">
+                <div className="relative bg-muted/30 py-12 md:py-16 overflow-hidden">
+                    {category.image_url && (
+                        <div className="absolute inset-0 z-0">
+                            <img
+                                src={getImageUrl(category.image_url)}
+                                alt={category.name}
+                                className="w-full h-full object-cover opacity-20 blur-sm"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-b from-white/80 to-white/40" />
+                        </div>
+                    )}
+                    <div className="container relative z-10 mx-auto px-4 text-center">
                         <Link
                             href="/"
                             className="absolute top-8 left-4 md:left-8 text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"

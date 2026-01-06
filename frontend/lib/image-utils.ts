@@ -5,7 +5,7 @@ import { API_BASE_URL } from '@/config/api'
  * If the URL starts with http, it is returned as is (Supabase absolute URL).
  * If the URL is relative, it prepends the API_BASE_URL (Production Backend or Localhost).
  */
-export function getProductImageUrl(url: string | null | undefined): string {
+export function getImageUrl(url: string | null | undefined): string {
     if (!url) return "/placeholder.svg"
 
     // If it's already an absolute URL (Supabase or external)
@@ -16,3 +16,6 @@ export function getProductImageUrl(url: string | null | undefined): string {
     // If it's a relative path (Legacy Django media)
     return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`
 }
+
+// Keep alias for backward compatibility
+export const getProductImageUrl = getImageUrl
