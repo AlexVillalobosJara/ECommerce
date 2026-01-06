@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db import transaction
 import logging
+import traceback
 
 from tenants.models import Tenant
 from .models import Order, OrderStatus
@@ -45,7 +46,12 @@ def initiate_payment(request):
         # Get tenant from query parameter
         tenant_slug = request.GET.get('tenant')
         if not tenant_slug:
-            return Response({'error': 'tenant parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+            # Fallback to request.tenant if middleware resolved it
+            tenant = getattr(request, 'tenant', None)
+            if tenant:
+                tenant_slug = tenant.slug
+            else:
+                return Response({'error': 'tenant parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
         
         # Get tenant
         tenant = get_object_or_404(Tenant, slug=tenant_slug, deleted_at__isnull=True)
@@ -53,6 +59,8 @@ def initiate_payment(request):
         # Get request data
         order_id = request.data.get('order_id')
         gateway = request.data.get('gateway', 'Flow')
+        
+        logger.info(f"Payment initiation requested for tenant {tenant_slug}, order {order_id}, gateway {gateway}")
         
         if not order_id:
             return Response(
@@ -145,9 +153,20 @@ def initiate_payment(request):
                 {'error': f'Payment gateway error: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        except Exception as inner_e:
+            logger.error(f'Critical error during service execution for order {order.order_number}: {inner_e}')
+            logger.error(traceback.format_exc())
+            payment.status = PaymentStatus.FAILED
+            payment.error_message = f"Internal Exception: {str(inner_e)}"
+            payment.save()
+            return Response(
+                {'error': f'Internal transition error: {str(inner_e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
             
     except Exception as e:
-        logger.error(f'Error initiating payment: {e}', exc_info=True)
+        logger.error(f'Global error initiating payment: {e}')
+        logger.error(traceback.format_exc())
         return Response(
             {'error': f'Internal server error: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

@@ -71,7 +71,16 @@ export const storefrontApi = {
      */
     async getCategories(tenantSlug: string): Promise<Category[]> {
         const response = await fetch(`${API_URL}/api/storefront/categories/?tenant=${tenantSlug}`)
-        if (!response.ok) throw new Error("Failed to fetch categories")
+        if (!response.ok) {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.error || error.detail || "Failed to fetch categories")
+            } else {
+                const text = await response.text();
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
+        }
         const data = await response.json()
 
         // Handle paginated response
@@ -85,11 +94,6 @@ export const storefrontApi = {
      * Get single category by slug
      */
     async getCategoryBySlug(tenantSlug: string, slug: string): Promise<Category> {
-        // Since we don't have a direct endpoint for slug lookup in public API usually, 
-        // we can fetch all and find, OR assume backend supports filtering.
-        // Let's try fetching the list filtering by slug if supported, or just matching client side 
-        // if the list is small (categories usually are).
-        // A robust way: fetch all and find.
         const categories = await this.getCategories(tenantSlug)
         const category = categories.find(c => c.slug === slug)
         if (!category) throw new Error("Category not found")
@@ -122,16 +126,21 @@ export const storefrontApi = {
         if (filters?.ordering) params.append("ordering", filters.ordering)
 
         const response = await fetch(`${API_URL}/api/storefront/products/?${params}`)
-        if (!response.ok) throw new Error("Failed to fetch products")
+        if (!response.ok) {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.error || error.detail || "Failed to fetch products")
+            } else {
+                const text = await response.text();
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
+        }
 
         const data = await response.json()
-
-        // Handle paginated response from DRF
         if (Array.isArray(data)) {
             return data
         }
-
-        // If it's a paginated response, return the results array
         return data.results || []
     },
 
@@ -142,7 +151,16 @@ export const storefrontApi = {
         const response = await fetch(
             `${API_URL}/api/storefront/products/${productSlug}/?tenant=${tenantSlug}`
         )
-        if (!response.ok) throw new Error("Failed to fetch product")
+        if (!response.ok) {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.error || error.detail || "Failed to fetch product")
+            } else {
+                const text = await response.text();
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
+        }
         return response.json()
     },
 
@@ -161,13 +179,11 @@ export const storefrontApi = {
         params.append("category", categorySlug)
         if (excludeId) params.append("exclude", excludeId)
 
-        // We handle limit by slicing the result, as DRF pagination defaults might differ
-        // Ideally backend should support limit/offset, but for now we fetch standard page and slice
         const response = await fetch(`${API_URL}/api/storefront/products/?${params}`)
         if (!response.ok) return []
 
         const data = await response.json()
-        let products = Array.isArray(data) ? data : (data.results || [])
+        const products = Array.isArray(data) ? data : (data.results || [])
 
         return products.slice(0, limit)
     },
@@ -177,7 +193,7 @@ export const storefrontApi = {
      */
     async getProductReviews(tenantSlug: string, productSlug: string): Promise<any[]> {
         const response = await fetch(`${API_URL}/api/storefront/products/${productSlug}/reviews/?tenant=${tenantSlug}`)
-        if (!response.ok) return [] // Fail gracefully
+        if (!response.ok) return []
 
         const data = await response.json()
         return Array.isArray(data) ? data : (data.results || [])
@@ -194,8 +210,14 @@ export const storefrontApi = {
         })
 
         if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.detail || "Error al enviar reseña")
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.detail || error.error || "Error al enviar reseña")
+            } else {
+                const text = await response.text();
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
         }
         return response.json()
     },
@@ -205,12 +227,18 @@ export const storefrontApi = {
      */
     async getShippingZones(tenantSlug: string): Promise<ShippingZone[]> {
         const response = await fetch(`${API_URL}/api/storefront/shipping-zones/?tenant=${tenantSlug}`)
-        if (!response.ok) throw new Error("Failed to fetch shipping zones")
-        const data = await response.json()
-
-        if (Array.isArray(data)) {
-            return data
+        if (!response.ok) {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.error || error.detail || "Failed to fetch shipping zones")
+            } else {
+                const text = await response.text();
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
         }
+
+        const data = await response.json()
         return data.results || []
     },
 
@@ -254,8 +282,14 @@ export const storefrontApi = {
         )
 
         if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.error || "Failed to calculate shipping")
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.error || error.detail || "Failed to calculate shipping")
+            } else {
+                const text = await response.text();
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
         }
 
         return response.json()
@@ -274,11 +308,16 @@ export const storefrontApi = {
         })
 
         if (!response.ok) {
-            const error = await response.json()
-            console.error("Order creation error:", error)
-            // Show detailed error message
-            const errorMessage = error.error || error.detail || JSON.stringify(error) || "Failed to create order"
-            throw new Error(errorMessage)
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                console.error("Order creation error:", error)
+                throw new Error(error.error || error.detail || JSON.stringify(error) || "Failed to create order")
+            } else {
+                const text = await response.text();
+                console.error("Non-JSON Order creation error:", text);
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
         }
 
         return response.json()
@@ -291,7 +330,14 @@ export const storefrontApi = {
         const response = await fetch(`${API_URL}/api/storefront/orders/${orderId}/?tenant=${tenantSlug}`)
 
         if (!response.ok) {
-            throw new Error("Failed to fetch order")
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.error || error.detail || "Failed to fetch order")
+            } else {
+                const text = await response.text();
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
         }
 
         return response.json()
@@ -321,8 +367,14 @@ export const storefrontApi = {
         )
 
         if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.error || "Failed to confirm payment")
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.error || "Failed to confirm payment")
+            } else {
+                const text = await response.text();
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
         }
 
         return response.json()
@@ -359,9 +411,19 @@ export const storefrontApi = {
             }
         )
 
+        console.log("initiatePayment Response Status:", response.status);
+        console.log("initiatePayment Response Headers:", Object.fromEntries(response.headers.entries()));
+
         if (!response.ok) {
-            const error = await response.json()
-            throw new Error(error.error || "Failed to initiate payment")
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const error = await response.json()
+                throw new Error(error.error || "Failed to initiate payment")
+            } else {
+                const text = await response.text();
+                console.error("Non-JSON error response:", text);
+                throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
+            }
         }
 
         return response.json()

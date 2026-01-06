@@ -42,10 +42,23 @@ class FlowService(PaymentGatewayService):
                 
                 if config:
                     # Use tenant-specific credentials (decrypted automatically)
-                    self.api_key = config.api_key
-                    self.secret_key = config.secret_key
-                    self.environment = 'production' if not config.is_sandbox else 'sandbox'
-                    logger.info(f'Using Flow credentials for tenant: {tenant.slug}')
+                    try:
+                        self.api_key = config.api_key
+                        self.secret_key = config.secret_key
+                        self.environment = 'production' if not config.is_sandbox else 'sandbox'
+                        logger.info(f'Using Flow credentials for tenant: {tenant.slug}')
+                        
+                        # Check if credentials are valid (not empty or masked placeholders)
+                        if not self.api_key or self.api_key.startswith('***'):
+                            logger.warning(f"Flow API Key for tenant {tenant.slug} is invalid or masked.")
+                            self._load_global_settings()
+                        elif not self.secret_key or self.secret_key.startswith('***'):
+                            logger.warning(f"Flow Secret Key for tenant {tenant.slug} is invalid or masked.")
+                            self._load_global_settings()
+                            
+                    except Exception as crypt_e:
+                        logger.error(f"Encryption error for tenant {tenant.slug}: {crypt_e}")
+                        self._load_global_settings()
                 else:
                     # No active config found, fall back to global
                     logger.warning(f'No active Flow config for tenant {tenant.slug}, using global settings')
@@ -65,15 +78,25 @@ class FlowService(PaymentGatewayService):
     
     def _load_global_settings(self):
         """Load credentials from global settings (fallback)"""
-        self.api_key = settings.PAYMENT_GATEWAYS['FLOW']['API_KEY']
-        self.secret_key = settings.PAYMENT_GATEWAYS['FLOW']['SECRET_KEY']
-        self.environment = settings.PAYMENT_GATEWAYS['FLOW']['ENVIRONMENT']
+        try:
+            self.api_key = settings.PAYMENT_GATEWAYS['FLOW']['API_KEY']
+            self.secret_key = settings.PAYMENT_GATEWAYS['FLOW']['SECRET_KEY']
+            self.environment = settings.PAYMENT_GATEWAYS['FLOW']['ENVIRONMENT']
+            logger.info("Loaded Flow global settings")
+        except (KeyError, AttributeError) as e:
+            logger.error(f"Failed to load global Flow settings: {e}")
+            self.api_key = ""
+            self.secret_key = ""
+            self.environment = 'sandbox'
     
     def _sign_params(self, params: Dict[str, Any]) -> str:
         """
         Generate signature for Flow API request.
         Flow requires parameters to be signed with HMAC-SHA256.
         """
+        if not self.secret_key:
+            raise PaymentGatewayError("Flow Secret Key is missing. Cannot sign parameters.", gateway='Flow')
+            
         # Sort parameters alphabetically
         sorted_params = sorted(params.items())
         
@@ -103,6 +126,9 @@ class FlowService(PaymentGatewayService):
         
         Flow API endpoint: POST /payment/create
         """
+        if not self.api_key:
+            raise PaymentGatewayError("Flow API Key is missing. Configuration error.", gateway='Flow')
+
         try:
             # Prepare payment parameters (all values must be strings for signature)
             params = {
@@ -125,7 +151,6 @@ class FlowService(PaymentGatewayService):
             
             # Log request (without signature)
             logger.info(f"Creating Flow payment for order {order.order_number}")
-            logger.debug(f"Flow request params: {{k: v for k, v in params.items() if k != 's'}}")
             
             # Make API request
             response = requests.post(
@@ -134,19 +159,25 @@ class FlowService(PaymentGatewayService):
                 timeout=30
             )
             
-            
             # Check response
             if response.status_code != 200:
                 # Log the full error response for debugging
+                error_body = response.text
+                try:
+                    error_json = response.json()
+                    error_msg = error_json.get('message', error_body)
+                except:
+                    error_msg = error_body
+
                 error_details = {
                     'status_code': response.status_code,
-                    'response_text': response.text,
-                    'request_params': {k: v for k, v in params.items() if k != 's'},  # Don't log signature
+                    'response_text': error_body,
+                    'request_params': {k: v for k, v in params.items() if k != 's'}, 
                 }
                 logger.error(f"Flow API error: {error_details}")
                 
                 raise PaymentGatewayError(
-                    f'Flow API error: {response.status_code} - {response.text}',
+                    f'Flow API error: {response.status_code} - {error_msg}',
                     gateway='Flow',
                     details=error_details
                 )

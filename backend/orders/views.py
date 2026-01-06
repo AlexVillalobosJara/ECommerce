@@ -1,5 +1,6 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
 import logging
+logger = logging.getLogger(__name__)
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -7,6 +8,7 @@ from django.db import transaction
 from django.utils import timezone
 from decimal import Decimal
 from datetime import timedelta
+from django.conf import settings
 from core.models import Commune
 from .models import Customer, ShippingZone, Order, OrderItem, DiscountCoupon, CouponUsage, DiscountType
 from .serializers import (
@@ -229,277 +231,267 @@ class OrderViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            data = serializer.validated_data
         
-        # Get or create customer
-        customer, created = Customer.objects.get_or_create(
-            tenant=tenant,
-            email=data['customer_email'],
-            defaults={
-                'first_name': data.get('first_name', ''),
-                'last_name': data.get('last_name', ''),
-                'phone': data.get('customer_phone', ''),
-            }
-        )
-        
-        # Generate order number
-        last_order = Order.objects.filter(tenant=tenant).order_by('-created_at').first()
-        if last_order and last_order.order_number:
-            try:
-                last_number = int(last_order.order_number.split('-')[-1])
-                order_number = f"{tenant.slug.upper()}-{last_number + 1:06d}"
-            except:
+            # Get or create customer
+            customer, _ = Customer.objects.get_or_create(
+                tenant=tenant,
+                email=data['customer_email'],
+                defaults={
+                    'first_name': data.get('first_name', ''),
+                    'last_name': data.get('last_name', ''),
+                    'phone': data.get('customer_phone', ''),
+                }
+            )
+            
+            # Generate order number
+            last_order = Order.objects.filter(tenant=tenant).order_by('-created_at').first()
+            if last_order and last_order.order_number:
+                try:
+                    last_number = int(last_order.order_number.split('-')[-1])
+                    order_number = f"{tenant.slug.upper()}-{last_number + 1:06d}"
+                except:
+                    order_number = f"{tenant.slug.upper()}-000001"
+            else:
                 order_number = f"{tenant.slug.upper()}-000001"
-        else:
-            order_number = f"{tenant.slug.upper()}-000001"
-        
-        # Determine if this is a quote
-        is_quote = data['order_type'] == 'Quote'
-        
-        # Get shipping zone if provided (not required for quotes)
-        shipping_zone = None
-        if data.get('shipping_zone_id'):
-            shipping_zone = ShippingZone.objects.filter(
-                id=data['shipping_zone_id'],
-                tenant=tenant
-            ).first()
-        
-        # Calculate totals
-        tax_rate = Decimal(tenant.tax_rate or 19) / 100
-        prices_include_tax = tenant.prices_include_tax
-        
-        subtotal = Decimal('0')
-        tax_amount = Decimal('0')
-        
-        # Validate items and calculate subtotal
-        items_data = []
-        for item_data in data['items']:
-            variant = ProductVariant.objects.filter(
-                id=item_data['product_variant_id'],
-                tenant=tenant
-            ).select_related('product').first()
             
-            if not variant:
-                return Response(
-                    {'error': f'Product variant {item_data["product_variant_id"]} not found'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
+            # Determine if this is a quote
+            is_quote = data['order_type'] == 'Quote'
             
-            # Check stock if product manages stock (skip for quotes)
-            if not is_quote and variant.product.manage_stock:
-                if variant.available_stock < item_data['quantity']:
+            # Get shipping zone if provided (not required for quotes)
+            shipping_zone = None
+            if data.get('shipping_zone_id'):
+                shipping_zone = ShippingZone.objects.filter(
+                    id=data['shipping_zone_id'],
+                    tenant=tenant
+                ).first()
+            
+            # Calculate totals
+            tax_rate = Decimal(tenant.tax_rate or 19) / 100
+            prices_include_tax = tenant.prices_include_tax
+            
+            subtotal = Decimal('0')
+            tax_amount = Decimal('0')
+            
+            # Validate items and calculate subtotal
+            items_data = []
+            for item_data in data['items']:
+                variant = ProductVariant.objects.filter(
+                    id=item_data['product_variant_id'],
+                    tenant=tenant
+                ).select_related('product').first()
+                
+                if not variant:
                     return Response(
-                        {'error': f'Insufficient stock for {variant.product.name}'},
-                        status=status.HTTP_400_BAD_REQUEST
+                        {'error': f'Product variant {item_data["product_variant_id"]} not found'},
+                        status=status.HTTP_404_NOT_FOUND
                     )
+                
+                # Check stock if product manages stock (skip for quotes)
+                if not is_quote and variant.product.manage_stock:
+                    if variant.available_stock < item_data['quantity']:
+                        return Response(
+                            {'error': f'Insufficient stock for {variant.product.name}'},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                
+                # Calculate item total
+                p = variant.price
+                cp = variant.compare_at_price
+                
+                if p and cp:
+                    unit_price = min(p, cp)
+                elif p:
+                    unit_price = p
+                elif cp:
+                    unit_price = cp
+                else:
+                    unit_price = Decimal('0')
+                
+                quantity = item_data['quantity']
+                item_subtotal = unit_price * quantity
+                
+                if prices_include_tax:
+                    item_tax = item_subtotal * (1 - (1 / (1 + tax_rate)))
+                    item_total = item_subtotal
+                else:
+                    item_tax = item_subtotal * tax_rate
+                    item_total = item_subtotal + item_tax
+                
+                subtotal += item_subtotal
+                tax_amount += item_tax
+                
+                items_data.append({
+                    'variant': variant,
+                    'quantity': quantity,
+                    'unit_price': unit_price,
+                    'subtotal': item_subtotal,
+                    'tax_amount': item_tax,
+                    'total': item_total
+                })
             
-            # Calculate item total (use 0 for quotes if no price)
-            # Smart Price logic: Selling price is the minimum of price and compare_at_price
-            p = variant.price
-            cp = variant.compare_at_price
+            # Calculate shipping (skip for quotes)
+            shipping_cost = Decimal('0')
+            if not is_quote and not data.get('is_store_pickup') and shipping_zone:
+                weight_kg = Decimal('5.0') # TODO: Sum item weights
+                shipping_cost = shipping_zone.base_cost + (shipping_zone.cost_per_kg * weight_kg)
+                
+                if shipping_zone.free_shipping_threshold and subtotal >= shipping_zone.free_shipping_threshold:
+                    shipping_cost = Decimal('0')
             
-            if p and cp:
-                unit_price = min(p, cp)
-            elif p:
-                unit_price = p
-            elif cp:
-                unit_price = cp
-            else:
-                unit_price = Decimal('0')
-            
-            quantity = item_data['quantity']
-            item_subtotal = unit_price * quantity
-            
-            if prices_include_tax:
-                # Tax is included in the price
-                # Tax = Price - (Price / (1 + rate))
-                item_tax = item_subtotal * (1 - (1 / (1 + tax_rate)))
-                item_total = item_subtotal
-            else:
-                # Tax is added on top
-                item_tax = item_subtotal * tax_rate
-                item_total = item_subtotal + item_tax
-            
-            subtotal += item_subtotal
-            tax_amount += item_tax
-            
-            items_data.append({
-                'variant': variant,
-                'quantity': quantity,
-                'unit_price': unit_price,
-                'subtotal': item_subtotal,
-                'tax_amount': item_tax,
-                'total': item_total
-            })
-        
-        # Calculate shipping (skip for quotes)
-        shipping_cost = Decimal('0')
-        if not is_quote and not data.get('is_store_pickup') and shipping_zone:
-            # Re-calculate shipping cost to depend on dynamic weight if needed, 
-            # but for now use base_cost + weight calculation if zone logic allows.
-            # Ideally we re-use the calculation logic, but here we trust the zone defaults or recalculate
-            # Let's use the zone's current parameters
-            weight_kg = Decimal('5.0') # TODO: Sum item weights
-            
-            shipping_cost = shipping_zone.base_cost + (shipping_zone.cost_per_kg * weight_kg)
-            
-            if shipping_zone.free_shipping_threshold and subtotal >= shipping_zone.free_shipping_threshold:
-                shipping_cost = Decimal('0')
-        
-        # Calculate Coupon Discount
-        coupon_discount = Decimal('0')
-        coupon_code = data.get('coupon_code')
-        applied_coupon = None
+            # Calculate Coupon Discount
+            coupon_discount = Decimal('0')
+            coupon_code = data.get('coupon_code')
+            applied_coupon = None
 
-        if coupon_code:
-            now = timezone.now()
-            applied_coupon = DiscountCoupon.objects.filter(
-                code=coupon_code, 
-                tenant=tenant, 
-                is_active=True,
-                deleted_at__isnull=True,
-                valid_from__lte=now,
-                valid_until__gte=now
-            ).first()
-            
-            if applied_coupon:
-                 # Check usage limits
-                 limit_ok = True
-                 if applied_coupon.max_uses is not None and applied_coupon.current_uses >= applied_coupon.max_uses:
-                     limit_ok = False
-                 
-                 # Check minimum purchase
-                 if applied_coupon.minimum_purchase_amount and subtotal < applied_coupon.minimum_purchase_amount:
-                     limit_ok = False
+            if coupon_code:
+                now = timezone.now()
+                applied_coupon = DiscountCoupon.objects.filter(
+                    code=coupon_code, 
+                    tenant=tenant, 
+                    is_active=True,
+                    deleted_at__isnull=True,
+                    valid_from__lte=now,
+                    valid_until__gte=now
+                ).first()
+                
+                if applied_coupon:
+                    limit_ok = True
+                    if applied_coupon.max_uses is not None and applied_coupon.current_uses >= applied_coupon.max_uses:
+                        limit_ok = False
+                    if applied_coupon.minimum_purchase_amount and subtotal < applied_coupon.minimum_purchase_amount:
+                        limit_ok = False
 
-                 if limit_ok:
-                       if applied_coupon.discount_type == DiscountType.PERCENTAGE:
+                    if limit_ok:
+                        if applied_coupon.discount_type == DiscountType.PERCENTAGE:
                             coupon_discount = (subtotal * applied_coupon.discount_value) / 100
                             if applied_coupon.maximum_discount_amount and coupon_discount > applied_coupon.maximum_discount_amount:
-                                 coupon_discount = applied_coupon.maximum_discount_amount
-                       elif applied_coupon.discount_type == DiscountType.FIXED_AMOUNT:
+                                coupon_discount = applied_coupon.maximum_discount_amount
+                        elif applied_coupon.discount_type == DiscountType.FIXED_AMOUNT:
                             coupon_discount = applied_coupon.discount_value
-                       
-                       # Cap at subtotal
-                       if coupon_discount > subtotal:
+                        
+                        if coupon_discount > subtotal:
                             coupon_discount = subtotal
 
-        # Calculate total
-        if prices_include_tax:
-            # Subtotal already includes tax
-            total = subtotal + shipping_cost - coupon_discount
-        else:
-            # Add tax to subtotal
-            total = subtotal + tax_amount + shipping_cost - coupon_discount
+            # Calculate total
+            if prices_include_tax:
+                total = subtotal + shipping_cost - coupon_discount
+            else:
+                total = subtotal + tax_amount + shipping_cost - coupon_discount
+                
+            if total < Decimal('0'):
+                total = Decimal('0')
             
-        if total < Decimal('0'):
-            total = Decimal('0')
-        
-        # Create order
-        order = Order.objects.create(
-            tenant=tenant,
-            customer=customer,
-            order_number=order_number,
-            order_type=data['order_type'],
-            status='QuoteRequested' if data['order_type'] == 'Quote' else 'PendingPayment',
-            customer_email=data['customer_email'],
-            customer_phone=data.get('customer_phone', ''),
-            shipping_recipient_name=data['shipping_recipient_name'],
-            shipping_phone=data['shipping_phone'],
-            shipping_street_address=data['shipping_street_address'],
-            shipping_apartment=data.get('shipping_apartment', ''),
-            shipping_commune=data['shipping_commune'],
-            shipping_city=data['shipping_city'],
-            shipping_region=data['shipping_region'],
-            shipping_postal_code=data.get('shipping_postal_code', ''),
-            subtotal=subtotal,
-            discount_amount=coupon_discount,
-            coupon_code=coupon_code if (applied_coupon and coupon_discount > 0) else None,
-            coupon_discount=coupon_discount,
-            shipping_cost=shipping_cost,
-            tax_amount=tax_amount,
-            total=total,
-            shipping_zone=shipping_zone,
-            is_store_pickup=data.get('is_store_pickup', False),
-            customer_notes=data.get('customer_notes', '')
-        )
-        
-        # Create order items
-        for item_data in items_data:
-            variant = item_data['variant']
-            # Get product image URL
-            product_image_url = None
-            try:
-                # Try variant image first
-                if variant.image_url:
-                    product_image_url = variant.image_url
-                # Then try product's primary image
-                elif variant.product.images.filter(is_primary=True).exists():
-                    primary_image = variant.product.images.filter(is_primary=True).first()
-                    if primary_image:
-                        product_image_url = primary_image.url
-                # Finally try any product image
-                elif variant.product.images.exists():
-                    first_image = variant.product.images.first()
-                    if first_image:
-                        product_image_url = first_image.url
-            except Exception as e:
-                # Log error but don't fail order creation
-                print(f"Error getting product image: {e}")
-            
-            # Create order item
-            OrderItem.objects.create(
+            # Create order
+            order = Order.objects.create(
                 tenant=tenant,
-                order=order,
-                product_variant=variant,
-                product_name=variant.product.name,
-                variant_name=variant.name or '',
-                sku=variant.sku,
-                attributes_snapshot=variant.attributes,
-                unit_price=item_data['unit_price'],
-                quantity=item_data['quantity'],
-                subtotal=item_data['subtotal'],
-                tax_amount=item_data['tax_amount'],
-                total=item_data['total'],
-                product_image_url=product_image_url
-            )
-            
-            # Reserve stock if product manages stock
-            if variant.product.manage_stock:
-                variant.reserved_quantity += item_data['quantity']
-                variant.save(update_fields=['reserved_quantity'])
-        
-        # Record Coupon Usage
-        if applied_coupon and coupon_discount > 0:
-            CouponUsage.objects.create(
-                tenant=tenant,
-                coupon=applied_coupon,
                 customer=customer,
-                order=order,
-                discount_amount=coupon_discount
+                order_number=order_number,
+                order_type=data['order_type'],
+                status='QuoteRequested' if data['order_type'] == 'Quote' else 'PendingPayment',
+                customer_email=data['customer_email'],
+                customer_phone=data.get('customer_phone', ''),
+                shipping_recipient_name=data['shipping_recipient_name'],
+                shipping_phone=data['shipping_phone'],
+                shipping_street_address=data.get('shipping_street_address', ''),
+                shipping_apartment=data.get('shipping_apartment', ''),
+                shipping_commune=data.get('shipping_commune', ''),
+                shipping_city=data.get('shipping_city', ''),
+                shipping_region=data.get('shipping_region', ''),
+                shipping_postal_code=data.get('shipping_postal_code', ''),
+                subtotal=subtotal,
+                discount_amount=coupon_discount,
+                coupon_code=coupon_code if (applied_coupon and coupon_discount > 0) else None,
+                coupon_discount=coupon_discount,
+                shipping_cost=shipping_cost,
+                tax_amount=tax_amount,
+                total=total,
+                shipping_zone=shipping_zone,
+                is_store_pickup=data.get('is_store_pickup', False),
+                customer_notes=data.get('customer_notes', '')
             )
-            # Use F expression for atomic update
-            from django.db.models import F
-            applied_coupon.current_uses = F('current_uses') + 1
-            applied_coupon.save(update_fields=['current_uses'])
             
-
-        # Send email notification for quote requests
-        if is_quote:
-            try:
-                from .email_service import send_quote_request_notification
-                send_quote_request_notification(order)
-            except Exception as e:
-                # Log error but don't fail order creation
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Failed to send quote request email: {e}")
-        
-        # Return created order
-        response_serializer = OrderSerializer(order)
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            # Create order items
+            for item_data in items_data:
+                variant = item_data['variant']
+                product_image_url = None
+                try:
+                    if variant.image_url:
+                        product_image_url = variant.image_url
+                    elif variant.product.images.filter(is_primary=True).exists():
+                        primary_image = variant.product.images.filter(is_primary=True).first()
+                        if primary_image:
+                            product_image_url = primary_image.url
+                    elif variant.product.images.exists():
+                        first_image = variant.product.images.first()
+                        if first_image:
+                            product_image_url = first_image.url
+                except Exception as e:
+                    logger.error(f"Error getting product image: {e}")
+                
+                OrderItem.objects.create(
+                    tenant=tenant,
+                    order=order,
+                    product_variant=variant,
+                    product_name=variant.product.name,
+                    variant_name=variant.name or '',
+                    sku=variant.sku,
+                    attributes_snapshot=variant.attributes,
+                    unit_price=item_data['unit_price'],
+                    quantity=item_data['quantity'],
+                    subtotal=item_data['subtotal'],
+                    tax_amount=item_data['tax_amount'],
+                    total=item_data['total'],
+                    product_image_url=product_image_url
+                )
+                
+                if variant.product.manage_stock:
+                    variant.reserved_quantity += item_data['quantity']
+                    variant.save(update_fields=['reserved_quantity'])
+            
+            # Record Coupon Usage
+            if applied_coupon and coupon_discount > 0:
+                CouponUsage.objects.create(
+                    tenant=tenant,
+                    coupon=applied_coupon,
+                    customer=customer,
+                    order=order,
+                    discount_amount=coupon_discount
+                )
+                from django.db.models import F
+                applied_coupon.current_uses = F('current_uses') + 1
+                applied_coupon.save(update_fields=['current_uses'])
+                
+            # Send email notification for quote requests
+            if is_quote:
+                try:
+                    from .email_service import send_quote_request_notification
+                    send_quote_request_notification(order)
+                except Exception as e:
+                    logger.error(f"Failed to send quote request email: {e}")
+            
+            # Return created order
+            response_serializer = OrderSerializer(order)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            
+        except serializers.ValidationError as e:
+            # Let validation errors return standard 400 response
+            raise e
+        except Exception as e:
+            import traceback
+            logger.error(f"Error creating order: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {
+                    'error': 'Internal server error during order creation',
+                    'detail': str(e),
+                    'traceback': traceback.format_exc() if settings.DEBUG else None
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=True, methods=['post'])
     @transaction.atomic

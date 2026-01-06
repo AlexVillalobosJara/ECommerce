@@ -122,7 +122,7 @@ function PaymentContent() {
                             Pago Seguro
                         </h1>
                         <p className="mt-4 text-muted-foreground">
-                            Orden #{order.order_number}
+                            Orden #{order.order_number} <span className="text-xs opacity-50">({order.status})</span>
                         </p>
                     </div>
 

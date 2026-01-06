@@ -57,6 +57,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'core.debug_middleware.ErrorTrappingMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', # Add Whitenoise here
     'django.contrib.sessions.middleware.SessionMiddleware',
