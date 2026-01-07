@@ -193,6 +193,8 @@ def payment_return_handler(request, gateway):
     """
     Handle browser redirect from payment gateway.
     Converts POST request (from Flow/others) to a GET redirect to the frontend.
+    
+    IMPORTANT: This also verifies payment status as a fallback in case webhooks don't arrive.
     """
     token = request.data.get('token') if hasattr(request, 'data') else request.POST.get('token')
     if not token and request.method == 'GET':
@@ -202,6 +204,61 @@ def payment_return_handler(request, gateway):
     tenant_slug = request.GET.get('tenant')
     
     logger.info(f"Payment return handled for {gateway}. Order: {order_id}, Tenant: {tenant_slug}, Token: {token}")
+
+    # FALLBACK PAYMENT VERIFICATION
+    # If we have a token, verify the payment status with the gateway
+    # This ensures emails are sent even if webhooks don't arrive
+    if token and order_id:
+        try:
+            logger.info(f"Verifying payment status for token {token}")
+            
+            # Get tenant for payment service
+            tenant = Tenant.objects.filter(
+                Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
+                deleted_at__isnull=True
+            ).first()
+            
+            if tenant:
+                # Get payment service
+                payment_service = PaymentServiceFactory.get_service(gateway, tenant=tenant)
+                
+                # Verify payment with gateway
+                verification_result = payment_service.get_payment_status(token)
+                logger.info(f"Payment verification result: {verification_result}")
+                
+                # Find the payment record
+                payment = Payment.objects.filter(
+                    tenant=tenant,
+                    gateway_token=token
+                ).first()
+                
+                if payment and verification_result.get('status') == 'completed':
+                    # Check if payment is not already completed
+                    if payment.status != PaymentStatus.COMPLETED:
+                        logger.info(f"Updating payment {payment.id} to COMPLETED")
+                        
+                        with transaction.atomic():
+                            # Update payment
+                            payment.status = PaymentStatus.COMPLETED
+                            payment.completed_at = timezone.now()
+                            payment.gateway_transaction_id = verification_result.get('transaction_id')
+                            payment.gateway_response = verification_result.get('raw_response')
+                            payment.save()
+                            
+                            # Update order
+                            order = payment.order
+                            order.status = OrderStatus.PAID
+                            order.paid_at = timezone.now()
+                            order.save()
+                            
+                            logger.info(f"Order {order.order_number} marked as PAID - emails will be sent by signals")
+                    else:
+                        logger.info(f"Payment {payment.id} already completed")
+                        
+        except Exception as e:
+            logger.error(f"Error verifying payment on return: {e}", exc_info=True)
+            # Don't fail the redirect if verification fails
+            pass
 
     # Construct frontend redirect URL
     # Preferred: Use tenant's custom domain if available
