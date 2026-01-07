@@ -64,11 +64,11 @@ def send_quote_request_notification(order):
 <!-- Header -->
 <tr>
 <td align="center" bgcolor="#8b5cf6" style="padding:48px 40px;">
-<h1 style="margin:0 0 12px 0;color:#ffffff;font-size:32px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">🔔 Nueva Solicitud de Cotización</h1>
-<p style="margin:0;color:#ffffff;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Un cliente ha solicitado una cotización</p>
+<h1 style="margin:0 0 12px 0;color:#ffffff;font-size:32px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;"> Nueva Solicitud de Cotizacion</h1>
+<p style="margin:0;color:#ffffff;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Un cliente ha solicitado una cotizacion</p>
 <table cellpadding="8" cellspacing="0" border="0" bgcolor="rgba(255,255,255,0.2)" style="margin-top:20px;">
 <tr>
-<td style="color:#ffffff;font-size:13px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">ACCIÓN REQUERIDA</td>
+<td style="color:#ffffff;font-size:13px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">ACCION REQUERIDA</td>
 </tr>
 </table>
 </td>
@@ -76,7 +76,7 @@ def send_quote_request_notification(order):
 <!-- Body -->
 <tr>
 <td style="padding:40px;">
-<p style="margin:0 0 32px 0;font-size:16px;color:#4b5563;font-family:Arial,Helvetica,sans-serif;">Has recibido una nueva solicitud de cotización. Revisa los detalles a continuación y responde desde el panel de administración.</p>
+<p style="margin:0 0 32px 0;font-size:16px;color:#4b5563;font-family:Arial,Helvetica,sans-serif;">Has recibido una nueva solicitud de cotizacion. Revisa los detalles a continuacion y responde desde el panel de administracion.</p>
 
 <!-- Order Info -->
 <table width="100%" cellpadding="20" cellspacing="0" border="0" bgcolor="#f9fafb" style="margin-bottom:32px;border-left:4px solid #8b5cf6;">
@@ -84,7 +84,7 @@ def send_quote_request_notification(order):
 <td>
 <table width="100%" cellpadding="8" cellspacing="0" border="0">
 <tr>
-<td style="color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Número de Cotización:</td>
+<td style="color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Numero de Cotizacion:</td>
 <td align="right" style="color:#111827;font-size:14px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">{order_number}</td>
 </tr>
 <tr>
@@ -97,7 +97,7 @@ def send_quote_request_notification(order):
 </table>
 
 <!-- Customer Info -->
-<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">👤 Información del Cliente</h3>
+<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;"> Informacion del Cliente</h3>
 <table width="100%" cellpadding="16" cellspacing="0" border="0" bgcolor="#eff6ff" style="margin-bottom:32px;">
 <tr>
 <td>
@@ -111,7 +111,7 @@ def send_quote_request_notification(order):
 <td style="color:#1e3a8a;font-size:14px;font-family:Arial,Helvetica,sans-serif;">{customer_email}</td>
 </tr>
 <tr>
-<td style="color:#1e40af;font-size:14px;font-family:Arial,Helvetica,sans-serif;"><strong>Teléfono:</strong></td>
+<td style="color:#1e40af;font-size:14px;font-family:Arial,Helvetica,sans-serif;"><strong>Telefono:</strong></td>
 <td style="color:#1e3a8a;font-size:14px;font-family:Arial,Helvetica,sans-serif;">{customer_phone}</td>
 </tr>
 </table>
@@ -120,7 +120,7 @@ def send_quote_request_notification(order):
 </table>
 
 <!-- Shipping Address -->
-<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">📍 Dirección de Envío</h3>
+<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">📍 Direccion de Envio</h3>
 <table width="100%" cellpadding="16" cellspacing="0" border="0" bgcolor="#f0fdf4" style="margin-bottom:32px;">
 <tr>
 <td style="color:#166534;font-size:14px;font-family:Arial,Helvetica,sans-serif;">{shipping_address}</td>
@@ -128,7 +128,7 @@ def send_quote_request_notification(order):
 </table>
 
 <!-- Products -->
-<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">📦 Productos Solicitados</h3>
+<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;"> Productos Solicitados</h3>
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
 <tr bgcolor="#f9fafb">
 <td style="padding:12px;color:#6b7280;font-size:13px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;border-bottom:2px solid #e5e7eb;">Producto</td>
@@ -152,7 +152,7 @@ def send_quote_request_notification(order):
         if order.customer_notes:
             notes_section = f"""
 <!-- Customer Notes -->
-<h3 style="margin:32px 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">💬 Notas del Cliente</h3>
+<h3 style="margin:32px 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;"> Notas del Cliente</h3>
 <table width="100%" cellpadding="16" cellspacing="0" border="0" bgcolor="#fef3c7" style="margin-bottom:32px;border-left:4px solid #f59e0b;">
 <tr>
 <td style="color:#78350f;font-size:14px;font-family:Arial,Helvetica,sans-serif;">{order.customer_notes}</td>
@@ -166,7 +166,7 @@ def send_quote_request_notification(order):
 <table width="100%" cellpadding="24" cellspacing="0" border="0" bgcolor="#7c3aed" style="margin-bottom:24px;">
 <tr>
 <td align="center">
-<a href="{admin_url}" style="display:inline-block;padding:16px 32px;background-color:#ffffff;color:#7c3aed;text-decoration:none;font-weight:bold;font-size:16px;font-family:Arial,Helvetica,sans-serif;">🔗 Ir al Panel de Administración</a>
+<a href="{admin_url}" style="display:inline-block;padding:16px 32px;background-color:#ffffff;color:#7c3aed;text-decoration:none;font-weight:bold;font-size:16px;font-family:Arial,Helvetica,sans-serif;"> Ir al Panel de Administracion</a>
 </td>
 </tr>
 </table>
@@ -175,7 +175,7 @@ def send_quote_request_notification(order):
 <table width="100%" cellpadding="20" cellspacing="0" border="0" bgcolor="#eff6ff" style="margin-bottom:24px;">
 <tr>
 <td>
-<div style="font-weight:bold;color:#1e40af;margin-bottom:12px;font-size:15px;font-family:Arial,Helvetica,sans-serif;">📋 Próximos Pasos</div>
+<div style="font-weight:bold;color:#1e40af;margin-bottom:12px;font-size:15px;font-family:Arial,Helvetica,sans-serif;"> Proximos Pasos</div>
 <table width="100%" cellpadding="4" cellspacing="0" border="0">
 <tr>
 <td style="color:#1e40af;font-size:14px;font-family:Arial,Helvetica,sans-serif;">1. Revisa los productos solicitados</td>
@@ -187,7 +187,7 @@ def send_quote_request_notification(order):
 <td style="color:#1e40af;font-size:14px;font-family:Arial,Helvetica,sans-serif;">3. Ingresa los precios en el panel de admin</td>
 </tr>
 <tr>
-<td style="color:#1e40af;font-size:14px;font-family:Arial,Helvetica,sans-serif;">4. Envía la cotización al cliente</td>
+<td style="color:#1e40af;font-size:14px;font-family:Arial,Helvetica,sans-serif;">4. Envia la cotizacion al cliente</td>
 </tr>
 </table>
 </td>
@@ -198,8 +198,8 @@ def send_quote_request_notification(order):
 <!-- Footer -->
 <tr>
 <td align="center" bgcolor="#fafafa" style="padding:32px 40px;border-top:1px solid #e5e7eb;">
-<p style="margin:0 0 8px 0;font-size:15px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">Panel de Administración Zumi</p>
-<p style="margin:0;font-size:12px;color:#9ca3af;font-family:Arial,Helvetica,sans-serif;">Este es un email automático del sistema de cotizaciones.</p>
+<p style="margin:0 0 8px 0;font-size:15px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">Panel de Administracion Zumi</p>
+<p style="margin:0;font-size:12px;color:#9ca3af;font-family:Arial,Helvetica,sans-serif;">Este es un email automatico del sistema de cotizaciones.</p>
 </td>
 </tr>
 </table>
@@ -214,7 +214,7 @@ def send_quote_request_notification(order):
         params = {
             "from": "Zumi Store <onboarding@resend.dev>",
             "to": settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else "admin@empresa.cl",
-            "subject": f"🔔 Nueva Solicitud de Cotización - {order.order_number}",
+            "subject": f" Nueva Solicitud de Cotizacion - {order.order_number}",
             "html": html_content,
         }
         
@@ -270,11 +270,11 @@ def send_quote_response_notification(order):
 <!-- Header -->
 <tr>
 <td align="center" bgcolor="#8b5cf6" style="padding:48px 40px;">
-<h1 style="margin:0 0 12px 0;color:#ffffff;font-size:32px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">📄 Tu Cotización está Lista</h1>
-<p style="margin:0;color:#ffffff;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hemos preparado tu cotización personalizada</p>
+<h1 style="margin:0 0 12px 0;color:#ffffff;font-size:32px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;"> Tu Cotizacion esta Lista</h1>
+<p style="margin:0;color:#ffffff;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Hemos preparado tu cotizacion personalizada</p>
 <table cellpadding="8" cellspacing="0" border="0" bgcolor="rgba(255,255,255,0.2)" style="margin-top:20px;">
 <tr>
-<td style="color:#ffffff;font-size:13px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">COTIZACIÓN ENVIADA</td>
+<td style="color:#ffffff;font-size:13px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">COTIZACION ENVIADA</td>
 </tr>
 </table>
 </td>
@@ -283,13 +283,13 @@ def send_quote_response_notification(order):
 <tr>
 <td style="padding:40px;">
 <p style="margin:0 0 12px 0;font-size:16px;color:#1f2937;font-family:Arial,Helvetica,sans-serif;">Hola <strong>{customer_name}</strong>,</p>
-<p style="margin:0 0 32px 0;font-size:16px;color:#4b5563;font-family:Arial,Helvetica,sans-serif;">Nos complace informarte que tu cotización está lista. Encontrarás todos los detalles en el PDF adjunto.</p>
+<p style="margin:0 0 32px 0;font-size:16px;color:#4b5563;font-family:Arial,Helvetica,sans-serif;">Nos complace informarte que tu cotizacion esta lista. Encontraras todos los detalles en el PDF adjunto.</p>
 <!-- PDF Notice -->
 <table width="100%" cellpadding="20" cellspacing="0" border="2" bordercolor="#8b5cf6" bgcolor="#f3e8ff" style="margin-bottom:32px;">
 <tr>
 <td align="center">
 <div style="font-size:24px;margin-bottom:8px;">📎</div>
-<div style="font-weight:bold;color:#6b21a8;margin-bottom:4px;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Cotización Adjunta</div>
+<div style="font-weight:bold;color:#6b21a8;margin-bottom:4px;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Cotizacion Adjunta</div>
 <p style="margin:0;color:#7c3aed;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Revisa el archivo PDF adjunto para ver todos los detalles</p>
 </td>
 </tr>
@@ -300,14 +300,14 @@ def send_quote_response_notification(order):
 <td>
 <table width="100%" cellpadding="8" cellspacing="0" border="0">
 <tr>
-<td style="color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Número de Cotización:</td>
+<td style="color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Numero de Cotizacion:</td>
 <td align="right" style="color:#111827;font-size:14px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">{order_number}</td>
 </tr>"""
         
         if valid_until:
             html_content += f"""
 <tr>
-<td style="color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Válida hasta:</td>
+<td style="color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Valida hasta:</td>
 <td align="right" style="color:#111827;font-size:14px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">{valid_until}</td>
 </tr>"""
         
@@ -327,8 +327,8 @@ def send_quote_response_notification(order):
 <table width="100%" cellpadding="20" cellspacing="0" border="0" bgcolor="#fef3c7" style="margin-bottom:24px;border-left:4px solid #f59e0b;">
 <tr>
 <td>
-<div style="font-weight:bold;color:#92400e;margin-bottom:8px;font-size:15px;font-family:Arial,Helvetica,sans-serif;">⏰ Validez de la Cotización</div>
-<p style="margin:0;color:#78350f;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Esta cotización es válida hasta el <strong>{valid_until}</strong>. Después de esta fecha, los precios podrían variar.</p>
+<div style="font-weight:bold;color:#92400e;margin-bottom:8px;font-size:15px;font-family:Arial,Helvetica,sans-serif;"> Validez de la Cotizacion</div>
+<p style="margin:0;color:#78350f;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Esta cotizacion es valida hasta el <strong>{valid_until}</strong>. Despues de esta fecha, los precios podrian variar.</p>
 </td>
 </tr>
 </table>"""
@@ -338,13 +338,13 @@ def send_quote_response_notification(order):
 <table width="100%" cellpadding="24" cellspacing="0" border="0" bgcolor="#eff6ff" style="margin-bottom:24px;">
 <tr>
 <td>
-<div style="font-weight:bold;color:#1e40af;margin-bottom:16px;font-size:16px;font-family:Arial,Helvetica,sans-serif;">📋 Próximos Pasos</div>
+<div style="font-weight:bold;color:#1e40af;margin-bottom:16px;font-size:16px;font-family:Arial,Helvetica,sans-serif;"> Proximos Pasos</div>
 <table width="100%" cellpadding="6" cellspacing="0" border="0">
 <tr>
 <td style="color:#1e40af;font-size:14px;font-family:Arial,Helvetica,sans-serif;">• Revisa el PDF adjunto con todos los detalles</td>
 </tr>
 <tr>
-<td style="color:#1e40af;font-size:14px;font-family:Arial,Helvetica,sans-serif;">• Si estás de acuerdo, contáctanos para proceder</td>
+<td style="color:#1e40af;font-size:14px;font-family:Arial,Helvetica,sans-serif;">• Si estas de acuerdo, contactanos para proceder</td>
 </tr>
 <tr>
 <td style="color:#1e40af;font-size:14px;font-family:Arial,Helvetica,sans-serif;">• Coordinaremos el pago y la entrega</td>
@@ -385,7 +385,7 @@ def send_quote_response_notification(order):
         if order.internal_notes:
             html_content += f"""
 <!-- Notes -->
-<h3 style="margin:32px 0 12px 0;font-size:16px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">💬 Notas Adicionales</h3>
+<h3 style="margin:32px 0 12px 0;font-size:16px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;"> Notas Adicionales</h3>
 <table width="100%" cellpadding="20" cellspacing="0" border="0" bgcolor="#f9fafb">
 <tr>
 <td style="color:#4b5563;font-size:14px;font-family:Arial,Helvetica,sans-serif;">{order.internal_notes}</td>
@@ -398,9 +398,9 @@ def send_quote_response_notification(order):
 <!-- Footer -->
 <tr>
 <td align="center" bgcolor="#fafafa" style="padding:32px 40px;border-top:1px solid #e5e7eb;">
-<p style="margin:0 0 8px 0;font-size:15px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">¿Tienes preguntas?</p>
-<p style="margin:0 0 20px 0;font-size:14px;color:#6b7280;font-family:Arial,Helvetica,sans-serif;">Responde a este email o contáctanos directamente.</p>
-<p style="margin:0;font-size:12px;color:#9ca3af;font-family:Arial,Helvetica,sans-serif;">Este es un email automático del sistema de cotizaciones de <strong style="color:#8b5cf6;">Zumi</strong>.</p>
+<p style="margin:0 0 8px 0;font-size:15px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">Tienes preguntas?</p>
+<p style="margin:0 0 20px 0;font-size:14px;color:#6b7280;font-family:Arial,Helvetica,sans-serif;">Responde a este email o contactanos directamente.</p>
+<p style="margin:0;font-size:12px;color:#9ca3af;font-family:Arial,Helvetica,sans-serif;">Este es un email automatico del sistema de cotizaciones de <strong style="color:#8b5cf6;">Zumi</strong>.</p>
 </td>
 </tr>
 </table>
@@ -423,7 +423,7 @@ def send_quote_response_notification(order):
         params = {
             "from": "Zumi Store <onboarding@resend.dev>",
             "to": recipient_email,  # Using admin email for testing
-            "subject": f"Tu Cotización está Lista - {order.order_number} (Test: {order.customer_email})",
+            "subject": f"Tu Cotizacion esta Lista - {order.order_number} (Test: {order.customer_email})",
             "html": html_content,
             "attachments": [
                 {
@@ -488,7 +488,7 @@ def send_order_confirmation_email(order):
 <!-- Header -->
 <tr>
 <td align="center" bgcolor="#4f46e5" style="padding:48px 40px;">
-<h1 style="margin:0 0 12px 0;color:#ffffff;font-size:32px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">🎉 ¡Gracias por tu compra!</h1>
+<h1 style="margin:0 0 12px 0;color:#ffffff;font-size:32px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;"> Gracias por tu compra!</h1>
 <p style="margin:0;color:#ffffff;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Tu pedido ha sido confirmado exitosamente</p>
 </td>
 </tr>
@@ -496,7 +496,7 @@ def send_order_confirmation_email(order):
 <tr>
 <td style="padding:40px;">
 <p style="margin:0 0 12px 0;font-size:16px;color:#1f2937;font-family:Arial,Helvetica,sans-serif;">Hola <strong>{customer_name}</strong>,</p>
-<p style="margin:0 0 32px 0;font-size:16px;color:#4b5563;font-family:Arial,Helvetica,sans-serif;">Hemos recibido tu pedido y ya estamos trabajando en ello. A continuación encontrarás el resumen de tu compra.</p>
+<p style="margin:0 0 32px 0;font-size:16px;color:#4b5563;font-family:Arial,Helvetica,sans-serif;">Hemos recibido tu pedido y ya estamos trabajando en ello. A continuacion encontraras el resumen de tu compra.</p>
 
 <!-- Order Info -->
 <table width="100%" cellpadding="20" cellspacing="0" border="0" bgcolor="#f9fafb" style="margin-bottom:32px;border-left:4px solid #4f46e5;">
@@ -504,7 +504,7 @@ def send_order_confirmation_email(order):
 <td>
 <table width="100%" cellpadding="8" cellspacing="0" border="0">
 <tr>
-<td style="color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Número de Pedido:</td>
+<td style="color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Numero de Pedido:</td>
 <td align="right" style="color:#111827;font-size:14px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">{order_number}</td>
 </tr>
 <tr>
@@ -517,7 +517,7 @@ def send_order_confirmation_email(order):
 </table>
 
 <!-- Shipping Address -->
-<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">📍 Dirección de Envío</h3>
+<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">📍 Direccion de Envio</h3>
 <table width="100%" cellpadding="16" cellspacing="0" border="0" bgcolor="#f0fdf4" style="margin-bottom:32px;">
 <tr>
 <td style="color:#166534;font-size:14px;font-family:Arial,Helvetica,sans-serif;">{shipping_address}</td>
@@ -525,7 +525,7 @@ def send_order_confirmation_email(order):
 </table>
 
 <!-- Products -->
-<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">📦 Tu Compra</h3>
+<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;"> Tu Compra</h3>
 <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
 <tr bgcolor="#f9fafb">
 <td style="padding:12px;color:#6b7280;font-size:13px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;border-bottom:2px solid #e5e7eb;">Producto</td>
@@ -552,7 +552,7 @@ def send_order_confirmation_email(order):
 <td align="right" style="padding:12px 0 0 12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;">${float(order.subtotal):,.0f}</td>
 </tr>
 <tr>
-<td colspan="2" align="right" style="padding:4px 12px 0 0;color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Envío:</td>
+<td colspan="2" align="right" style="padding:4px 12px 0 0;color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Envio:</td>
 <td align="right" style="padding:4px 0 0 12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;">${float(order.shipping_cost):,.0f}</td>
 </tr>
 <tr>
@@ -585,7 +585,7 @@ def send_order_confirmation_email(order):
         params = {
             "from": "Zumi Store <onboarding@resend.dev>",
             "to": recipient_email,
-            "subject": f"✅ Confirmación de Pedido - {order.order_number}",
+            "subject": f" Confirmacion de Pedido - {order.order_number}",
             "html": html_content,
         }
         
@@ -629,14 +629,14 @@ def send_new_order_notification(order):
 <!-- Header -->
 <tr>
 <td align="center" bgcolor="#10b981" style="padding:48px 40px;">
-<h1 style="margin:0 0 12px 0;color:#ffffff;font-size:32px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">💰 Nueva Venta Exitosa</h1>
+<h1 style="margin:0 0 12px 0;color:#ffffff;font-size:32px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;"> Nueva Venta Exitosa</h1>
 <p style="margin:0;color:#ffffff;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Se ha recibido y pagado un nuevo pedido</p>
 </td>
 </tr>
 <!-- Body -->
 <tr>
 <td style="padding:40px;">
-<p style="margin:0 0 24px 0;font-size:16px;color:#1f2937;font-family:Arial,Helvetica,sans-serif;">¡Buenas noticias! Tienes una nueva venta de <strong>{customer_name}</strong>.</p>
+<p style="margin:0 0 24px 0;font-size:16px;color:#1f2937;font-family:Arial,Helvetica,sans-serif;">Buenas noticias! Tienes una nueva venta de <strong>{customer_name}</strong>.</p>
 
 <!-- Stats Grid -->
 <table width="100%" cellpadding="16" cellspacing="0" border="0" bgcolor="#f0fdf4" style="margin-bottom:32px;border:1px solid #bbf7d0;">
@@ -689,7 +689,7 @@ def send_new_order_notification(order):
         params = {
             "from": "Zumi Store <onboarding@resend.dev>",
             "to": settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else "admin@empresa.cl",
-            "subject": f"💰 Nueva Venta: {order.order_number} (${total:,.0f})",
+            "subject": f" Nueva Venta: {order.order_number} (${total:,.0f})",
             "html": html_content,
         }
         
