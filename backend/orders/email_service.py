@@ -314,7 +314,7 @@ def send_quote_response_notification(order):
         html_content += f"""
 <tr>
 <td style="color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Total:</td>
-<td align="right" style="color:#8b5cf6;font-size:18px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">${total:,.0f}</td>
+<td align="right" style="color:#8b5cf6;font-size:18px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">$${total:,.0f}</td>
 </tr>
 </table>
 </td>
@@ -542,18 +542,18 @@ def send_order_confirmation_email(order):
 <tr>
 <td style="padding:12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;border-bottom:1px solid #e5e7eb;">{item.product_name}{variant_info}</td>
 <td align="center" style="padding:12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;border-bottom:1px solid #e5e7eb;">{item.quantity}</td>
-<td align="right" style="padding:12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;border-bottom:1px solid #e5e7eb;">${item_total:,.0f}</td>
+<td align="right" style="padding:12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;border-bottom:1px solid #e5e7eb;">$${item_total:,.0f}</td>
 </tr>"""
         
         html_content += f"""
 <!-- Totals -->
 <tr>
 <td colspan="2" align="right" style="padding:12px 12px 0 0;color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Subtotal:</td>
-<td align="right" style="padding:12px 0 0 12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;">${float(order.subtotal):,.0f}</td>
+<td align="right" style="padding:12px 0 0 12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;">$${float(order.subtotal):,.0f}</td>
 </tr>
 <tr>
 <td colspan="2" align="right" style="padding:4px 12px 0 0;color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Envio:</td>
-<td align="right" style="padding:4px 0 0 12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;">${float(order.shipping_cost):,.0f}</td>
+<td align="right" style="padding:4px 0 0 12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;">$${float(order.shipping_cost):,.0f}</td>
 </tr>
 <tr>
 <td colspan="2" align="right" style="padding:12px 12px 0 0;color:#111827;font-size:16px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">Total:</td>
@@ -689,7 +689,7 @@ def send_new_order_notification(order):
         params = {
             "from": "Zumi Store <onboarding@resend.dev>",
             "to": settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else "admin@empresa.cl",
-            "subject": f" Nueva Venta: {order.order_number} (${total:,.0f})",
+            "subject": f" Nueva Venta: {order.order_number} ($${total:,.0f})",
             "html": html_content,
         }
         
