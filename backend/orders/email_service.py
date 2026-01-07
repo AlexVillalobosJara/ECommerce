@@ -538,26 +538,30 @@ def send_order_confirmation_email(order):
         for item in items:
             variant_info = f" - {item.variant_name}" if item.variant_name else ""
             item_total = float(item.total)
+            item_total_formatted = f"${item_total:,.0f}"
             html_content += f"""
 <tr>
 <td style="padding:12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;border-bottom:1px solid #e5e7eb;">{item.product_name}{variant_info}</td>
 <td align="center" style="padding:12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;border-bottom:1px solid #e5e7eb;">{item.quantity}</td>
-<td align="right" style="padding:12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;border-bottom:1px solid #e5e7eb;">$${item_total:,.0f}</td>
+<td align="right" style="padding:12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;border-bottom:1px solid #e5e7eb;">{item_total_formatted}</td>
 </tr>"""
         
+        subtotal_formatted = f"${float(order.subtotal):,.0f}"
+        shipping_formatted = f"${float(order.shipping_cost):,.0f}"
+        total_formatted = f"${total:,.0f}"
         html_content += f"""
 <!-- Totals -->
 <tr>
 <td colspan="2" align="right" style="padding:12px 12px 0 0;color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Subtotal:</td>
-<td align="right" style="padding:12px 0 0 12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;">$${float(order.subtotal):,.0f}</td>
+<td align="right" style="padding:12px 0 0 12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;">{subtotal_formatted}</td>
 </tr>
 <tr>
 <td colspan="2" align="right" style="padding:4px 12px 0 0;color:#6b7280;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Envio:</td>
-<td align="right" style="padding:4px 0 0 12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;">$${float(order.shipping_cost):,.0f}</td>
+<td align="right" style="padding:4px 0 0 12px;color:#111827;font-size:14px;font-family:Arial,Helvetica,sans-serif;">{shipping_formatted}</td>
 </tr>
 <tr>
 <td colspan="2" align="right" style="padding:12px 12px 0 0;color:#111827;font-size:16px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">Total:</td>
-<td align="right" style="padding:12px 0 0 12px;color:#4f46e5;font-size:18px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">${total:,.0f}</td>
+<td align="right" style="padding:12px 0 0 12px;color:#4f46e5;font-size:18px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">{total_formatted}</td>
 </tr>
 </table>
 </td>
