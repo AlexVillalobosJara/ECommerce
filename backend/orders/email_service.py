@@ -375,9 +375,9 @@ def send_quote_response_notification(order):
 <table width="100%" cellpadding="24" cellspacing="0" border="0" bgcolor="#f0fdf4" style="margin-bottom:24px;border:1px solid #bbf7d0;border-radius:8px;">
 <tr>
 <td align="center">
-<div style="font-weight:bold;color:#166534;margin-bottom:12px;font-size:18px;font-family:Arial,Helvetica,sans-serif;">¿Listo para comprar?</div>
-<p style="margin:0 0 20px 0;color:#15803d;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Puedes pagar tu cotización directamente en línea de forma segura.</p>
-<a href="{payment_link}" style="display:inline-block;padding:16px 32px;background-color:#16a34a;color:#ffffff;text-decoration:none;font-weight:bold;font-size:16px;font-family:Arial,Helvetica,sans-serif;border-radius:6px;">💳 Pagar Cotización Ahora</a>
+<div style="font-weight:bold;color:#166534;margin-bottom:12px;font-size:18px;font-family:Arial,Helvetica,sans-serif;">Listo para comprar?</div>
+<p style="margin:0 0 20px 0;color:#15803d;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Puedes pagar tu cotizacion directamente en linea de forma segura.</p>
+<a href="{payment_link}" style="display:inline-block;padding:16px 32px;background-color:#16a34a;color:#ffffff;text-decoration:none;font-weight:bold;font-size:16px;font-family:Arial,Helvetica,sans-serif;border-radius:6px;">Pagar Cotizacion Ahora</a>
 </td>
 </tr>
 </table>"""
