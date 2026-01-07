@@ -251,7 +251,18 @@ def payment_return_handler(request, gateway):
                             order.paid_at = timezone.now()
                             order.save()
                             
-                            logger.info(f"Order {order.order_number} marked as PAID - emails will be sent by signals")
+                            logger.info(f"Order {order.order_number} marked as PAID")
+                        
+                        # Send emails explicitly (don't rely on signals in production)
+                        try:
+                            logger.info(f"Sending confirmation emails for order {order.order_number}")
+                            send_order_confirmation_email(order)
+                            send_new_order_notification(order)
+                            logger.info(f"Confirmation emails sent successfully")
+                        except Exception as email_error:
+                            logger.error(f"Error sending confirmation emails: {email_error}", exc_info=True)
+                            # Don't fail the payment flow if emails fail
+                            
                     else:
                         logger.info(f"Payment {payment.id} already completed")
                         
