@@ -120,7 +120,7 @@ def send_quote_request_notification(order):
 </table>
 
 <!-- Shipping Address -->
-<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">📍 Direccion de Envio</h3>
+<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;"> Direccion de Envio</h3>
 <table width="100%" cellpadding="16" cellspacing="0" border="0" bgcolor="#f0fdf4" style="margin-bottom:32px;">
 <tr>
 <td style="color:#166534;font-size:14px;font-family:Arial,Helvetica,sans-serif;">{shipping_address}</td>
@@ -288,7 +288,7 @@ def send_quote_response_notification(order):
 <table width="100%" cellpadding="20" cellspacing="0" border="2" bordercolor="#8b5cf6" bgcolor="#f3e8ff" style="margin-bottom:32px;">
 <tr>
 <td align="center">
-<div style="font-size:24px;margin-bottom:8px;">📎</div>
+<div style="font-size:24px;margin-bottom:8px;"></div>
 <div style="font-weight:bold;color:#6b21a8;margin-bottom:4px;font-size:16px;font-family:Arial,Helvetica,sans-serif;">Cotizacion Adjunta</div>
 <p style="margin:0;color:#7c3aed;font-size:14px;font-family:Arial,Helvetica,sans-serif;">Revisa el archivo PDF adjunto para ver todos los detalles</p>
 </td>
@@ -517,7 +517,7 @@ def send_order_confirmation_email(order):
 </table>
 
 <!-- Shipping Address -->
-<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;">📍 Direccion de Envio</h3>
+<h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;color:#111827;font-family:Arial,Helvetica,sans-serif;"> Direccion de Envio</h3>
 <table width="100%" cellpadding="16" cellspacing="0" border="0" bgcolor="#f0fdf4" style="margin-bottom:32px;">
 <tr>
 <td style="color:#166534;font-size:14px;font-family:Arial,Helvetica,sans-serif;">{shipping_address}</td>
