@@ -209,9 +209,10 @@ def send_quote_request_notification(order):
 </html>"""
         
         # Send email
+        # Use Resend's sandbox domain which doesn't require verification
         params = {
-            "from": settings.DEFAULT_FROM_EMAIL,
-            "to": settings.ADMIN_EMAIL,
+            "from": "Zumi Store <onboarding@resend.dev>",
+            "to": settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else "admin@empresa.cl",
             "subject": f"🔔 Nueva Solicitud de Cotización - {order.order_number}",
             "html": html_content,
         }
@@ -403,8 +404,9 @@ def send_quote_response_notification(order):
         pdf_filename = f"Cotizacion_{order.order_number}.pdf"
         
         # Send email with PDF attachment
+        # Use Resend's sandbox domain which doesn't require verification
         params = {
-            "from": settings.DEFAULT_FROM_EMAIL,
+            "from": "Zumi Store <onboarding@resend.dev>",
             "to": recipient_email,  # Using admin email for testing
             "subject": f"Tu Cotización está Lista - {order.order_number} (Test: {order.customer_email})",
             "html": html_content,
@@ -564,8 +566,9 @@ def send_order_confirmation_email(order):
         if hasattr(settings, 'IS_TEST_MODE') and settings.IS_TEST_MODE:
             recipient_email = settings.ADMIN_EMAIL
 
+        # Use Resend's sandbox domain which doesn't require verification
         params = {
-            "from": settings.DEFAULT_FROM_EMAIL,
+            "from": "Zumi Store <onboarding@resend.dev>",
             "to": recipient_email,
             "subject": f"✅ Confirmación de Pedido - {order.order_number}",
             "html": html_content,
@@ -667,9 +670,10 @@ def send_new_order_notification(order):
 </body>
 </html>"""
         
+        # Use Resend's sandbox domain which doesn't require verification
         params = {
-            "from": settings.DEFAULT_FROM_EMAIL,
-            "to": settings.ADMIN_EMAIL,
+            "from": "Zumi Store <onboarding@resend.dev>",
+            "to": settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else "admin@empresa.cl",
             "subject": f"💰 Nueva Venta: {order.order_number} (${total:,.0f})",
             "html": html_content,
         }
