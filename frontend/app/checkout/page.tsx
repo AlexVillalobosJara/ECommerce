@@ -306,14 +306,13 @@ export default function CheckoutPage() {
                                 <div className="space-y-4">
                                     <div>
                                         <Label htmlFor="email" className="text-sm font-medium">
-                                            Correo Electrónico * (debe terminar en .cl)
+                                            Correo Electrónico *
                                         </Label>
                                         <Input
                                             id="email"
                                             type="email"
                                             required
-                                            pattern=".*\.cl$"
-                                            placeholder="su@correo.cl"
+                                            placeholder="su@correo.com"
                                             value={formData.email}
                                             onChange={(e) => updateField("email", e.target.value)}
                                             className="mt-1.5"
