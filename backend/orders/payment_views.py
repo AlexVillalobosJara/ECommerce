@@ -196,14 +196,17 @@ def payment_return_handler(request, gateway):
     
     IMPORTANT: This also verifies payment status as a fallback in case webhooks don't arrive.
     """
-    token = request.data.get('token') if hasattr(request, 'data') else request.POST.get('token')
-    if not token and request.method == 'GET':
+    # Extract parameters from both POST and GET to handle different gateway behaviors
+    if request.method == 'POST':
+        token = request.POST.get('token') or (request.data.get('token') if hasattr(request, 'data') else None)
+        order_id = request.POST.get('order') or request.GET.get('order')
+        tenant_slug = request.POST.get('tenant') or request.GET.get('tenant')
+    else:
         token = request.GET.get('token')
-        
-    order_id = request.GET.get('order')
-    tenant_slug = request.GET.get('tenant')
+        order_id = request.GET.get('order')
+        tenant_slug = request.GET.get('tenant')
     
-    logger.info(f"Payment return handled for {gateway}. Order: {order_id}, Tenant: {tenant_slug}, Token: {token}")
+    logger.info(f"Payment return handled for {gateway}. Method: {request.method}, Order: {order_id}, Tenant: {tenant_slug}, Token: {token}")
 
     # FALLBACK PAYMENT VERIFICATION
     # If we have a token, verify the payment status with the gateway
