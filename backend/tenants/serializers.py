@@ -36,7 +36,7 @@ class TenantSerializer(serializers.ModelSerializer):
             'cta_title', 'cta_description', 'cta_button_text', 'cta_link',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
     
     def validate_slug(self, value):
         """Ensure slug is URL-friendly"""

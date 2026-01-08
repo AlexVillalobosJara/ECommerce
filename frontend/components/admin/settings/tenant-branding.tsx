@@ -311,6 +311,7 @@ export function TenantBranding({ data, onChange }: TenantBrandingProps) {
                                 value={data.slug || ""}
                                 onChange={(e) => onChange({ slug: e.target.value })}
                                 placeholder="mi-tienda"
+                                disabled
                             />
                             <p className="text-xs text-muted-foreground">zumi.app/{data.slug || "mi-tienda"}</p>
                         </div>
