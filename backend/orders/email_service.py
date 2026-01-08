@@ -619,6 +619,7 @@ def send_new_order_notification(order):
         admin_url = f"{settings.FRONTEND_URL}/admin/orders"
         
         # Generate HTML
+        total_formatted = f"${total:,.0f}"
         html_content = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -647,7 +648,7 @@ def send_new_order_notification(order):
 <tr>
 <td align="center" width="50%" style="border-right:1px solid #bbf7d0;">
 <div style="font-size:12px;color:#166534;margin-bottom:4px;">TOTAL</div>
-<div style="font-size:24px;font-weight:bold;color:#15803d;">${total:,.0f}</div>
+<div style="font-size:24px;font-weight:bold;color:#15803d;">{total_formatted}</div>
 </td>
 <td align="center" width="50%">
 <div style="font-size:12px;color:#166534;margin-bottom:4px;">ITEMS</div>
