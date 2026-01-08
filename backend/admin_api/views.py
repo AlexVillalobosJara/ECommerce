@@ -160,11 +160,14 @@ def tenant_settings(request):
         return Response(serializer.data)
     
     elif request.method == 'PATCH':
+        logger.info(f"Updating tenant settings for {tenant.slug}. Data: {request.data}")
         from tenants.serializers import TenantSerializer
         serializer = TenantSerializer(tenant, data=request.data, partial=True)
         if serializer.is_valid():
+            logger.info("Settings are valid, saving...")
             serializer.save()
             return Response(serializer.data)
+        logger.error(f"Settings validation failed: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

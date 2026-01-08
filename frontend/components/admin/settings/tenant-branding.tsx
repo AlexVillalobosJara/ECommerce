@@ -215,7 +215,7 @@ export function TenantBranding({ data, onChange }: TenantBrandingProps) {
     const { tenant } = useTenant()
 
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement> | File) => {
-        const file = 'name' in e ? (e as any).target?.files?.[0] : e
+        const file = e instanceof File ? e : e.target.files?.[0]
         if (!file || !file.type.startsWith("image/")) return
 
         if (!tenant) {
