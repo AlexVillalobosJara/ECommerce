@@ -15,6 +15,7 @@ import type { Category, ProductList } from "@/types/product"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { getImageUrl } from "@/lib/image-utils"
+import { CategoryPageSkeleton } from "@/components/storefront/category-skeleton"
 
 export default function CategoryPage() {
     const params = useParams()
@@ -157,16 +158,7 @@ export default function CategoryPage() {
     }
 
     if (tenantLoading || loading) {
-        return (
-            <div className="flex min-h-screen flex-col">
-                <Header />
-                <main className="flex-1 container mx-auto px-4 py-12">
-                    <div className="mb-8 h-8 w-48 animate-pulse rounded bg-muted"></div>
-                    <ProductGridSkeleton count={6} />
-                </main>
-                <Footer />
-            </div>
-        )
+        return <CategoryPageSkeleton />
     }
 
     if (error || !category) {

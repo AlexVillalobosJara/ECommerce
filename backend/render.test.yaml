@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: ecommerce-backend-test
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn tenants_project.wsgi --log-file -"
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: RENDER
+        value: "True"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+        # Note: In Render UI, append ?options=-csearch_path%3Dtest,public to the production DATABASE_URL
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        value: "dosmil487@gmail.com"
+      - key: FLOW_ENV
+        value: "sandbox"
+      - key: TRANSBANK_ENV
+        value: "TEST"

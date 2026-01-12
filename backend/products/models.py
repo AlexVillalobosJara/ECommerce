@@ -36,7 +36,13 @@ class Category(models.Model):
     class Meta:
         db_table = 'categories'
         ordering = ['sort_order', 'name']
-        unique_together = [['tenant', 'slug']]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'slug'],
+                condition=models.Q(deleted_at__isnull=True),
+                name='unique_category_slug_per_tenant'
+            )
+        ]
         indexes = [
             models.Index(fields=['tenant', 'slug']),
             models.Index(fields=['tenant', 'sort_order']),
@@ -112,7 +118,13 @@ class Product(models.Model):
     class Meta:
         db_table = 'products'
         ordering = ['-created_at']
-        unique_together = [['tenant', 'slug']]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'slug'],
+                condition=models.Q(deleted_at__isnull=True),
+                name='unique_product_slug_per_tenant'
+            )
+        ]
         indexes = [
             models.Index(fields=['tenant', 'slug']),
             models.Index(fields=['tenant', 'status']),
@@ -166,7 +178,13 @@ class ProductVariant(models.Model):
     class Meta:
         db_table = 'product_variants'
         ordering = ['product', 'name']
-        unique_together = [['tenant', 'sku']]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'sku'],
+                condition=models.Q(deleted_at__isnull=True),
+                name='unique_variant_sku_per_tenant'
+            )
+        ]
         indexes = [
             models.Index(fields=['tenant', 'sku']),
             models.Index(fields=['product']),

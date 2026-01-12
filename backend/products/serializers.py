@@ -118,6 +118,8 @@ class CategorySerializer(serializers.ModelSerializer):
         ]
     
     def get_product_count(self, obj):
+        if hasattr(obj, 'annotated_product_count'):
+            return obj.annotated_product_count
         return obj.products.filter(status='Published', deleted_at__isnull=True).count()
     
     def get_children(self, obj):
@@ -149,6 +151,9 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
     
     def get_primary_image(self, obj):
+        if hasattr(obj, 'annotated_primary_image') and obj.annotated_primary_image:
+            return obj.annotated_primary_image
+            
         primary = obj.images.filter(is_primary=True, deleted_at__isnull=True).first()
         if primary:
             return primary.url
@@ -159,6 +164,9 @@ class ProductListSerializer(serializers.ModelSerializer):
     def get_min_price(self, obj):
         if obj.is_quote_only:
             return None
+        if hasattr(obj, 'annotated_min_price'):
+            return obj.annotated_min_price
+            
         variants = obj.variants.filter(is_active=True, deleted_at__isnull=True)
         prices = []
         for v in variants:
@@ -173,6 +181,9 @@ class ProductListSerializer(serializers.ModelSerializer):
     def get_max_price(self, obj):
         if obj.is_quote_only:
             return None
+        if hasattr(obj, 'annotated_max_price'):
+            return obj.annotated_max_price
+            
         variants = obj.variants.filter(is_active=True, deleted_at__isnull=True)
         prices = []
         for v in variants:
@@ -188,6 +199,9 @@ class ProductListSerializer(serializers.ModelSerializer):
         if obj.is_quote_only:
             return None
         
+        if hasattr(obj, 'annotated_min_compare_price'):
+            return obj.annotated_min_compare_price
+            
         # Find the variant with the minimum selling price and return its reference (max) price
         variant = None
         min_selling = None
@@ -221,11 +235,16 @@ class ProductListSerializer(serializers.ModelSerializer):
         return False
     
     def get_variants_count(self, obj):
+        if hasattr(obj, 'annotated_variants_count'):
+            return obj.annotated_variants_count
         return obj.variants.filter(is_active=True, deleted_at__isnull=True).count()
     
     def get_in_stock(self, obj):
         if not obj.manage_stock:
             return True
+        if hasattr(obj, 'has_stock'):
+            return obj.has_stock > 0
+            
         return obj.variants.filter(
             is_active=True, 
             deleted_at__isnull=True,

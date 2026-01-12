@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card"
 import { Header } from "@/components/storefront/header"
 import { Footer } from "@/components/storefront/footer"
 import { OrderSummary } from "@/components/storefront/order-summary"
+import { CheckoutSkeleton } from "@/components/storefront/checkout-skeleton"
 import { useTenant } from "@/contexts/TenantContext"
 import { useCart } from "@/hooks/useCart"
 import { storefrontApi, type OrderCreate } from "@/services/storefront-api"
@@ -20,8 +21,20 @@ import { formatPrice } from "@/lib/format-price"
 
 export default function CheckoutPage() {
     const router = useRouter()
-    const { tenant } = useTenant()
+    const { tenant, loading: tenantLoading } = useTenant()
+    const [initialLoading, setInitialLoading] = useState(true)
     const { purchaseItems, quoteItems, getTotalItems, mounted } = useCart()
+
+    // Simulated loading delay for development
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'development') {
+            const timer = setTimeout(() => setInitialLoading(false), 2000)
+            return () => clearTimeout(timer)
+        } else {
+            setInitialLoading(false)
+        }
+    }, [])
+
     const [loading, setLoading] = useState(false)
     const [calculatingShipping, setCalculatingShipping] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -259,12 +272,8 @@ export default function CheckoutPage() {
         }
     }
 
-    if (!mounted) {
-        return (
-            <div className="flex min-h-screen items-center justify-center">
-                <p className="text-lg text-muted-foreground">Cargando...</p>
-            </div>
-        )
+    if (tenantLoading || loading || initialLoading || !mounted) {
+        return <CheckoutSkeleton />
     }
 
     return (

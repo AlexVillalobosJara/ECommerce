@@ -25,7 +25,9 @@ import { ProductReviews } from "@/components/storefront/product-reviews"
 import { TechnicalSpecs } from "@/components/storefront/technical-specs"
 import { formatPrice } from "@/lib/format-price"
 import { getProductImageUrl } from "@/lib/image-utils"
+import { ProductDetailsSkeleton } from "@/components/storefront/product-details-skeleton"
 
+// Product Detail Page with premium loading experience
 export default function ProductDetailPage() {
     const params = useParams()
     const router = useRouter()
@@ -129,15 +131,9 @@ export default function ProductDetailPage() {
         router.push("/checkout")
     }
 
-    // Loading State
+    // Premium Loading State
     if (loading) {
-        return (
-            <div className="flex min-h-screen items-center justify-center bg-white">
-                <div className="animate-pulse flex flex-col items-center">
-                    <div className="h-4 w-32 bg-gray-200 rounded mb-4"></div>
-                </div>
-            </div>
-        )
+        return <ProductDetailsSkeleton />
     }
 
     // Not Found State

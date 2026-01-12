@@ -52,7 +52,13 @@ class Customer(models.Model):
     
     class Meta:
         db_table = 'customers'
-        unique_together = [['tenant', 'email']]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['tenant', 'email'],
+                condition=models.Q(deleted_at__isnull=True),
+                name='unique_customer_email_per_tenant'
+            )
+        ]
         indexes = [
             models.Index(fields=['tenant', 'email']),
             models.Index(fields=['tenant', 'tax_id']),

@@ -7,6 +7,7 @@ import { HeroSection } from "@/components/storefront/hero-section"
 import { CategoriesSection } from "@/components/storefront/categories-section"
 import { ProductCard } from "@/components/storefront/product-card"
 import { ProductGridSkeleton } from "@/components/storefront/product-skeleton"
+import { FullPageStorefrontSkeleton } from "@/components/storefront/full-page-skeleton"
 import { ProductFiltersSidebar, ProductFilters } from "@/components/storefront/product-filters"
 import { Footer } from "@/components/storefront/footer"
 import { CartDrawer } from "@/components/storefront/cart-drawer"
@@ -227,11 +228,7 @@ export default function StorefrontPage() {
   }
 
   if (tenantLoading || initialLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-lg text-muted-foreground">Cargando tienda...</p>
-      </div>
-    )
+    return <FullPageStorefrontSkeleton />
   }
 
   if (!tenant) {

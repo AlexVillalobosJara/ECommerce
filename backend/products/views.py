@@ -1,8 +1,9 @@
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db import models
 from django.db.models import Q
-from .models import Category, Product, ProductVariant, ProductReview
+from .models import Category, Product, ProductVariant, ProductReview, ProductImage
 from .serializers import (
     CategorySerializer,
     ProductListSerializer,
@@ -24,14 +25,29 @@ class StorefrontCategoryViewSet(viewsets.ReadOnlyModelViewSet):
         if not tenant:
             return Category.objects.none()
         
-        # Only return top-level categories (parent=None)
-        # Children are included in the serializer
-        return Category.objects.filter(
+        # Optimize with product count annotation and avoid recursive children queries in viewset if possible
+        # However, CategorySerializer handles children. To optimize N+1 in children:
+        from django.db.models import Count, Q
+        
+        queryset = Category.objects.filter(
             tenant=tenant,
             parent__isnull=True,
             is_active=True,
             deleted_at__isnull=True
+        ).annotate(
+            annotated_product_count=Count(
+                'products', 
+                filter=Q(products__status='Published', products__deleted_at__isnull=True),
+                distinct=True
+            )
+        ).prefetch_related(
+            models.Prefetch(
+                'children',
+                queryset=Category.objects.filter(is_active=True, deleted_at__isnull=True).order_by('sort_order')
+            )
         ).order_by('sort_order', 'name')
+        
+        return queryset
 
 
 class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
@@ -56,11 +72,34 @@ class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
         if not tenant:
             return Product.objects.none()
         
+        from django.db.models import Min, Max, Count, OuterRef, Subquery, Q
+        
+        # Subquery for primary image URL to avoid N+1 in serializer
+        primary_image_subquery = ProductImage.objects.filter(
+            product=OuterRef('pk'),
+            is_primary=True,
+            deleted_at__isnull=True
+        ).values('url')[:1]
+
+        # Calculate prices and counts in a single query
         queryset = Product.objects.filter(
             tenant=tenant,
             status='Published',
             deleted_at__isnull=True
-        ).select_related('category').prefetch_related('variants', 'images')
+        ).annotate(
+            annotated_min_price=Min('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_max_price=Max('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_min_compare_price=Min('variants__compare_at_price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_variants_count=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True), distinct=True),
+            annotated_primary_image=Subquery(primary_image_subquery),
+            has_stock=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True, variants__stock_quantity__gt=0))
+        ).select_related('category')
+        
+        if self.action == 'retrieve':
+            queryset = queryset.prefetch_related(
+                models.Prefetch('variants', queryset=ProductVariant.objects.filter(is_active=True, deleted_at__isnull=True)),
+                models.Prefetch('images', queryset=ProductImage.objects.filter(deleted_at__isnull=True).order_by('sort_order'))
+            )
         
         # Filter by category
         category_slug = self.request.query_params.get('category')
