@@ -1,12 +1,12 @@
 from rest_framework import viewsets, filters, views
 from rest_framework.response import Response
-from django.utils import timezone
+from django.db import models
 from django.db.models import Q
 from .models import Tenant
 from .serializers import TenantSerializer
-from products.models import Category, Product
+from products.models import Category, Product, ProductImage, ProductVariant
 from products.serializers import CategorySerializer, ProductListSerializer
-from products.views import StorefrontProductViewSet, StorefrontCategoryViewSet
+from django.db.models import Min, Max, Count, OuterRef, Subquery, Q
 
 class TenantViewSet(viewsets.ModelViewSet):
     # ... (existing code managed by multi_replace if needed, but simple append/refactor is fine)
@@ -64,29 +64,66 @@ class StorefrontHomeView(views.APIView):
         tenant_data = TenantSerializer(tenant, context={'request': request}).data
         
         # 2. Categories Data (Top level)
-        cat_viewset = StorefrontCategoryViewSet()
-        cat_viewset.request = request
-        cat_viewset.action = 'list'
-        cat_viewset.format_kwarg = None
-        categories_qs = cat_viewset.get_queryset()
+        categories_qs = Category.objects.filter(
+            tenant=tenant,
+            parent__isnull=True,
+            is_active=True,
+            deleted_at__isnull=True
+        ).annotate(
+            annotated_product_count=Count(
+                'products', 
+                filter=Q(products__status='Published', products__deleted_at__isnull=True),
+                distinct=True
+            )
+        ).prefetch_related(
+            models.Prefetch(
+                'children',
+                queryset=Category.objects.filter(is_active=True, deleted_at__isnull=True).order_by('sort_order')
+            )
+        ).order_by('sort_order', 'name')
         categories_data = CategorySerializer(categories_qs, many=True, context={'request': request}).data
         
         # 3. Featured Products Data
-        prod_viewset = StorefrontProductViewSet()
-        prod_viewset.request = request
-        prod_viewset.action = 'list'
-        prod_viewset.format_kwarg = None
-        products_base_qs = prod_viewset.get_queryset()
-        products_qs = products_base_qs.filter(is_featured=True)
+        # Base filters for all storefront products
+        base_products = Product.objects.filter(
+            tenant=tenant,
+            status='Published',
+            deleted_at__isnull=True
+        )
         
-        # Fallback: if no featured products, show latest 12
-        if not products_qs.exists():
-            products_qs = prod_viewset.get_queryset().order_by('-created_at')[:12]
+        # Subquery for primary image URL
+        primary_image_subquery = ProductImage.objects.filter(
+            product=OuterRef('pk'),
+            is_primary=True,
+            deleted_at__isnull=True
+        ).values('url')[:1]
+
+        # Annotations (matching StorefrontProductViewSet)
+        products_qs = base_products.annotate(
+            annotated_min_price=Min('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_max_price=Max('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_min_compare_price=Min('variants__compare_at_price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_variants_count=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True), distinct=True),
+            annotated_primary_image=Subquery(primary_image_subquery),
+            has_stock=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True, variants__stock_quantity__gt=0))
+        ).select_related('category')
+        
+        featured_qs = products_qs.filter(is_featured=True)
+        
+        # Fallback logic
+        display_qs = featured_qs
+        if not display_qs.exists():
+            display_qs = products_qs.order_by('-created_at')[:12]
             
-        products_data = ProductListSerializer(products_qs, many=True, context={'request': request}).data
+        products_data = ProductListSerializer(display_qs, many=True, context={'request': request}).data
         
         return Response({
             "tenant": tenant_data,
             "categories": categories_data,
-            "featured_products": products_data
+            "featured_products": products_data,
+            "_debug": {
+                "total_published": base_products.count(),
+                "total_featured": featured_qs.count(),
+                "tenant_resolved": tenant.slug
+            }
         })
