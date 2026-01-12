@@ -120,7 +120,9 @@ class StorefrontHomeView(views.APIView):
         # Fallback logic
         display_qs = featured_qs
         if not display_qs.exists():
-            display_qs = products_qs.order_by('-created_at')[:12]
+            display_qs = products_qs.order_by('-created_at')[:6]
+        else:
+            display_qs = featured_qs.order_by('-created_at')[:6]
             
         products_data = ProductListSerializer(display_qs, many=True, context={'request': request}).data
         

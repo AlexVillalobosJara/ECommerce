@@ -91,15 +91,16 @@ function ProductListingContent({
           params.search = searchParam
         }
 
-        // Check if we can use initial products
+        // Check if we can use initial products for instant display
         const hasFilters = Object.keys(filters).length > 0 || !!searchParam
-        if (!hasFilters) {
-          if (initialProducts) {
-            setProducts(initialProducts)
-            setProductsLoading(false)
-            return
-          }
+        if (!hasFilters && initialProducts && products.length === 0) {
+          setProducts(initialProducts)
+          // We DON'T return here anymore - we allow the background fetch to proceed
+          // but we don't set loading to true to avoid hiding the initial 6
           params.featured = true
+        } else {
+          setProductsLoading(true)
+          if (!hasFilters) params.featured = true
         }
 
         const productsData = await storefrontApi.getProducts(tenantSlug, params)
