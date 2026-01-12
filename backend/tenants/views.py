@@ -45,18 +45,22 @@ class StorefrontHomeView(views.APIView):
     
     def get(self, request, *args, **kwargs):
         # Resolve tenant using existing middleware or params
-        tenant = getattr(request, 'tenant', None)
         slug = request.query_params.get('slug')
         domain = request.query_params.get('domain')
         
-        if not tenant:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"StorefrontHomeView: resolving for slug='{slug}', domain='{domain}'")
             if slug:
                 tenant = Tenant.objects.filter(slug=slug, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
             elif domain:
                 tenant = Tenant.objects.filter(custom_domain=domain, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
         
         if not tenant:
+            logger.warning(f"StorefrontHomeView: Tenant NOT FOUND for slug='{slug}', domain='{domain}'")
             return Response({"error": "Tenant not found"}, status=404)
+        
+        logger.info(f"StorefrontHomeView: Resolved tenant '{tenant.slug}' (ID: {tenant.id})")
         
         # Explicitly set request.tenant for internal ViewSet/get_queryset calls
         request.tenant = tenant

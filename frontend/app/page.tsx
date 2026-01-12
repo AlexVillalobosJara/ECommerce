@@ -113,7 +113,7 @@ function ProductListingContent({
     }
 
     loadProducts()
-  }, [tenantSlug, filters, searchParams])
+  }, [tenantSlug, filters, searchParams, initialProducts])
 
   // Handlers (Simplified for brevity, assuming handlers exist in parent or reimplemented)
   // We need to trigger the Main Page's Cart Drawer.
@@ -210,7 +210,7 @@ export default function StorefrontPage() {
   } = useCart()
 
   const [categories, setCategories] = useState<Category[]>([])
-  const [featuredProducts, setFeaturedProducts] = useState<ProductList[]>([])
+  const [featuredProducts, setFeaturedProducts] = useState<ProductList[] | null>(null)
   const [initialLoading, setInitialLoading] = useState(true)
   const [localTenant, setLocalTenant] = useState<any>(null)
   const [cartOpen, setCartOpen] = useState(false)
@@ -299,7 +299,7 @@ export default function StorefrontPage() {
         <ProductListing
           tenantSlug={activeTenant.slug}
           categories={categories}
-          initialProducts={featuredProducts}
+          initialProducts={featuredProducts || undefined}
         />
       </Suspense>
 
