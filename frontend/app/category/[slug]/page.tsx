@@ -6,7 +6,8 @@ import { Metadata } from "next"
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+    const { slug } = await params
     const headersList = await headers()
     const host = headersList.get("host") || ""
     const identifier = getTenantIdentifier(host)
@@ -14,9 +15,11 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     if (!identifier) return { title: "Categoría no encontrada" }
 
     try {
-        const category = await storefrontApi.getCategoryBySlug(identifier.slug || '', params.slug)
+        const homeData = await storefrontApi.getHomeData({ slug: identifier.slug, domain: identifier.domain })
+        const tenantSlug = homeData.tenant.slug
+        const category = await storefrontApi.getCategoryBySlug(tenantSlug, slug)
         return {
-            title: `${category.name} | Tienda Virtual`,
+            title: `${category.name} | ${homeData.tenant.name}`,
             description: category.description,
         }
     } catch (e) {
@@ -24,37 +27,43 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     }
 }
 
-export default async function Page({ params }: { params: { slug: string } }) {
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params
     const headersList = await headers()
     const host = headersList.get("host") || ""
     const identifier = getTenantIdentifier(host)
-    const slug = params.slug
 
     if (!identifier || (!identifier.slug && !identifier.domain)) {
-        return <div>Tienda no configurada</div>
+        return <div className="p-20 text-center">Tienda no configurada</div>
     }
 
     try {
-        const tenantSlug = identifier.slug || ''
+        // 1. Resolve tenant properly via mega-fetch
+        const homeData = await storefrontApi.getHomeData({ slug: identifier.slug, domain: identifier.domain })
+        const tenantSlug = homeData.tenant.slug
 
-        // Parallel server-side fetching
-        const [category, allCategories, products, homeData] = await Promise.all([
+        // 2. Parallel server-side fetching with resolved slug
+        const [category, products] = await Promise.all([
             storefrontApi.getCategoryBySlug(tenantSlug, slug),
-            storefrontApi.getCategories(tenantSlug),
-            storefrontApi.getProducts(tenantSlug, { category: slug }),
-            storefrontApi.getHomeData({ slug: identifier.slug, domain: identifier.domain })
+            storefrontApi.getProducts(tenantSlug, { category: slug })
         ])
 
         return (
             <CategoryClientPage
                 tenant={homeData.tenant}
                 category={category}
-                allCategories={allCategories}
+                allCategories={homeData.categories}
                 initialProducts={products}
             />
         )
     } catch (error) {
         console.error("Category SSR Error:", error)
-        return <div>Error al cargar la categoría</div>
+        return (
+            <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+                <h1 className="text-2xl font-bold">Error al cargar la categoría</h1>
+                <p className="mt-2 text-muted-foreground">No pudimos encontrar la información solicitada.</p>
+                <a href="/" className="mt-4 text-primary hover:underline">Volver al inicio</a>
+            </div>
+        )
     }
 }

@@ -6,7 +6,8 @@ import { Metadata } from "next"
 
 export const dynamic = 'force-dynamic'
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+    const { slug } = await params
     const headersList = await headers()
     const host = headersList.get("host") || ""
     const identifier = getTenantIdentifier(host)
@@ -14,9 +15,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     if (!identifier) return { title: "Producto no encontrado" }
 
     try {
-        const product = await storefrontApi.getProduct(identifier.slug || '', params.slug)
+        const homeData = await storefrontApi.getHomeData({ slug: identifier.slug, domain: identifier.domain })
+        const product = await storefrontApi.getProduct(homeData.tenant.slug, slug)
         return {
-            title: `${product.name} | Tienda Virtual`,
+            title: `${product.name} | ${homeData.tenant.name}`,
             description: product.short_description || product.description,
         }
     } catch (e) {
@@ -24,28 +26,28 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     }
 }
 
-export default async function Page({ params }: { params: { slug: string } }) {
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params
     const headersList = await headers()
     const host = headersList.get("host") || ""
     const identifier = getTenantIdentifier(host)
-    const slug = params.slug
 
     if (!identifier || (!identifier.slug && !identifier.domain)) {
-        return <div>Tienda no configurada</div>
+        return <div className="p-20 text-center">Tienda no configurada</div>
     }
 
     try {
-        const tenantSlug = identifier.slug || ''
+        // 1. Resolve tenant properly via mega-fetch
+        const homeData = await storefrontApi.getHomeData({ slug: identifier.slug, domain: identifier.domain })
+        const tenantSlug = homeData.tenant.slug
 
-        // Parallel server-side fetching
+        // 2. Fetch product detail
         const product = await storefrontApi.getProduct(tenantSlug, slug)
 
-        const [homeData, relatedProducts] = await Promise.all([
-            storefrontApi.getHomeData({ slug: identifier.slug, domain: identifier.domain }),
-            product.category
-                ? storefrontApi.getRelatedProducts(tenantSlug, product.category.slug, product.id, 4)
-                : Promise.resolve([])
-        ])
+        // 3. Fetch related products if possible
+        const relatedProducts = product.category
+            ? await storefrontApi.getRelatedProducts(tenantSlug, product.category.slug, product.id, 4)
+            : []
 
         return (
             <ProductClientPage
@@ -56,6 +58,12 @@ export default async function Page({ params }: { params: { slug: string } }) {
         )
     } catch (error) {
         console.error("Product SSR Error:", error)
-        return <div>Error al cargar el producto</div>
+        return (
+            <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+                <h1 className="text-2xl font-bold">Error al cargar el producto</h1>
+                <p className="mt-2 text-muted-foreground">No pudimos encontrar el producto solicitado.</p>
+                <a href="/" className="mt-4 text-primary hover:underline">Volver al inicio</a>
+            </div>
+        )
     }
 }
