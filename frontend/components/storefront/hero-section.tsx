@@ -10,6 +10,7 @@ interface HeroSectionProps {
     ctaHref?: string
     backgroundImage?: string
     onCtaClick?: () => void
+    priority?: boolean
 }
 
 export function HeroSection({
@@ -19,6 +20,7 @@ export function HeroSection({
     ctaHref,
     backgroundImage,
     onCtaClick,
+    priority = false,
 }: HeroSectionProps) {
     return (
         <section className="relative h-[80vh] min-h-[600px] w-full overflow-hidden">
@@ -28,6 +30,9 @@ export function HeroSection({
                     src={getImageUrl(backgroundImage)}
                     alt="Hero background"
                     className="size-full object-cover scale-105 animate-fade-in"
+                    loading={priority ? "eager" : "lazy"}
+                    // @ts-ignore
+                    fetchpriority={priority ? "high" : "auto"}
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/40" />
             </div>

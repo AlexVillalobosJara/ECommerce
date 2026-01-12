@@ -16,9 +16,10 @@ interface ProductCardProps {
     onRequestQuote?: (product: ProductList) => void
     className?: string
     aspectRatio?: "portrait" | "square"
+    priority?: boolean
 }
 
-export function ProductCard({ product, onAddToCart, onRequestQuote, className, aspectRatio = "portrait" }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, onRequestQuote, className, aspectRatio = "portrait", priority = false }: ProductCardProps) {
     const router = useRouter()
     const { tenant } = useTenant()
 
@@ -50,6 +51,9 @@ export function ProductCard({ product, onAddToCart, onRequestQuote, className, a
                     src={getProductImageUrl(product.primary_image)}
                     alt={product.name}
                     className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading={priority ? "eager" : "lazy"}
+                    // @ts-ignore
+                    fetchpriority={priority ? "high" : "auto"}
                 />
 
                 {/* Stock Badge */}
