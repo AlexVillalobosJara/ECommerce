@@ -58,23 +58,21 @@ class StorefrontHomeView(views.APIView):
             return Response({"error": "Tenant not found"}, status=404)
         
         # 1. Tenant Data
-        tenant_data = TenantSerializer(tenant).data
+        tenant_data = TenantSerializer(tenant, context={'request': request}).data
         
         # 2. Categories Data (Top level)
-        # We reuse the logic from StorefrontCategoryViewSet but manually
         cat_viewset = StorefrontCategoryViewSet()
         cat_viewset.request = request
-        cat_viewset.request.tenant = tenant
+        cat_viewset.format_kwarg = None # Avoid issues with pagination if any
         categories_qs = cat_viewset.get_queryset()
-        categories_data = CategorySerializer(categories_qs, many=True).data
+        categories_data = CategorySerializer(categories_qs, many=True, context={'request': request}).data
         
         # 3. Featured Products Data
-        # We reuse the logic from StorefrontProductViewSet
         prod_viewset = StorefrontProductViewSet()
         prod_viewset.request = request
-        prod_viewset.request.tenant = tenant
+        prod_viewset.format_kwarg = None
         products_qs = prod_viewset.get_queryset().filter(is_featured=True)
-        products_data = ProductListSerializer(products_qs, many=True).data
+        products_data = ProductListSerializer(products_qs, many=True, context={'request': request}).data
         
         return Response({
             "tenant": tenant_data,
