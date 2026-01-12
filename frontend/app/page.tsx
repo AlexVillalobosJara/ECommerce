@@ -96,6 +96,7 @@ function ProductListingContent({
         if (!hasFilters) {
           if (initialProducts) {
             setProducts(initialProducts)
+            setProductsLoading(false)
             return
           }
           params.featured = true
