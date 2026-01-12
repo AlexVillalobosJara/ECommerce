@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Minus, Plus, ShoppingCart, Star, Check, ChevronLeft } from "lucide-react"
 import { toast } from "sonner"
@@ -30,6 +30,11 @@ interface ProductClientPageProps {
 export function ProductClientPage({ tenant, product, relatedProducts }: ProductClientPageProps) {
     const router = useRouter()
     const { purchaseItems, quoteItems, addToCart, updateQuantity, removeFromCart } = useCart()
+
+    // Ensure we start at the top on mount
+    useEffect(() => {
+        window.scrollTo(0, 0)
+    }, [])
 
     const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
         product.variants?.find(v => v.is_default) || product.variants?.[0] || null
@@ -100,13 +105,13 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                     </Button>
                 </div>
 
-                <div className="grid gap-12 lg:grid-cols-3">
-                    <div className="lg:col-span-1 space-y-4">
-                        <div className="aspect-square overflow-hidden rounded-lg bg-muted relative group">
+                <div className="grid gap-12 lg:grid-cols-12 items-start">
+                    <div className="lg:col-span-5 space-y-6">
+                        <div className="aspect-square overflow-hidden rounded-xl bg-gray-50 border border-gray-100 relative group">
                             <img
                                 src={currentImage}
                                 alt={product.name}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                         </div>
 
@@ -117,8 +122,8 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                                         key={image.id}
                                         onClick={() => setSelectedImageIndex(index)}
                                         className={cn(
-                                            "aspect-square overflow-hidden rounded-lg bg-muted relative transition-all",
-                                            selectedImageIndex === index ? "ring-2 ring-primary ring-offset-2" : "opacity-60 hover:opacity-100"
+                                            "aspect-square overflow-hidden rounded-lg bg-gray-50 border transition-all",
+                                            selectedImageIndex === index ? "ring-2 ring-primary ring-offset-2 border-primary" : "border-gray-100 opacity-60 hover:opacity-100 hover:border-gray-200"
                                         )}
                                     >
                                         <img src={getProductImageUrl(image.url)} alt="" className="w-full h-full object-cover" />
@@ -128,43 +133,55 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                         )}
                     </div>
 
-                    <div className="lg:col-span-2 space-y-6">
-                        <div>
-                            <h1 className="font-serif text-4xl font-light tracking-tight text-gray-900">{product.name}</h1>
+                    <div className="lg:col-span-7 space-y-10 lg:pl-4">
+                        <div className="space-y-4">
+                            <h1 className="font-serif text-4xl lg:text-5xl lg:leading-tight font-light tracking-tight text-gray-900">
+                                {product.name}
+                            </h1>
                             {tenant.show_product_ratings && (
-                                <div className="mt-3 flex items-center gap-4">
+                                <div className="flex items-center gap-4">
                                     <div className="flex items-center gap-1">
                                         {[...Array(5)].map((_, i) => (
                                             <Star key={i} className={cn("size-4", i < Math.floor(parseFloat(product.average_rating || "0")) ? "fill-yellow-400 text-yellow-400" : "text-gray-200")} />
                                         ))}
                                     </div>
-                                    <span className="text-sm text-muted-foreground">{product.average_rating || "0.0"} ({product.review_count} opiniones)</span>
+                                    <span className="text-sm font-medium text-muted-foreground">{product.average_rating || "0.0"}</span>
+                                    <span className="text-xs text-muted-foreground uppercase tracking-widest">{product.review_count} opiniones</span>
                                 </div>
                             )}
                         </div>
 
-                        <div className="flex items-baseline gap-3">
-                            {product.is_quote_only ? (
-                                <p className="font-serif text-3xl font-light text-primary">Cotización</p>
-                            ) : selectedVariant?.selling_price ? (
-                                <>
-                                    {selectedVariant.has_discount && selectedVariant.original_price && (
-                                        <p className="text-xl text-muted-foreground line-through">{formatPrice(selectedVariant.original_price, tenant)}</p>
-                                    )}
-                                    <p className={cn("font-serif text-4xl font-light", selectedVariant.has_discount ? "text-destructive" : "text-gray-900")}>
-                                        {formatPrice(selectedVariant.selling_price, tenant)}
-                                        {!tenant.prices_include_tax && tenant.tax_rate && <span className="ml-2 text-lg text-muted-foreground font-normal">+ IVA</span>}
-                                    </p>
-                                </>
-                            ) : (
-                                <p className="text-xl text-muted-foreground">Seleccione variante</p>
+                        <div className="space-y-2">
+                            <div className="flex items-baseline gap-4">
+                                {product.is_quote_only ? (
+                                    <p className="font-serif text-3xl font-light text-primary">Cotización</p>
+                                ) : selectedVariant?.selling_price ? (
+                                    <>
+                                        <p className={cn("font-serif text-4xl lg:text-5xl font-light", selectedVariant.has_discount ? "text-destructive" : "text-gray-900")}>
+                                            {formatPrice(selectedVariant.selling_price, tenant)}
+                                        </p>
+                                        {selectedVariant.has_discount && selectedVariant.original_price && (
+                                            <p className="text-xl text-muted-foreground line-through decoration-muted-foreground/50">
+                                                {formatPrice(selectedVariant.original_price, tenant)}
+                                            </p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <p className="text-xl text-muted-foreground italic">Seleccione una opción</p>
+                                )}
+                            </div>
+                            {!tenant.prices_include_tax && tenant.tax_rate && (
+                                <p className="text-sm text-muted-foreground italic">+ IVA (No incluido)</p>
                             )}
                         </div>
 
-                        <Separator />
-                        <p className="text-balance leading-relaxed text-muted-foreground text-lg">
-                            {product.short_description || product.description?.substring(0, 150) + "..."}
-                        </p>
+                        <Separator className="bg-gray-100" />
+
+                        <div className="prose prose-gray max-w-none">
+                            <p className="text-balance leading-relaxed text-gray-600 text-lg lg:text-xl font-light">
+                                {product.short_description || product.description?.substring(0, 150) + "..."}
+                            </p>
+                        </div>
 
                         {product.variants && product.variants.length > 0 && (
                             <div className="space-y-3">

@@ -196,24 +196,34 @@ class StorefrontProductDetailView(StorefrontBaseView):
 
         tenant_data, categories_data = self.get_common_data(request, tenant)
         
-        # Product Detail
-        product_qs = Product.objects.filter(tenant=tenant, slug=product_slug, deleted_at__isnull=True).prefetch_related(
-            models.Prefetch('variants', queryset=ProductVariant.objects.filter(is_active=True, deleted_at__isnull=True)),
-            models.Prefetch('images', queryset=ProductImage.objects.filter(deleted_at__isnull=True).order_by('sort_order'))
-        ).select_related('category')
+        # Product Detail (Cache by Tenant + Slug)
+        product_cache_key = f"storefront_product_{tenant.id}_{product_slug}"
+        cached_product = cache.get(product_cache_key)
         
-        product = product_qs.first()
-        if not product:
-            return Response({"error": "Product not found"}, status=404)
+        if cached_product:
+            product_data = cached_product['product']
+            related_data = cached_product['related']
+        else:
+            product_qs = Product.objects.filter(tenant=tenant, slug=product_slug, deleted_at__isnull=True).prefetch_related(
+                models.Prefetch('variants', queryset=ProductVariant.objects.filter(is_active=True, deleted_at__isnull=True)),
+                models.Prefetch('images', queryset=ProductImage.objects.filter(deleted_at__isnull=True).order_by('sort_order'))
+            ).select_related('category')
             
-        product_data = ProductDetailSerializer(product, context={'request': request}).data
+            product = product_qs.first()
+            if not product:
+                return Response({"error": "Product not found"}, status=404)
+                
+            product_data = ProductDetailSerializer(product, context={'request': request}).data
 
-        # Related Products (Same category)
-        related_qs = self.get_annotated_products_queryset(tenant).filter(
-            category=product.category
-        ).exclude(id=product.id).order_by('-created_at')[:4]
-        
-        related_data = ProductListSerializer(related_qs, many=True, context={'request': request}).data
+            # Related Products (Same category)
+            related_qs = self.get_annotated_products_queryset(tenant).filter(
+                category=product.category
+            ).exclude(id=product.id).order_by('-created_at')[:4]
+            
+            related_data = ProductListSerializer(related_qs, many=True, context={'request': request}).data
+            
+            # Cache for 5 minutes
+            cache.set(product_cache_key, {'product': product_data, 'related': related_data}, 300)
         
         return Response({
             "tenant": tenant_data,
