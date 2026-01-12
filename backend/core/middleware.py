@@ -63,21 +63,28 @@ class TenantMiddleware(MiddlewareMixin):
                 logger.warning(f"Error in custom domain lookup: {str(inner_e)}")
 
             # 2. Try to match by query parameter (High priority for cross-domain/testing)
-            tenant_slug = request.GET.get('tenant')
-            if tenant_slug:
+            tenant_slug = request.GET.get('tenant') or request.GET.get('slug')
+            tenant_domain = request.GET.get('domain')
+            
+            if tenant_slug or tenant_domain:
                 try:
-                    # Allow matching by slug or custom_domain in query param
-                    tenant = Tenant.objects.get(
-                        Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
-                        status__in=['Active', 'Trial'],
-                        deleted_at__isnull=True
-                    )
+                    if tenant_slug:
+                        tenant = Tenant.objects.get(
+                            Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
+                            status__in=['Active', 'Trial'],
+                            deleted_at__isnull=True
+                        )
+                    else:
+                        tenant = Tenant.objects.get(
+                            custom_domain=tenant_domain,
+                            status__in=['Active', 'Trial'],
+                            deleted_at__isnull=True
+                        )
                     request.tenant = tenant
                     logger.info(f"Tenant resolved by query param: {tenant.slug}")
                     return None
                 except Tenant.DoesNotExist:
-                    logger.warning(f"Tenant not found for query param: {tenant_slug}")
-                    # Continue to other methods if query param failed
+                    logger.warning(f"Tenant not found for query params: {tenant_slug or tenant_domain}")
 
             # 3. Try to match by platform subdomain (e.g. slug.onrender.com)
             parts = host.split('.')
@@ -123,6 +130,7 @@ class TenantMiddleware(MiddlewareMixin):
             # Certain storefront paths are global (like communes) and don't REQUIRE a tenant
             global_storefront_paths = [
                 '/api/storefront/communes/',
+                '/api/storefront/home-data/',
             ]
             
             is_global_storefront = any(request.path.startswith(p) for p in global_storefront_paths)
