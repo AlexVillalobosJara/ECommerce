@@ -100,7 +100,14 @@ class StorefrontBaseView(views.APIView):
             annotated_min_compare_price=Min('variants__compare_at_price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
             annotated_variants_count=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True), distinct=True),
             annotated_primary_image=Subquery(primary_image_subquery),
-            has_stock=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True, variants__stock_quantity__gt=0))
+            has_stock=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True, variants__stock_quantity__gt=0)),
+            annotated_has_discount=models.Exists(
+                ProductVariant.objects.filter(
+                    product=OuterRef('pk'),
+                    is_active=True,
+                    deleted_at__isnull=True
+                ).exclude(price=models.F('compare_at_price'))
+            )
         ).select_related('category')
 
 class StorefrontHomeView(StorefrontBaseView):

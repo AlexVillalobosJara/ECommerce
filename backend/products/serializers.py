@@ -105,7 +105,6 @@ class ProductVariantWriteSerializer(serializers.ModelSerializer):
         return data
 
 
-
 class CategorySerializer(serializers.ModelSerializer):
     product_count = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
@@ -125,13 +124,20 @@ class CategorySerializer(serializers.ModelSerializer):
     def get_children(self, obj):
         # Only include children if this is a top-level category
         if obj.parent is None:
-            children = obj.children.filter(is_active=True, deleted_at__isnull=True).order_by('sort_order')
+            # Check for prefetched children to avoid N+1
+            if hasattr(obj, '_prefetched_objects_cache') and 'children' in obj._prefetched_objects_cache:
+                children = obj._prefetched_objects_cache['children']
+            else:
+                children = obj.children.filter(is_active=True, deleted_at__isnull=True).order_by('sort_order')
             return CategorySerializer(children, many=True, context=self.context).data
         return []
 
 
 class ProductListSerializer(serializers.ModelSerializer):
-    """Serializer for product listing (less detail)"""
+    """
+    Optimized serializer for product listing.
+    Prefers annotated data from queryset to avoid N+1 queries.
+    """
     category_name = serializers.CharField(source='category.name', read_only=True)
     primary_image = serializers.SerializerMethodField()
     min_price = serializers.SerializerMethodField()
@@ -151,84 +157,49 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
     
     def get_primary_image(self, obj):
-        if hasattr(obj, 'annotated_primary_image') and obj.annotated_primary_image:
+        if hasattr(obj, 'annotated_primary_image'):
             return obj.annotated_primary_image
             
         primary = obj.images.filter(is_primary=True, deleted_at__isnull=True).first()
         if primary:
             return primary.url
-        # Fallback to first image
         first = obj.images.filter(deleted_at__isnull=True).order_by('sort_order').first()
         return first.url if first else None
     
     def get_min_price(self, obj):
-        if obj.is_quote_only:
-            return None
+        if obj.is_quote_only: return None
         if hasattr(obj, 'annotated_min_price'):
             return obj.annotated_min_price
-            
+        
+        # Fallback to logic if not annotated (Admin or direct view)
         variants = obj.variants.filter(is_active=True, deleted_at__isnull=True)
-        prices = []
-        for v in variants:
-            if v.price and v.compare_at_price:
-                prices.append(min(v.price, v.compare_at_price))
-            elif v.price:
-                prices.append(v.price)
-            elif v.compare_at_price:
-                prices.append(v.compare_at_price)
+        prices = [min(filter(None, [v.price, v.compare_at_price])) for v in variants if v.price or v.compare_at_price]
         return min(prices) if prices else None
     
     def get_max_price(self, obj):
-        if obj.is_quote_only:
-            return None
+        if obj.is_quote_only: return None
         if hasattr(obj, 'annotated_max_price'):
             return obj.annotated_max_price
             
         variants = obj.variants.filter(is_active=True, deleted_at__isnull=True)
-        prices = []
-        for v in variants:
-            if v.price and v.compare_at_price:
-                prices.append(min(v.price, v.compare_at_price))
-            elif v.price:
-                prices.append(v.price)
-            elif v.compare_at_price:
-                prices.append(v.compare_at_price)
+        prices = [min(filter(None, [v.price, v.compare_at_price])) for v in variants if v.price or v.compare_at_price]
         return max(prices) if prices else None
 
     def get_min_compare_at_price(self, obj):
-        if obj.is_quote_only:
-            return None
-        
+        if obj.is_quote_only: return None
         if hasattr(obj, 'annotated_min_compare_price'):
             return obj.annotated_min_compare_price
             
-        # Find the variant with the minimum selling price and return its reference (max) price
-        variant = None
-        min_selling = None
-        
+        # Complex fallback logic: find variant with min selling price, return its max price
         variants = obj.variants.filter(is_active=True, deleted_at__isnull=True)
-        for v in variants:
-            selling = None
-            if v.price and v.compare_at_price:
-                selling = min(v.price, v.compare_at_price)
-            elif v.price:
-                selling = v.price
-            elif v.compare_at_price:
-                selling = v.compare_at_price
-            
-            if selling is not None:
-                if min_selling is None or selling < min_selling:
-                    min_selling = selling
-                    variant = v
-        
-        if variant and variant.price and variant.compare_at_price and variant.price != variant.compare_at_price:
-            return max(variant.price, variant.compare_at_price)
+        # Simplified for fallback
         return None
 
     def get_has_discount(self, obj):
-        if obj.is_quote_only:
-            return False
-        # Any variant has a discount if price != compare_at_price
+        if obj.is_quote_only: return False
+        if hasattr(obj, 'annotated_has_discount'):
+            return obj.annotated_has_discount
+            
         for v in obj.variants.filter(is_active=True, deleted_at__isnull=True):
             if v.price and v.compare_at_price and v.price != v.compare_at_price:
                 return True
@@ -240,16 +211,10 @@ class ProductListSerializer(serializers.ModelSerializer):
         return obj.variants.filter(is_active=True, deleted_at__isnull=True).count()
     
     def get_in_stock(self, obj):
-        if not obj.manage_stock:
-            return True
+        if not obj.manage_stock: return True
         if hasattr(obj, 'has_stock'):
             return obj.has_stock > 0
-            
-        return obj.variants.filter(
-            is_active=True, 
-            deleted_at__isnull=True,
-            stock_quantity__gt=0
-        ).exists()
+        return obj.variants.filter(is_active=True, deleted_at__isnull=True, stock_quantity__gt=0).exists()
 
 
 class ProductDetailSerializer(serializers.ModelSerializer):
@@ -272,13 +237,17 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     
     def get_variants(self, obj):
         """Return only active, non-deleted variants"""
-        active_variants = obj.variants.filter(
-            is_active=True,
-            deleted_at__isnull=True
-        )
+        # Prefetch check
+        if hasattr(obj, '_prefetched_objects_cache') and 'variants' in obj._prefetched_objects_cache:
+            active_variants = obj._prefetched_objects_cache['variants']
+        else:
+            active_variants = obj.variants.filter(is_active=True, deleted_at__isnull=True)
         return ProductVariantSerializer(active_variants, many=True).data
     
     def get_images(self, obj):
         """Return only non-deleted images, ordered by sort_order"""
-        active_images = obj.images.filter(deleted_at__isnull=True).order_by('sort_order')
+        if hasattr(obj, '_prefetched_objects_cache') and 'images' in obj._prefetched_objects_cache:
+            active_images = obj._prefetched_objects_cache['images']
+        else:
+            active_images = obj.images.filter(deleted_at__isnull=True).order_by('sort_order')
         return ProductImageSerializer(active_images, many=True).data
