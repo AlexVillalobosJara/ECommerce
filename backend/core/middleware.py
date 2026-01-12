@@ -85,7 +85,8 @@ class TenantMiddleware(MiddlewareMixin):
                     return None
                 except Tenant.DoesNotExist:
                     logger.warning(f"Tenant not found for query params: {tenant_slug or tenant_domain}")
-
+                    # DO NOT RETURN NONE HERE - let the middleware try other resolution methods
+            
             # 3. Try to match by platform subdomain (e.g. slug.onrender.com)
             parts = host.split('.')
             platform_domains = ['localhost', 'onrender.com', 'vercel.app', 'railway.app']
@@ -109,10 +110,8 @@ class TenantMiddleware(MiddlewareMixin):
                     return None
                 except Tenant.DoesNotExist:
                     logger.info(f"No tenant found for platform subdomain: {platform_slug}")
-                    # Continue to SaaS fallback
 
             # 4. SaaS Fallback: Check if the clean host is exactly a slug
-            # This handles cases like doctorinox.cl where doctorinox.cl IS the slug
             if not is_platform:
                 try:
                     tenant = Tenant.objects.get(
@@ -127,7 +126,6 @@ class TenantMiddleware(MiddlewareMixin):
                     logger.info(f"No tenant found for SaaS fallback host: {clean_host}")
             
             # If we reach here, we didn't find a tenant
-            # Certain storefront paths are global (like communes) and don't REQUIRE a tenant
             global_storefront_paths = [
                 '/api/storefront/communes/',
                 '/api/storefront/home-data/',
@@ -135,9 +133,8 @@ class TenantMiddleware(MiddlewareMixin):
             
             is_global_storefront = any(request.path.startswith(p) for p in global_storefront_paths)
             
-            # Return 404 for storefront API requests that REQUIRE a tenant
             if request.path.startswith('/api/storefront/') and not is_global_storefront:
-                logger.warning(f"Tenant not found for storefront request. Host: {host}, Query: {tenant_slug}")
+                logger.warning(f"Tenant not found for storefront request. Host: {host}")
                 return JsonResponse({
                     'error': 'Tenant not found',
                     'detail': f'No active tenant found for host: {host}'

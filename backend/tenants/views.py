@@ -66,6 +66,7 @@ class StorefrontHomeView(views.APIView):
         # 2. Categories Data (Top level)
         cat_viewset = StorefrontCategoryViewSet()
         cat_viewset.request = request
+        cat_viewset.action = 'list'
         cat_viewset.format_kwarg = None
         categories_qs = cat_viewset.get_queryset()
         categories_data = CategorySerializer(categories_qs, many=True, context={'request': request}).data
@@ -73,8 +74,10 @@ class StorefrontHomeView(views.APIView):
         # 3. Featured Products Data
         prod_viewset = StorefrontProductViewSet()
         prod_viewset.request = request
+        prod_viewset.action = 'list'
         prod_viewset.format_kwarg = None
-        products_qs = prod_viewset.get_queryset().filter(is_featured=True)
+        products_base_qs = prod_viewset.get_queryset()
+        products_qs = products_base_qs.filter(is_featured=True)
         
         # Fallback: if no featured products, show latest 12
         if not products_qs.exists():
