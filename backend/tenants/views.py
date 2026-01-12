@@ -8,6 +8,7 @@ from .serializers import TenantSerializer
 from products.models import Category, Product, ProductImage, ProductVariant
 from products.serializers import CategorySerializer, ProductListSerializer, ProductDetailSerializer
 from django.db.models import Min, Max, Count, OuterRef, Subquery, Q
+from django.core.cache import cache
 
 class TenantViewSet(viewsets.ModelViewSet):
     # ... (existing code managed by multi_replace if needed, but simple append/refactor is fine)
@@ -57,6 +58,11 @@ class StorefrontBaseView(views.APIView):
         return tenant
 
     def get_common_data(self, request, tenant):
+        cache_key = f"storefront_common_data_{tenant.id}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return cached_data['tenant'], cached_data['categories']
+
         # 1. Tenant Data
         tenant_data = TenantSerializer(tenant, context={'request': request}).data
         
@@ -80,6 +86,7 @@ class StorefrontBaseView(views.APIView):
         ).order_by('sort_order', 'name')
         categories_data = CategorySerializer(categories_qs, many=True, context={'request': request}).data
         
+        cache.set(cache_key, {'tenant': tenant_data, 'categories': categories_data}, 300) # 5 minutes cache
         return tenant_data, categories_data
 
     def get_annotated_products_queryset(self, tenant):

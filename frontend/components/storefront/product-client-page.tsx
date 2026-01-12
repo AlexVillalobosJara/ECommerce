@@ -100,8 +100,8 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                     </Button>
                 </div>
 
-                <div className="grid gap-12 lg:grid-cols-2">
-                    <div className="space-y-4">
+                <div className="grid gap-12 lg:grid-cols-3">
+                    <div className="lg:col-span-1 space-y-4">
                         <div className="aspect-square overflow-hidden rounded-lg bg-muted relative group">
                             <img
                                 src={currentImage}
@@ -128,7 +128,7 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                         )}
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="lg:col-span-2 space-y-6">
                         <div>
                             <h1 className="font-serif text-4xl font-light tracking-tight text-gray-900">{product.name}</h1>
                             {tenant.show_product_ratings && (
