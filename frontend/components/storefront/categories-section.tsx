@@ -27,10 +27,10 @@ export function CategoriesSection({
         const handleResize = () => {
             if (window.innerWidth < 640) {
                 setItemsPerPage(1)
-            } else if (window.innerWidth < 1024) {
-                setItemsPerPage(2)
-            } else {
+            } else if (window.innerWidth < 1280) {
                 setItemsPerPage(3)
+            } else {
+                setItemsPerPage(5)
             }
         }
 
@@ -109,7 +109,7 @@ export function CategoriesSection({
                             {categories.map((category, index) => (
                                 <div
                                     key={category.id}
-                                    className="w-full flex-shrink-0 px-3 sm:w-1/2 lg:w-1/3"
+                                    className="w-full flex-shrink-0 px-3 sm:w-1/2 lg:w-1/3 xl:w-1/5"
                                     style={{
                                         animationDelay: `${index * 100}ms`,
                                         animationFillMode: "backwards",
