@@ -93,49 +93,51 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
         <div className="min-h-screen bg-white">
             <Header onCartClick={() => setCartOpen(true)} />
 
-            <main className="container mx-auto px-4 py-12 pt-16">
-                <div className="mb-8">
+            <main className="container max-w-6xl mx-auto px-4 py-12 pt-16">
+                <div className="mb-10">
                     <Button
                         variant="ghost"
                         onClick={() => router.push("/")}
-                        className="gap-2 pl-0 hover:bg-transparent hover:text-primary"
+                        className="gap-2 pl-0 text-muted-foreground hover:bg-transparent hover:text-black transition-colors"
                     >
                         <ChevronLeft className="size-4" />
-                        Volver al Inicio
+                        <span className="text-sm uppercase tracking-widest">Volver</span>
                     </Button>
                 </div>
 
-                <div className="grid gap-12 lg:grid-cols-12 items-start">
-                    <div className="lg:col-span-5 space-y-6">
-                        <div className="aspect-square overflow-hidden rounded-xl bg-gray-50 border border-gray-100 relative group">
+                <div className="grid gap-16 lg:grid-cols-2 lg:items-start">
+                    {/* Media Column (Col 1) */}
+                    <div className="space-y-6">
+                        <div className="aspect-square overflow-hidden rounded-2xl bg-[#F9F9F9] relative group">
                             <img
                                 src={currentImage}
                                 alt={product.name}
-                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                className="w-full h-full object-contain mix-blend-multiply p-8 transition-transform duration-700 group-hover:scale-105"
                             />
                         </div>
 
                         {product.images && product.images.length > 1 && (
-                            <div className="grid grid-cols-4 gap-4">
+                            <div className="flex flex-wrap gap-4">
                                 {product.images.map((image, index) => (
                                     <button
                                         key={image.id}
                                         onClick={() => setSelectedImageIndex(index)}
                                         className={cn(
-                                            "aspect-square overflow-hidden rounded-lg bg-gray-50 border transition-all",
-                                            selectedImageIndex === index ? "ring-2 ring-primary ring-offset-2 border-primary" : "border-gray-100 opacity-60 hover:opacity-100 hover:border-gray-200"
+                                            "size-20 overflow-hidden rounded-xl bg-[#F9F9F9] border-2 transition-all",
+                                            selectedImageIndex === index ? "border-black" : "border-transparent opacity-60 hover:opacity-100"
                                         )}
                                     >
-                                        <img src={getProductImageUrl(image.url)} alt="" className="w-full h-full object-cover" />
+                                        <img src={getProductImageUrl(image.url)} alt="" className="w-full h-full object-cover mix-blend-multiply p-1" />
                                     </button>
                                 ))}
                             </div>
                         )}
                     </div>
 
-                    <div className="lg:col-span-7 space-y-10 lg:pl-4">
+                    {/* Details Column (Col 2) */}
+                    <div className="space-y-8 lg:pl-4">
                         <div className="space-y-4">
-                            <h1 className="font-serif text-4xl lg:text-5xl lg:leading-tight font-light tracking-tight text-gray-900">
+                            <h1 className="font-serif text-4xl lg:text-5xl lg:leading-[1.15] font-light text-gray-900 tracking-tight">
                                 {product.name}
                             </h1>
                             {tenant.show_product_ratings && (
@@ -151,27 +153,22 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                             )}
                         </div>
 
-                        <div className="space-y-2">
-                            <div className="flex items-baseline gap-4">
-                                {product.is_quote_only ? (
-                                    <p className="font-serif text-3xl font-light text-primary">Cotización</p>
-                                ) : selectedVariant?.selling_price ? (
-                                    <>
-                                        <p className={cn("font-serif text-4xl lg:text-5xl font-light", selectedVariant.has_discount ? "text-destructive" : "text-gray-900")}>
-                                            {formatPrice(selectedVariant.selling_price, tenant)}
-                                        </p>
-                                        {selectedVariant.has_discount && selectedVariant.original_price && (
-                                            <p className="text-xl text-muted-foreground line-through decoration-muted-foreground/50">
-                                                {formatPrice(selectedVariant.original_price, tenant)}
-                                            </p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <p className="text-xl text-muted-foreground italic">Seleccione una opción</p>
-                                )}
-                            </div>
-                            {!tenant.prices_include_tax && tenant.tax_rate && (
-                                <p className="text-sm text-muted-foreground italic">+ IVA (No incluido)</p>
+                        <div className="flex items-center gap-4">
+                            {product.is_quote_only ? (
+                                <p className="font-serif text-3xl font-light text-primary tracking-tight">Solicitar Cotización</p>
+                            ) : selectedVariant?.selling_price ? (
+                                <div className="flex items-center gap-4">
+                                    {selectedVariant.has_discount && selectedVariant.original_price && (
+                                        <span className="text-2xl text-gray-400 line-through font-light">
+                                            {formatPrice(selectedVariant.original_price, tenant)}
+                                        </span>
+                                    )}
+                                    <span className={cn("font-serif text-4xl lg:text-5xl font-medium tracking-tight", selectedVariant.has_discount ? "text-[#E63946]" : "text-gray-900")}>
+                                        {formatPrice(selectedVariant.selling_price, tenant)}
+                                    </span>
+                                </div>
+                            ) : (
+                                <p className="text-xl text-muted-foreground italic">Seleccione una opción</p>
                             )}
                         </div>
 
@@ -184,65 +181,66 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                         </div>
 
                         {product.variants && product.variants.length > 0 && (
-                            <div className="space-y-3">
-                                <Label className="text-base font-medium">Variante</Label>
-                                <div className="flex flex-wrap gap-2">
+                            <div className="space-y-4">
+                                <Label className="text-sm font-semibold uppercase tracking-wider text-gray-900">Tamaño</Label>
+                                <div className="flex flex-wrap gap-3">
                                     {product.variants.map((v) => (
                                         <button
                                             key={v.id}
                                             onClick={() => setSelectedVariant(v)}
                                             disabled={!v.is_active}
                                             className={cn(
-                                                "rounded-lg border-2 px-4 py-2 text-sm font-medium transition-all relative",
-                                                selectedVariant?.id === v.id ? "border-primary bg-primary/5 text-primary" : "border-gray-200 hover:border-gray-300 text-gray-700",
-                                                !v.is_active && "cursor-not-allowed opacity-50"
+                                                "min-w-[80px] rounded-full border px-6 py-2.5 text-sm font-medium transition-all",
+                                                selectedVariant?.id === v.id ? "border-black bg-black text-white" : "border-gray-200 hover:border-black text-gray-600",
+                                                !v.is_active && "cursor-not-allowed opacity-30"
                                             )}
                                         >
                                             {v.name || v.sku}
-                                            {selectedVariant?.id === v.id && <Check className="ml-2 inline size-3.5" />}
                                         </button>
                                     ))}
                                 </div>
                             </div>
                         )}
 
-                        <div className="space-y-4 pt-4">
+                        <div className="space-y-6 pt-4">
                             {!product.is_quote_only && (
-                                <div className="flex items-center gap-4">
-                                    <Label className="text-base font-medium">Cantidad</Label>
-                                    <div className="flex items-center gap-2">
-                                        <Button variant="outline" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="h-10 w-10"><Minus className="size-4" /></Button>
-                                        <span className="w-12 text-center text-lg font-medium">{quantity}</span>
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
+                                <div className="flex items-center gap-6">
+                                    <Label className="text-sm font-semibold uppercase tracking-wider text-gray-900">Cantidad</Label>
+                                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden h-11">
+                                        <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="px-4 hover:bg-gray-50 transition-colors"><Minus className="size-3.5" /></button>
+                                        <span className="w-10 text-center text-sm font-bold border-x border-gray-200 bg-white leading-10">{quantity}</span>
+                                        <button
                                             onClick={() => setQuantity(product.manage_stock && selectedVariant ? Math.min(selectedVariant.available_stock, quantity + 1) : quantity + 1)}
-                                            className="h-10 w-10"
+                                            className="px-4 hover:bg-gray-50 transition-colors"
                                         >
-                                            <Plus className="size-4" />
-                                        </Button>
+                                            <Plus className="size-3.5" />
+                                        </button>
                                     </div>
                                 </div>
                             )}
 
-                            {product.is_quote_only ? (
-                                <Button size="lg" className="w-full text-base h-12" onClick={handleRequestQuote}>Solicitar Cotización</Button>
-                            ) : (
-                                <Button size="lg" className="w-full text-base h-12" onClick={handleAddToCart} disabled={!selectedVariant || isOutOfStock}>
-                                    <ShoppingCart className="mr-2 size-5" />
-                                    {isOutOfStock ? "Agotado" : "Agregar al Carrito"}
-                                </Button>
-                            )}
-                        </div>
+                            <div className="space-y-4">
+                                {product.is_quote_only ? (
+                                    <Button size="lg" className="w-full h-14 bg-black hover:bg-gray-900 text-white rounded-xl text-md font-medium uppercase tracking-widest shadow-lg shadow-black/5" onClick={handleRequestQuote}>
+                                        Solicitar Cotización
+                                    </Button>
+                                ) : (
+                                    <Button size="lg" className="w-full h-14 bg-black hover:bg-gray-900 text-white rounded-xl text-md font-medium uppercase tracking-widest shadow-lg shadow-black/5 flex items-center justify-center gap-3" onClick={handleAddToCart} disabled={!selectedVariant || isOutOfStock}>
+                                        <ShoppingCart className="size-5" />
+                                        {isOutOfStock ? "Agotado" : "Agregar al Carrito"}
+                                    </Button>
+                                )}
 
-                        {!product.is_quote_only && product.manage_stock && selectedVariant && (
-                            <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-4 border border-gray-100">
-                                <div className={cn("size-2.5 rounded-full", selectedVariant.available_stock > 0 ? "bg-green-500" : "bg-red-500")} />
-                                <span className={cn("text-sm font-medium", selectedVariant.available_stock > 0 ? "text-green-700" : "text-red-700")}>
-                                    {selectedVariant.available_stock > 0 ? `En stock - ${selectedVariant.available_stock} unidades disponibles` : "Sin stock actualmente"}
-                                </span>
+                                {!product.is_quote_only && product.manage_stock && selectedVariant && (
+                                    <div className="flex items-center gap-3 rounded-2xl bg-[#F6F6F6] px-5 py-4 border border-gray-50">
+                                        <div className={cn("size-2 rounded-full", selectedVariant.available_stock > 0 ? "bg-[#10B981]" : "bg-[#EF4444]")} />
+                                        <span className="text-sm font-medium text-gray-700">
+                                            {selectedVariant.available_stock > 0 ? "En stock - Envío inmediato" : "Sin stock actualmente"}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
                 </div>
 
