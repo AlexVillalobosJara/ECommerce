@@ -67,6 +67,27 @@ export interface Order {
  */
 export const storefrontApi = {
     /**
+     * Mega-fetch for Home Page (Tenant + Categories + Featured Products)
+     * Reduces network round-trips from 3 to 1.
+     */
+    async getHomeData(params: { slug?: string, domain?: string }): Promise<{
+        tenant: any,
+        categories: Category[],
+        featured_products: ProductList[]
+    }> {
+        const queryParams = new URLSearchParams()
+        if (params.slug) queryParams.append("slug", params.slug)
+        if (params.domain) queryParams.append("domain", params.domain)
+
+        const response = await fetch(`${API_URL}/api/storefront/home-data/?${queryParams}`)
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error || "Failed to fetch home data")
+        }
+        return response.json()
+    },
+
+    /**
      * Get all categories
      */
     async getCategories(tenantSlug: string): Promise<Category[]> {

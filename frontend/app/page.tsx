@@ -15,14 +15,16 @@ import { useTenant } from "@/contexts/TenantContext"
 import { useCart } from "@/hooks/useCart"
 import { storefrontApi } from "@/services/storefront-api"
 import { CatalogCTA } from "@/components/storefront/catalog-cta"
+import { getTenantIdentifier } from "@/lib/tenant"
 import type { Category, ProductList, ProductVariant } from "@/types/product"
 
 interface ProductListingProps {
   tenantSlug: string
   categories: Category[]
+  initialProducts?: ProductList[]
 }
 
-function ProductListing({ tenantSlug, categories }: ProductListingProps) {
+function ProductListing({ tenantSlug, categories, initialProducts }: ProductListingProps) {
   const searchParams = useSearchParams()
 
   // Cart/State hooks (needed for actions within product cards)
@@ -46,12 +48,22 @@ function ProductListing({ tenantSlug, categories }: ProductListingProps) {
       tenantSlug={tenantSlug}
       categories={categories}
       searchParams={searchParams}
+      initialProducts={initialProducts}
     />
   )
 }
 
-// Inner component to handle logic cleanly
-function ProductListingContent({ tenantSlug, categories, searchParams }: { tenantSlug: string, categories: Category[], searchParams: any }) {
+function ProductListingContent({
+  tenantSlug,
+  categories,
+  searchParams,
+  initialProducts
+}: {
+  tenantSlug: string,
+  categories: Category[],
+  searchParams: any,
+  initialProducts?: ProductList[]
+}) {
   const [products, setProducts] = useState<ProductList[]>([])
   const [productsLoading, setProductsLoading] = useState(false)
   const [filters, setFilters] = useState<ProductFilters>({})
@@ -65,7 +77,7 @@ function ProductListingContent({ tenantSlug, categories, searchParams }: { tenan
         setProductsLoading(true)
         setError(null)
 
-        // Load products with filters
+        // Build params from filters
         const params: any = {}
         if (filters.category) params.category = filters.category
         if (filters.minPrice) params.min_price = filters.minPrice
@@ -79,9 +91,13 @@ function ProductListingContent({ tenantSlug, categories, searchParams }: { tenan
           params.search = searchParam
         }
 
-        // If no filters are active, show featured products by default
+        // Check if we can use initial products
         const hasFilters = Object.keys(filters).length > 0 || !!searchParam
         if (!hasFilters) {
+          if (initialProducts) {
+            setProducts(initialProducts)
+            return
+          }
           params.featured = true
         }
 
@@ -193,24 +209,44 @@ export default function StorefrontPage() {
   } = useCart()
 
   const [categories, setCategories] = useState<Category[]>([])
+  const [featuredProducts, setFeaturedProducts] = useState<ProductList[]>([])
   const [initialLoading, setInitialLoading] = useState(true)
+  const [localTenant, setLocalTenant] = useState<any>(null)
   const [cartOpen, setCartOpen] = useState(false)
 
-  // Load categories (Independent of search)
+  // Atomic Home Data Fetch (Eliminates Waterfall)
   useEffect(() => {
-    async function loadCategories() {
-      if (!tenant) return
+    async function loadHomeData() {
+      // 1. Get identifier immediately from hostname
+      const identifier = typeof window !== 'undefined'
+        ? getTenantIdentifier(window.location.hostname)
+        : null;
+
+      // Fallback to query param
+      let slug = identifier?.slug;
+      if (!slug && typeof window !== 'undefined') {
+        slug = new URLSearchParams(window.location.search).get('tenant') || undefined;
+      }
+
+      if (!slug && !identifier?.domain) {
+        // If we really can't find anything, we'll wait for the context fallback
+        return;
+      }
+
       try {
-        const categoriesData = await storefrontApi.getCategories(tenant.slug)
-        setCategories(categoriesData)
+        setInitialLoading(true)
+        const data = await storefrontApi.getHomeData({ slug, domain: identifier?.domain })
+        setLocalTenant(data.tenant)
+        setCategories(data.categories)
+        setFeaturedProducts(data.featured_products)
       } catch (err) {
-        console.error("Error loading categories:", err)
+        console.error("Error loading home data:", err)
       } finally {
         setInitialLoading(false)
       }
     }
-    loadCategories()
-  }, [tenant])
+    loadHomeData()
+  }, [])
 
   // Listen for cart open event (Hack for separating components without prop drilling complex trees if nested)
   // Actually, we can just pass props if we merge components locally.
@@ -227,11 +263,14 @@ export default function StorefrontPage() {
     router.push("/checkout")
   }
 
-  if (tenantLoading || initialLoading) {
+  // Use local tenant data if available, fallback to context
+  const activeTenant = localTenant || tenant;
+
+  if (initialLoading && !activeTenant) {
     return <FullPageStorefrontSkeleton />
   }
 
-  if (!tenant) {
+  if (!activeTenant) {
     return <div>Tienda no encontrada</div>
   }
 
@@ -242,10 +281,10 @@ export default function StorefrontPage() {
       />
 
       <HeroSection
-        title={tenant.hero_title || "El Arte del Diseño Minimalista"}
-        subtitle={tenant.hero_subtitle || "Cada pieza cuenta una historia de elegancia y funcionalidad"}
-        ctaText={tenant.hero_cta_text || "Explorar Colección"}
-        backgroundImage={tenant.hero_image_url || "/hero-stainless-kitchen.jpg"}
+        title={activeTenant.hero_title || "El Arte del Diseño Minimalista"}
+        subtitle={activeTenant.hero_subtitle || "Cada pieza cuenta una historia de elegancia y funcionalidad"}
+        ctaText={activeTenant.hero_cta_text || "Explorar Colección"}
+        backgroundImage={activeTenant.hero_image_url || "/hero-stainless-kitchen.jpg"}
         onCtaClick={() => {
           document.getElementById('featured-products')?.scrollIntoView({ behavior: 'smooth' });
         }}
@@ -254,7 +293,11 @@ export default function StorefrontPage() {
       <CategoriesSection categories={categories} />
 
       <Suspense fallback={<div className="container mx-auto py-20"><ProductGridSkeleton count={6} /></div>}>
-        <ProductListing tenantSlug={tenant.slug} categories={categories} />
+        <ProductListing
+          tenantSlug={activeTenant.slug}
+          categories={categories}
+          initialProducts={featuredProducts}
+        />
       </Suspense>
 
       <CatalogCTA />
