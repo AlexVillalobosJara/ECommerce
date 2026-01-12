@@ -51,6 +51,8 @@ class StorefrontHomeView(views.APIView):
         import logging
         logger = logging.getLogger(__name__)
         logger.info(f"StorefrontHomeView: resolving for slug='{slug}', domain='{domain}'")
+        tenant = getattr(request, 'tenant', None)
+        if not tenant:
             if slug:
                 tenant = Tenant.objects.filter(slug=slug, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
             elif domain:
