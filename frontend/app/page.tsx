@@ -8,7 +8,7 @@ import { Metadata } from "next"
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const headersList = headers()
+  const headersList = await headers()
   const host = headersList.get("host") || ""
   const identifier = getTenantIdentifier(host)
 
@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const headersList = headers()
+  const headersList = await headers()
   const host = headersList.get("host") || ""
 
   // 1. Resolve tenant from hostname
