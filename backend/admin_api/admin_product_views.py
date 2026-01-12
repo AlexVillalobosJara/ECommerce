@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .admin_user_views import IsTenantAdmin
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django.db.models import Q
+from django.db.models import Q, Count, OuterRef, Subquery, Min, Max, Sum
 from django.conf import settings
 
 from products.models import Product, Category, ProductVariant, ProductImage
@@ -42,11 +42,26 @@ def product_list_create(request):
         category_id = request.GET.get('category', '')
         is_featured = request.GET.get('is_featured', '')
         
-        # Base queryset
+        # Subquery for primary image
+        primary_image_subquery = ProductImage.objects.filter(
+            product=OuterRef('pk'),
+            deleted_at__isnull=True
+        ).order_by('-is_primary', 'sort_order')
+        
+        # Base queryset with annotations to avoid N+1 in serializer
         products = Product.objects.filter(
             tenant=tenant,
             deleted_at__isnull=True
-        ).select_related('category').prefetch_related('variants', 'images')
+        ).select_related('category').annotate(
+            annotated_primary_image=Subquery(primary_image_subquery.values('url')[:1]),
+            annotated_min_price=Min('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_max_price=Max('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_variants_count=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_total_stock=Sum('variants__stock_quantity', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_total_available=Sum('variants__stock_quantity', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)) - 
+                                      Sum('variants__reserved_quantity', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            annotated_total_reserved=Sum('variants__reserved_quantity', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+        )
         
         # Apply filters
         if search:
@@ -68,8 +83,14 @@ def product_list_create(request):
         # Order by creation date (newest first)
         products = products.order_by('-created_at')
         
-        serializer = ProductListAdminSerializer(products, many=True)
-        return Response(serializer.data)
+        # Manual Pagination
+        from rest_framework.pagination import PageNumberPagination
+        paginator = PageNumberPagination()
+        paginator.page_size = 50 # Admin preference
+        result_page = paginator.paginate_queryset(products, request)
+        
+        serializer = ProductListAdminSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
     
     elif request.method == 'POST':
         serializer = ProductDetailAdminSerializer(data=request.data, context={'request': request})
@@ -194,7 +215,9 @@ def category_list_create(request):
         categories = Category.objects.filter(
             tenant=tenant,
             deleted_at__isnull=True
-        ).order_by('sort_order', 'name')
+        ).annotate(
+            annotated_products_count=Count('products', filter=Q(products__deleted_at__isnull=True))
+        ).prefetch_related('children').order_by('sort_order', 'name')
         
         serializer = CategoryListSerializer(categories, many=True)
         return Response(serializer.data)

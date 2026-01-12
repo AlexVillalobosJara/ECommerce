@@ -39,7 +39,8 @@ export async function getProducts(filters?: ProductFilters): Promise<AdminProduc
         throw new Error(errorData.detail || `Failed to fetch products: ${response.status}`)
     }
 
-    return response.json()
+    const data = await response.json()
+    return Array.isArray(data) ? data : (data.results || [])
 }
 
 export async function getProduct(productId: string): Promise<AdminProduct> {

@@ -30,7 +30,8 @@ export async function getOrders(filters?: OrderFilters): Promise<AdminOrderListI
         throw new Error(`Failed to fetch orders: ${response.statusText}`)
     }
 
-    return response.json()
+    const data = await response.json()
+    return Array.isArray(data) ? data : (data.results || [])
 }
 
 export async function getOrder(id: string): Promise<AdminOrder> {

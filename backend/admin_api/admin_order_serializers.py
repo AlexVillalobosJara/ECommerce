@@ -32,7 +32,7 @@ class AdminOrderItemSerializer(serializers.ModelSerializer):
 class AdminOrderListSerializer(serializers.ModelSerializer):
     """Order list serializer for admin - lightweight"""
     customer_name = serializers.SerializerMethodField()
-    items_count = serializers.SerializerMethodField()
+    items_count = serializers.IntegerField(source='annotated_items_count', read_only=True)
     
     class Meta:
         model = Order
@@ -49,8 +49,6 @@ class AdminOrderListSerializer(serializers.ModelSerializer):
             return obj.shipping_recipient_name
         return obj.customer_email
     
-    def get_items_count(self, obj):
-        return obj.items.count()
 
 
 class AdminOrderDetailSerializer(serializers.ModelSerializer):

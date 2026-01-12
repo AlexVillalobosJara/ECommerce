@@ -34,6 +34,10 @@ import {
 import { cn } from "@/lib/utils"
 import { useAdminAuth } from "@/contexts/AdminAuthContext"
 import { DashboardHeader } from "./dashboard-header"
+import {
+    Sheet,
+    SheetContent,
+} from "@/components/ui/sheet"
 
 const navigation = [
     { name: "Inicio", href: "/admin", icon: LayoutDashboard },
@@ -218,12 +222,61 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 </div>
             </aside>
 
-            {/* Mobile sidebar toggle */}
-            <div className="lg:hidden fixed top-4 left-4 z-50">
-                <Button variant="outline" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)}>
-                    <Menu className="w-5 h-5" />
-                </Button>
-            </div>
+            {/* Mobile Navigation */}
+            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <div className="lg:hidden fixed top-4 left-4 z-50">
+                    <Button variant="outline" size="icon" onClick={() => setSidebarOpen(true)}>
+                        <Menu className="w-5 h-5" />
+                    </Button>
+                </div>
+                <SheetContent side="left" className="p-0 w-72">
+                    <div className="flex flex-col h-full bg-card">
+                        <div className="flex items-center h-16 px-6 border-b border-border">
+                            <h1 className="text-2xl font-bold text-primary">Zumi</h1>
+                        </div>
+                        <nav className="flex-1 px-3 py-6 space-y-1">
+                            {navigation
+                                .filter(item => !item.roles || (user.role && item.roles.includes(user.role)))
+                                .map((item) => {
+                                    const isActive = pathname === item.href
+                                    return (
+                                        <Link
+                                            key={item.name}
+                                            href={item.href}
+                                            onClick={() => setSidebarOpen(false)}
+                                            className={cn(
+                                                "flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors",
+                                                isActive
+                                                    ? "bg-primary text-primary-foreground shadow-sm"
+                                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                                            )}
+                                        >
+                                            <item.icon className="w-5 h-5 shrink-0" />
+                                            <span>{item.name}</span>
+                                        </Link>
+                                    )
+                                })}
+                        </nav>
+                        <div className="p-4 border-t border-border">
+                            <div className="flex items-center gap-3 w-full p-2 mb-4">
+                                <Avatar className="w-9 h-9">
+                                    <AvatarFallback className="bg-primary text-primary-foreground">
+                                        {getUserInitials()}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{getUserDisplayName()}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                </div>
+                            </div>
+                            <Button variant="ghost" className="w-full justify-start gap-3 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={logout}>
+                                <LogOut className="w-5 h-5" />
+                                Cerrar sesión
+                            </Button>
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
 
             {/* Main content */}
             <main className="flex-1 overflow-hidden flex flex-col">

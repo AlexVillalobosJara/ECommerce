@@ -21,11 +21,13 @@ def order_list(request):
     """
     tenant = request.tenant
     
-    # Get all orders for this tenant
+    # Get all orders for this tenant with annotation to avoid N+1
     orders = Order.objects.filter(
         tenant=tenant,
         deleted_at__isnull=True
-    ).select_related('customer').prefetch_related('items')
+    ).select_related('customer').annotate(
+        annotated_items_count=Count('items')
+    )
     
     # Apply filters
     status_filter = request.GET.get('status')
@@ -56,8 +58,14 @@ def order_list(request):
     # Order by created_at desc
     orders = orders.order_by('-created_at')
     
-    serializer = AdminOrderListSerializer(orders, many=True)
-    return Response(serializer.data)
+    # Manual Pagination
+    from rest_framework.pagination import PageNumberPagination
+    paginator = PageNumberPagination()
+    paginator.page_size = 50
+    result_page = paginator.paginate_queryset(orders, request)
+    
+    serializer = AdminOrderListSerializer(result_page, many=True)
+    return paginator.get_paginated_response(serializer.data)
 
 
 @api_view(['GET'])

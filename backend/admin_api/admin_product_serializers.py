@@ -4,7 +4,7 @@ from products.models import Category, Product, ProductVariant, ProductImage
 
 class CategoryListSerializer(serializers.ModelSerializer):
     """Serializer for category listing in admin"""
-    products_count = serializers.SerializerMethodField()
+    products_count = serializers.IntegerField(source='annotated_products_count', read_only=True)
     children = serializers.SerializerMethodField()
     path = serializers.SerializerMethodField()
     
@@ -94,14 +94,14 @@ class ProductVariantAdminSerializer(serializers.ModelSerializer):
 class ProductListAdminSerializer(serializers.ModelSerializer):
     """Serializer for product listing in admin"""
     category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
-    primary_image = serializers.SerializerMethodField()
-    min_price = serializers.SerializerMethodField()
-    max_price = serializers.SerializerMethodField()
-    variants_count = serializers.SerializerMethodField()
-    in_stock = serializers.SerializerMethodField()
-    total_stock = serializers.SerializerMethodField()
-    total_available = serializers.SerializerMethodField()
-    total_reserved = serializers.SerializerMethodField()
+    primary_image = serializers.CharField(source='annotated_primary_image', read_only=True)
+    min_price = serializers.FloatField(source='annotated_min_price', read_only=True)
+    max_price = serializers.FloatField(source='annotated_max_price', read_only=True)
+    variants_count = serializers.IntegerField(source='annotated_variants_count', read_only=True)
+    in_stock = serializers.SerializerMethodField() # Keep this as logic is complex
+    total_stock = serializers.IntegerField(source='annotated_total_stock', read_only=True)
+    total_available = serializers.IntegerField(source='annotated_total_available', read_only=True)
+    total_reserved = serializers.IntegerField(source='annotated_total_reserved', read_only=True)
     
     class Meta:
         model = Product
@@ -110,62 +110,9 @@ class ProductListAdminSerializer(serializers.ModelSerializer):
                   'min_price', 'max_price', 'variants_count', 'in_stock', 'total_stock',
                   'total_available', 'total_reserved', 'created_at', 'updated_at', 'published_at']
     
-    def get_primary_image(self, obj):
-        primary = obj.images.filter(is_primary=True, deleted_at__isnull=True).first()
-        if primary:
-            return primary.url
-        first = obj.images.filter(deleted_at__isnull=True).order_by('sort_order').first()
-        return first.url if first else None
-    
-    def get_min_price(self, obj):
-        if obj.is_quote_only:
-            return None
-        variants = obj.variants.filter(is_active=True, deleted_at__isnull=True, price__isnull=False)
-        prices = [v.price for v in variants if v.price]
-        return float(min(prices)) if prices else None
-    
-    def get_max_price(self, obj):
-        if obj.is_quote_only:
-            return None
-        variants = obj.variants.filter(is_active=True, deleted_at__isnull=True, price__isnull=False)
-        prices = [v.price for v in variants if v.price]
-        return float(max(prices)) if prices else None
-    
-    def get_variants_count(self, obj):
-        return obj.variants.filter(is_active=True, deleted_at__isnull=True).count()
-    
     def get_in_stock(self, obj):
-        if not obj.manage_stock:
-            return True
-        return obj.variants.filter(
-            is_active=True, 
-            deleted_at__isnull=True,
-            stock_quantity__gt=0
-        ).exists()
-    
-    def get_total_stock(self, obj):
-        if obj.is_quote_only or not obj.manage_stock:
-            return None
-        return sum(v.stock_quantity for v in obj.variants.filter(
-            is_active=True, 
-            deleted_at__isnull=True
-        ))
-
-    def get_total_available(self, obj):
-        if obj.is_quote_only or not obj.manage_stock:
-            return None
-        return sum(v.available_stock for v in obj.variants.filter(
-            is_active=True, 
-            deleted_at__isnull=True
-        ))
-
-    def get_total_reserved(self, obj):
-        if obj.is_quote_only or not obj.manage_stock:
-            return None
-        return sum(v.reserved_quantity for v in obj.variants.filter(
-            is_active=True, 
-            deleted_at__isnull=True
-        ))
+        # We can derive this from annotated_total_stock or custom field
+        return (obj.annotated_total_stock or 0) > 0
 
 
 class ProductDetailAdminSerializer(serializers.ModelSerializer):
