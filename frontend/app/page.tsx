@@ -64,7 +64,7 @@ function ProductListingContent({
   searchParams: any,
   initialProducts?: ProductList[]
 }) {
-  const [products, setProducts] = useState<ProductList[]>([])
+  const [products, setProducts] = useState<ProductList[]>(initialProducts || [])
   const [productsLoading, setProductsLoading] = useState(false)
   const [filters, setFilters] = useState<ProductFilters>({})
   const [error, setError] = useState<string | null>(null)
@@ -93,10 +93,10 @@ function ProductListingContent({
 
         // Check if we can use initial products for instant display
         const hasFilters = Object.keys(filters).length > 0 || !!searchParam
-        if (!hasFilters && initialProducts && products.length === 0) {
+        if (!hasFilters && initialProducts) {
+          // Already initialized in useState, but sync if it changes
           setProducts(initialProducts)
-          // We DON'T return here anymore - we allow the background fetch to proceed
-          // but we don't set loading to true to avoid hiding the initial 6
+          // Continue to background fetch to get the full list
           params.featured = true
         } else {
           setProductsLoading(true)
@@ -267,16 +267,17 @@ export default function StorefrontPage() {
 
   // Use local tenant data if available, fallback to context
   const activeTenant = localTenant || tenant;
-  // Don't show "not found" if either is still loading
-  const anyLoading = initialLoading || (tenantLoading && !localTenant);
-
-  if (anyLoading && !activeTenant) {
+  // We only show the FULL page skeleton if we have NO tenant data at all
+  if (tenantLoading && !activeTenant) {
     return <FullPageStorefrontSkeleton />
   }
 
-  if (!activeTenant) {
+  if (!activeTenant && !tenantLoading) {
     return <div>Tienda no encontrada</div>
   }
+
+  // If we have a tenant but Mega-Fetch is still pending, we show the page with internal skeletons
+  const isHydrating = initialLoading && !localTenant;
 
   return (
     <div className="min-h-screen bg-white">
@@ -294,14 +295,24 @@ export default function StorefrontPage() {
         }}
       />
 
-      <CategoriesSection categories={categories} />
+      {isHydrating ? (
+        <div className="container mx-auto py-20">
+          <div className="h-40 w-full animate-pulse rounded-lg bg-muted mb-8" />
+        </div>
+      ) : (
+        <CategoriesSection categories={categories} />
+      )}
 
       <Suspense fallback={<div className="container mx-auto py-20"><ProductGridSkeleton count={6} /></div>}>
-        <ProductListing
-          tenantSlug={activeTenant.slug}
-          categories={categories}
-          initialProducts={featuredProducts || undefined}
-        />
+        {isHydrating ? (
+          <div className="container mx-auto py-20 px-4"><ProductGridSkeleton count={6} /></div>
+        ) : (
+          <ProductListing
+            tenantSlug={activeTenant.slug}
+            categories={categories}
+            initialProducts={featuredProducts || undefined}
+          />
+        )}
       </Suspense>
 
       <CatalogCTA />
