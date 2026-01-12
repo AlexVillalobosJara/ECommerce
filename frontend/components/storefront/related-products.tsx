@@ -9,11 +9,12 @@ interface RelatedProductsProps {
     tenantSlug: string
     categorySlug: string
     currentProductId: string
+    initialProducts?: ProductList[]
 }
 
-export function RelatedProducts({ tenantSlug, categorySlug, currentProductId }: RelatedProductsProps) {
-    const [products, setProducts] = useState<ProductList[]>([])
-    const [loading, setLoading] = useState(true)
+export function RelatedProducts({ tenantSlug, categorySlug, currentProductId, initialProducts }: RelatedProductsProps) {
+    const [products, setProducts] = useState<ProductList[]>(initialProducts || [])
+    const [loading, setLoading] = useState(!initialProducts)
 
     useEffect(() => {
         const fetchRelated = async () => {
@@ -28,10 +29,10 @@ export function RelatedProducts({ tenantSlug, categorySlug, currentProductId }: 
             }
         }
 
-        if (tenantSlug && categorySlug) {
+        if (tenantSlug && categorySlug && !initialProducts) {
             fetchRelated()
         }
-    }, [tenantSlug, categorySlug, currentProductId])
+    }, [tenantSlug, categorySlug, currentProductId, initialProducts])
 
     if (loading) return null // Or a skeleton if we prefer
     if (products.length === 0) return null

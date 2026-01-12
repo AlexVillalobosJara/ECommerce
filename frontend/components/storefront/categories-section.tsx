@@ -28,7 +28,7 @@ export function CategoriesSection({
             if (window.innerWidth < 640) {
                 setItemsPerPage(1)
             } else {
-                setItemsPerPage(5)
+                setItemsPerPage(4)
             }
         }
 
@@ -107,7 +107,7 @@ export function CategoriesSection({
                             {categories.map((category, index) => (
                                 <div
                                     key={category.id}
-                                    className="w-full flex-shrink-0 px-3 sm:w-1/2 lg:w-1/5"
+                                    className="w-full flex-shrink-0 px-3 sm:w-1/2 lg:w-1/4"
                                     style={{
                                         animationDelay: `${index * 100}ms`,
                                         animationFillMode: "backwards",
