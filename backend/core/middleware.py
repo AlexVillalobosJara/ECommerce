@@ -37,7 +37,7 @@ class TenantMiddleware(MiddlewareMixin):
                     # Allow matching by slug or custom_domain in header
                     tenant = Tenant.objects.get(
                         Q(slug=header_tenant_slug) | Q(custom_domain=header_tenant_slug),
-                        status='Active',
+                        status__in=['Active', 'Trial'],
                         deleted_at__isnull=True
                     )
                     request.tenant = tenant
@@ -51,7 +51,7 @@ class TenantMiddleware(MiddlewareMixin):
             try:
                 tenant = Tenant.objects.filter(
                     Q(custom_domain=host) | Q(custom_domain=clean_host),
-                    status='Active',
+                    status__in=['Active', 'Trial'],
                     deleted_at__isnull=True
                 ).first()
                 
@@ -69,7 +69,7 @@ class TenantMiddleware(MiddlewareMixin):
                     # Allow matching by slug or custom_domain in query param
                     tenant = Tenant.objects.get(
                         Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
-                        status='Active',
+                        status__in=['Active', 'Trial'],
                         deleted_at__isnull=True
                     )
                     request.tenant = tenant
@@ -94,7 +94,7 @@ class TenantMiddleware(MiddlewareMixin):
                 try:
                     tenant = Tenant.objects.get(
                         slug=platform_slug,
-                        status='Active',
+                        status__in=['Active', 'Trial'],
                         deleted_at__isnull=True
                     )
                     request.tenant = tenant
@@ -110,7 +110,7 @@ class TenantMiddleware(MiddlewareMixin):
                 try:
                     tenant = Tenant.objects.get(
                         slug=clean_host,
-                        status='Active',
+                        status__in=['Active', 'Trial'],
                         deleted_at__isnull=True
                     )
                     request.tenant = tenant

@@ -50,9 +50,9 @@ class StorefrontHomeView(views.APIView):
         
         if not tenant:
             if slug:
-                tenant = Tenant.objects.filter(slug=slug, deleted_at__isnull=True, status='Active').first()
+                tenant = Tenant.objects.filter(slug=slug, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
             elif domain:
-                tenant = Tenant.objects.filter(custom_domain=domain, deleted_at__isnull=True, status='Active').first()
+                tenant = Tenant.objects.filter(custom_domain=domain, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
         
         if not tenant:
             return Response({"error": "Tenant not found"}, status=404)

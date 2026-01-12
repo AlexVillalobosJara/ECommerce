@@ -265,8 +265,10 @@ export default function StorefrontPage() {
 
   // Use local tenant data if available, fallback to context
   const activeTenant = localTenant || tenant;
+  // Don't show "not found" if either is still loading
+  const anyLoading = initialLoading || (tenantLoading && !localTenant);
 
-  if (initialLoading && !activeTenant) {
+  if (anyLoading && !activeTenant) {
     return <FullPageStorefrontSkeleton />
   }
 
