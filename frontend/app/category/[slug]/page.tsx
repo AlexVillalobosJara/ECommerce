@@ -7,7 +7,7 @@ import { Metadata } from "next"
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-    const { slug } = await params
+    const { slug: categorySlug } = await params
     const headersList = await headers()
     const host = headersList.get("host") || ""
     const identifier = getTenantIdentifier(host)
@@ -15,12 +15,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     if (!identifier) return { title: "Categoría no encontrada" }
 
     try {
-        const homeData = await storefrontApi.getHomeData({ slug: identifier.slug, domain: identifier.domain })
-        const tenantSlug = homeData.tenant.slug
-        const category = await storefrontApi.getCategoryBySlug(tenantSlug, slug)
+        const data = await storefrontApi.getCategoryData({
+            slug: identifier.slug,
+            domain: identifier.domain,
+            categorySlug
+        })
         return {
-            title: `${category.name} | ${homeData.tenant.name}`,
-            description: category.description,
+            title: `${data.category.name} | ${data.tenant.name}`,
+            description: data.category.description,
         }
     } catch (e) {
         return { title: "Categoría no encontrada" }
@@ -28,7 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params
+    const { slug: categorySlug } = await params
     const headersList = await headers()
     const host = headersList.get("host") || ""
     const identifier = getTenantIdentifier(host)
@@ -38,22 +40,19 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     }
 
     try {
-        // 1. Resolve tenant properly via mega-fetch
-        const homeData = await storefrontApi.getHomeData({ slug: identifier.slug, domain: identifier.domain })
-        const tenantSlug = homeData.tenant.slug
-
-        // 2. Parallel server-side fetching with resolved slug
-        const [category, products] = await Promise.all([
-            storefrontApi.getCategoryBySlug(tenantSlug, slug),
-            storefrontApi.getProducts(tenantSlug, { category: slug })
-        ])
+        // Atomic mega-fetch: 1 RTT for everything
+        const data = await storefrontApi.getCategoryData({
+            slug: identifier.slug,
+            domain: identifier.domain,
+            categorySlug
+        })
 
         return (
             <CategoryClientPage
-                tenant={homeData.tenant}
-                category={category}
-                allCategories={homeData.categories}
-                initialProducts={products}
+                tenant={data.tenant}
+                category={data.category}
+                allCategories={data.categories}
+                initialProducts={data.products}
             />
         )
     } catch (error) {

@@ -7,7 +7,7 @@ import { Metadata } from "next"
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-    const { slug } = await params
+    const { slug: productSlug } = await params
     const headersList = await headers()
     const host = headersList.get("host") || ""
     const identifier = getTenantIdentifier(host)
@@ -15,11 +15,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     if (!identifier) return { title: "Producto no encontrado" }
 
     try {
-        const homeData = await storefrontApi.getHomeData({ slug: identifier.slug, domain: identifier.domain })
-        const product = await storefrontApi.getProduct(homeData.tenant.slug, slug)
+        const data = await storefrontApi.getProductData({
+            slug: identifier.slug,
+            domain: identifier.domain,
+            productSlug
+        })
         return {
-            title: `${product.name} | ${homeData.tenant.name}`,
-            description: product.short_description || product.description,
+            title: `${data.product.name} | ${data.tenant.name}`,
+            description: data.product.short_description || data.product.description,
         }
     } catch (e) {
         return { title: "Producto no encontrado" }
@@ -27,7 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params
+    const { slug: productSlug } = await params
     const headersList = await headers()
     const host = headersList.get("host") || ""
     const identifier = getTenantIdentifier(host)
@@ -37,23 +40,18 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     }
 
     try {
-        // 1. Resolve tenant properly via mega-fetch
-        const homeData = await storefrontApi.getHomeData({ slug: identifier.slug, domain: identifier.domain })
-        const tenantSlug = homeData.tenant.slug
-
-        // 2. Fetch product detail
-        const product = await storefrontApi.getProduct(tenantSlug, slug)
-
-        // 3. Fetch related products if possible
-        const relatedProducts = product.category
-            ? await storefrontApi.getRelatedProducts(tenantSlug, product.category.slug, product.id, 4)
-            : []
+        // Atomic mega-fetch: 1 RTT for everything
+        const data = await storefrontApi.getProductData({
+            slug: identifier.slug,
+            domain: identifier.domain,
+            productSlug
+        })
 
         return (
             <ProductClientPage
-                tenant={homeData.tenant}
-                product={product}
-                relatedProducts={relatedProducts}
+                tenant={data.tenant}
+                product={data.product}
+                relatedProducts={data.related_products}
             />
         )
     } catch (error) {

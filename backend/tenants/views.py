@@ -6,7 +6,7 @@ from django.db.models import Q
 from .models import Tenant
 from .serializers import TenantSerializer
 from products.models import Category, Product, ProductImage, ProductVariant
-from products.serializers import CategorySerializer, ProductListSerializer
+from products.serializers import CategorySerializer, ProductListSerializer, ProductDetailSerializer
 from django.db.models import Min, Max, Count, OuterRef, Subquery, Q
 
 class TenantViewSet(viewsets.ModelViewSet):
@@ -36,21 +36,15 @@ class TenantViewSet(viewsets.ModelViewSet):
         instance.save()
         return Response(status=204)
 
-class StorefrontHomeView(views.APIView):
-    """
-    Mega-endpoint to fetch all data needed for the storefront home page in a single RTT.
-    Returns: Tenant Config, Categories, and Featured Products.
-    """
-    permission_classes = [] # Publicly accessible
+class StorefrontBaseView(views.APIView):
+    permission_classes = []
     
-    def get(self, request, *args, **kwargs):
-        # Resolve tenant using existing middleware or params
+    def resolve_tenant(self, request):
         slug = request.query_params.get('slug')
         domain = request.query_params.get('domain')
-        
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f"StorefrontHomeView: resolving for slug='{slug}', domain='{domain}'")
+        
         tenant = getattr(request, 'tenant', None)
         if not tenant:
             if slug:
@@ -58,15 +52,11 @@ class StorefrontHomeView(views.APIView):
             elif domain:
                 tenant = Tenant.objects.filter(custom_domain=domain, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
         
-        if not tenant:
-            logger.warning(f"StorefrontHomeView: Tenant NOT FOUND for slug='{slug}', domain='{domain}'")
-            return Response({"error": "Tenant not found"}, status=404)
-        
-        logger.info(f"StorefrontHomeView: Resolved tenant '{tenant.slug}' (ID: {tenant.id})")
-        
-        # Explicitly set request.tenant for internal ViewSet/get_queryset calls
-        request.tenant = tenant
-        
+        if tenant:
+            request.tenant = tenant
+        return tenant
+
+    def get_common_data(self, request, tenant):
         # 1. Tenant Data
         tenant_data = TenantSerializer(tenant, context={'request': request}).data
         
@@ -90,23 +80,21 @@ class StorefrontHomeView(views.APIView):
         ).order_by('sort_order', 'name')
         categories_data = CategorySerializer(categories_qs, many=True, context={'request': request}).data
         
-        # 3. Featured Products Data
-        # Base filters for all storefront products
+        return tenant_data, categories_data
+
+    def get_annotated_products_queryset(self, tenant):
         base_products = Product.objects.filter(
             tenant=tenant,
             status='Published',
             deleted_at__isnull=True
         )
-        
-        # Subquery for primary image URL
         primary_image_subquery = ProductImage.objects.filter(
             product=OuterRef('pk'),
             is_primary=True,
             deleted_at__isnull=True
         ).values('url')[:1]
 
-        # Annotations (matching StorefrontProductViewSet)
-        products_qs = base_products.annotate(
+        return base_products.annotate(
             annotated_min_price=Min('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
             annotated_max_price=Max('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
             annotated_min_compare_price=Min('variants__compare_at_price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
@@ -114,25 +102,108 @@ class StorefrontHomeView(views.APIView):
             annotated_primary_image=Subquery(primary_image_subquery),
             has_stock=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True, variants__stock_quantity__gt=0))
         ).select_related('category')
+
+class StorefrontHomeView(StorefrontBaseView):
+    def get(self, request, *args, **kwargs):
+        tenant = self.resolve_tenant(request)
+        if not tenant:
+            return Response({"error": "Tenant not found"}, status=404)
+
+        tenant_data, categories_data = self.get_common_data(request, tenant)
+        products_qs = self.get_annotated_products_queryset(tenant)
         
         featured_qs = products_qs.filter(is_featured=True)
-        
-        # Fallback logic
         display_qs = featured_qs
         if not display_qs.exists():
-            display_qs = products_qs.order_by('-created_at')[:12] # Fallback to 12 if none featured
+            display_qs = products_qs.order_by('-created_at')[:12]
         else:
-            display_qs = featured_qs.order_by('-created_at') # Show ALL featured
+            display_qs = featured_qs.order_by('-created_at')
             
         products_data = ProductListSerializer(display_qs, many=True, context={'request': request}).data
         
         return Response({
             "tenant": tenant_data,
             "categories": categories_data,
-            "featured_products": products_data,
-            "_debug": {
-                "total_published": base_products.count(),
-                "total_featured": featured_qs.count(),
-                "tenant_resolved": tenant.slug
-            }
+            "featured_products": products_data
+        })
+
+class StorefrontCategoryView(StorefrontBaseView):
+    def get(self, request, *args, **kwargs):
+        tenant = self.resolve_tenant(request)
+        category_slug = request.query_params.get('category_slug')
+        if not tenant:
+            return Response({"error": "Tenant not found"}, status=404)
+        if not category_slug:
+            return Response({"error": "Category slug required"}, status=400)
+
+        tenant_data, categories_data = self.get_common_data(request, tenant)
+        
+        # Category Detail
+        category = Category.objects.filter(tenant=tenant, slug=category_slug, deleted_at__isnull=True).first()
+        if not category:
+            return Response({"error": "Category not found"}, status=404)
+        category_data = CategorySerializer(category, context={'request': request}).data
+
+        # Category Products
+        products_qs = self.get_annotated_products_queryset(tenant).filter(category=category)
+        
+        # Apply other filters from query params
+        min_price = request.query_params.get('min_price')
+        if min_price:
+            products_qs = products_qs.filter(variants__price__gte=min_price).distinct()
+            
+        max_price = request.query_params.get('max_price')
+        if max_price:
+            products_qs = products_qs.filter(variants__price__lte=max_price).distinct()
+            
+        ordering = request.query_params.get('ordering')
+        if ordering:
+            products_qs = products_qs.order_by(ordering)
+        else:
+            products_qs = products_qs.order_by('-created_at')
+
+        products_data = ProductListSerializer(products_qs, many=True, context={'request': request}).data
+        
+        return Response({
+            "tenant": tenant_data,
+            "categories": categories_data,
+            "category": category_data,
+            "products": products_data
+        })
+
+class StorefrontProductDetailView(StorefrontBaseView):
+    def get(self, request, *args, **kwargs):
+        tenant = self.resolve_tenant(request)
+        product_slug = request.query_params.get('product_slug')
+        if not tenant:
+            return Response({"error": "Tenant not found"}, status=404)
+        if not product_slug:
+            return Response({"error": "Product slug required"}, status=400)
+
+        tenant_data, categories_data = self.get_common_data(request, tenant)
+        
+        # Product Detail
+        product_qs = Product.objects.filter(tenant=tenant, slug=product_slug, deleted_at__isnull=True).prefetch_related(
+            models.Prefetch('variants', queryset=ProductVariant.objects.filter(is_active=True, deleted_at__isnull=True)),
+            models.Prefetch('images', queryset=ProductImage.objects.filter(deleted_at__isnull=True).order_by('sort_order'))
+        ).select_related('category')
+        
+        product = product_qs.first()
+        if not product:
+            return Response({"error": "Product not found"}, status=404)
+            
+        product_data = ProductDetailSerializer(product, context={'request': request}).data
+
+        # Related Products (Same category)
+        related_qs = self.get_annotated_products_queryset(tenant).filter(
+            category=product.category
+        ).exclude(id=product.id).order_by('-created_at')[:4]
+        
+        related_data = ProductListSerializer(related_qs, many=True, context={'request': request}).data
+        
+        return Response({
+            "tenant": tenant_data,
+            "categories": categories_data,
+            "product": product_data,
+            "related_products": related_data
         })

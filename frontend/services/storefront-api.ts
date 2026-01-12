@@ -88,6 +88,44 @@ export const storefrontApi = {
     },
 
     /**
+     * Mega-fetch for Category Page
+     */
+    async getCategoryData(params: { slug?: string, domain?: string, categorySlug: string }): Promise<{
+        tenant: any,
+        categories: Category[],
+        category: Category,
+        products: ProductList[]
+    }> {
+        const queryParams = new URLSearchParams()
+        if (params.slug) queryParams.append("slug", params.slug)
+        if (params.domain) queryParams.append("domain", params.domain)
+        queryParams.append("category_slug", params.categorySlug)
+
+        const response = await fetch(`${API_URL}/api/storefront/category-data/?${queryParams}`)
+        if (!response.ok) throw new Error("Failed to fetch category data")
+        return response.json()
+    },
+
+    /**
+     * Mega-fetch for Product Detail Page
+     */
+    async getProductData(params: { slug?: string, domain?: string, productSlug: string }): Promise<{
+        tenant: any,
+        categories: Category[],
+        product: ProductDetail,
+        related_products: ProductList[]
+    }> {
+        const queryParams = new URLSearchParams()
+        if (params.slug) queryParams.append("slug", params.slug)
+        if (params.domain) queryParams.append("domain", params.domain)
+        queryParams.append("product_slug", params.productSlug)
+
+        const response = await fetch(`${API_URL}/api/storefront/product-data/?${queryParams}`)
+        if (!response.ok) throw new Error("Failed to fetch product data")
+        return response.json()
+    },
+
+    /**
      * Get all categories
      */
     async getCategories(tenantSlug: string): Promise<Category[]> {
