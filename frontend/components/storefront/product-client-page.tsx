@@ -137,7 +137,7 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                     {/* Details Column (Col 2) */}
                     <div className="space-y-8 lg:pl-4">
                         <div className="space-y-4">
-                            <h1 className="font-serif text-4xl lg:text-5xl lg:leading-[1.15] font-light text-gray-900 tracking-tight">
+                            <h1 className="font-serif text-3xl lg:text-4xl lg:leading-tight font-light text-gray-900 tracking-tight">
                                 {product.name}
                             </h1>
                             {tenant.show_product_ratings && (
@@ -155,15 +155,15 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
 
                         <div className="flex items-center gap-4">
                             {product.is_quote_only ? (
-                                <p className="font-serif text-3xl font-light text-primary tracking-tight">Solicitar Cotización</p>
+                                <p className="font-serif text-2xl font-light text-primary tracking-tight">Solicitar Cotización</p>
                             ) : selectedVariant?.selling_price ? (
                                 <div className="flex items-center gap-4">
                                     {selectedVariant.has_discount && selectedVariant.original_price && (
-                                        <span className="text-2xl text-gray-400 line-through font-light">
+                                        <span className="text-xl text-gray-400 line-through font-light">
                                             {formatPrice(selectedVariant.original_price, tenant)}
                                         </span>
                                     )}
-                                    <span className={cn("font-serif text-4xl lg:text-5xl font-medium tracking-tight", selectedVariant.has_discount ? "text-[#E63946]" : "text-gray-900")}>
+                                    <span className={cn("font-serif text-3xl lg:text-4xl font-medium tracking-tight", selectedVariant.has_discount ? "text-[#E63946]" : "text-gray-900")}>
                                         {formatPrice(selectedVariant.selling_price, tenant)}
                                     </span>
                                 </div>
