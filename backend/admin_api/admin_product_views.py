@@ -121,8 +121,8 @@ def product_list_create(request):
             serializer.save()
             
             # Invalidate product list cache
-            from django.core.cache import cache
-            cache.delete_pattern(f"products_list_{tenant.id}_*")
+            from core.cache_utils import invalidate_product_cache
+            invalidate_product_cache(tenant.id)
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -167,8 +167,8 @@ def product_detail(request, product_id):
             serializer.save()
             
             # Invalidate product list cache
-            from django.core.cache import cache
-            cache.delete_pattern(f"products_list_{tenant.id}_*")
+            from core.cache_utils import invalidate_product_cache
+            invalidate_product_cache(tenant.id)
             
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -179,8 +179,8 @@ def product_detail(request, product_id):
         product.save()
         
         # Invalidate product list cache
-        from django.core.cache import cache
-        cache.delete_pattern(f"products_list_{tenant.id}_*")
+        from core.cache_utils import invalidate_product_cache
+        invalidate_product_cache(tenant.id)
         
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -278,9 +278,8 @@ def category_list_create(request):
             serializer.save()
             
             # Invalidate category cache
-            from django.core.cache import cache
-            cache.delete(f"categories_{tenant.id}")
-            cache.delete_pattern(f"products_list_{tenant.id}_*")  # Products depend on categories
+            from core.cache_utils import invalidate_category_cache
+            invalidate_category_cache(tenant.id)
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

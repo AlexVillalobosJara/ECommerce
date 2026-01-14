@@ -183,9 +183,8 @@ def tenant_settings(request):
             serializer.save()
             
             # Clear all related caches
-            from django.core.cache import cache
-            cache.delete(f"tenant_settings_{tenant.id}")
-            cache.delete(f"storefront_common_data_{tenant.id}")
+            from core.cache_utils import invalidate_tenant_cache
+            invalidate_tenant_cache(tenant.id)
             
             logger.info(f"Invalidated caches after settings update")
             return Response(serializer.data)
