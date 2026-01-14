@@ -289,6 +289,21 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
                                     </div>
                                 </>
                             )}
+
+                            {order.estimated_delivery_date && (
+                                <>
+                                    <Separator />
+                                    <div className="flex items-start gap-2 text-sm">
+                                        <Package className="w-4 h-4 text-blue-600 mt-0.5" />
+                                        <div>
+                                            <p className="text-muted-foreground">Fecha estimada de entrega</p>
+                                            <p className="font-medium">
+                                                {format(new Date(order.estimated_delivery_date + "T12:00:00"), "EEEE dd 'de' MMMM, yyyy", { locale: es })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </CardContent>
                     </Card>
 

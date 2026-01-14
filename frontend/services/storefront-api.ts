@@ -48,6 +48,7 @@ export interface OrderCreate {
     billing_business_name?: string
     billing_business_giro?: string
     billing_tax_id?: string
+    estimated_delivery_date?: string
 }
 
 export interface Order {

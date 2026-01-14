@@ -425,7 +425,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                 total=total,
                 shipping_zone=shipping_zone,
                 is_store_pickup=data.get('is_store_pickup', False),
-                customer_notes=data.get('customer_notes', '')
+                customer_notes=data.get('customer_notes', ''),
+                estimated_delivery_date=data.get('estimated_delivery_date')
             )
             
             # Create order items

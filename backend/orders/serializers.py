@@ -184,6 +184,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'shipping_postal_code', 'shipping_country', 'subtotal',
             'discount_amount', 'shipping_cost', 'tax_amount', 'total',
             'shipping_method', 'is_store_pickup', 'customer_notes',
+            'estimated_delivery_date',
             'items', 'created_at', 'updated_at'
         ]
         read_only_fields = [
@@ -227,6 +228,9 @@ class OrderCreateSerializer(serializers.Serializer):
     
     # Notes
     customer_notes = serializers.CharField(required=False, allow_blank=True)
+    
+    # Estimated Delivery
+    estimated_delivery_date = serializers.DateField(required=False, allow_null=True)
     
     # Coupon
     coupon_code = serializers.CharField(required=False, allow_blank=True, allow_null=True)

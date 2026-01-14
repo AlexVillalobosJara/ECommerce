@@ -20,6 +20,7 @@ import { storefrontApi, type OrderCreate } from "@/services/storefront-api"
 import { FileText, Loader2, TicketPercent, ChevronLeft, Calendar } from "lucide-react"
 import { formatPrice } from "@/lib/format-price"
 import { trackBeginCheckout } from "@/lib/analytics"
+import { getEstimatedShippingDate, formatEstimatedDate, formatDateForBackend } from "@/lib/shipping-utils"
 
 export default function CheckoutPage() {
     const router = useRouter()
@@ -181,48 +182,15 @@ export default function CheckoutPage() {
     }
 
     // Helper to calculate estimated shipping date
-    const getEstimatedShippingDate = () => {
-        if (!tenant?.shipping_workdays || tenant.shipping_workdays.length === 0) return null;
-        if (isQuoteOnly) return null;
-
-        if (purchaseItems.length === 0) return null;
-
-        const maxMinDays = Math.max(...purchaseItems.map(item => {
-            // Use fresh lead time if available, otherwise fallback to item data
-            const fresh = freshLeadTimes[item.product.id];
-            return fresh !== undefined ? fresh : (Number(item.product.min_shipping_days) || 0);
-        }), 0);
-
-        const date = new Date();
-        date.setHours(0, 0, 0, 0); // Normalize to start of day for cleaner calculation
-
-        // Add lead time skipping weekends (días hábiles)
-        let daysAdded = 0;
-        while (daysAdded < maxMinDays) {
-            date.setDate(date.getDate() + 1);
-            const day = date.getDay();
-            if (day !== 0 && day !== 6) { // 0 = Sunday, 6 = Saturday
-                daysAdded++;
-            }
-        }
-
-        const workdays = tenant.shipping_workdays;
-        // Check if a day is a shipping day (robust against string/number types)
-        const isShippingDay = (jsDay: number) => {
-            const backendDay = jsDay === 0 ? 6 : jsDay - 1;
-            return workdays.some(d => Number(d) === backendDay);
-        };
-
-        let iterations = 0;
-        // Don't loop more than 14 days
-        while (!isShippingDay(date.getDay()) && iterations < 14) {
-            date.setDate(date.getDate() + 1);
-            iterations++;
-        }
-        return date;
-    }
-
-    const estimatedDate = getEstimatedShippingDate();
+    const estimatedDate = getEstimatedShippingDate({
+        shippingWorkdays: tenant?.shipping_workdays,
+        minShippingDays: purchaseItems.length > 0
+            ? Math.max(...purchaseItems.map(item => {
+                const fresh = freshLeadTimes[item.product.id];
+                return fresh !== undefined ? fresh : (Number(item.product.min_shipping_days) || 0);
+            }), 0)
+            : 0,
+    });
 
     const handleRegionChange = (regionCode: string) => {
         const region = regionsData.find(r => r.region_code === regionCode)
@@ -379,6 +347,7 @@ export default function CheckoutPage() {
                 billing_business_name: wantsFactura ? formData.billingBusinessName : undefined,
                 billing_business_giro: wantsFactura ? formData.billingBusinessGiro : undefined,
                 billing_tax_id: wantsFactura ? formData.billingTaxId : undefined,
+                estimated_delivery_date: estimatedDate ? formatDateForBackend(estimatedDate) : undefined,
             }
 
             const order = await storefrontApi.createOrder(tenant.slug, orderData)
@@ -619,13 +588,8 @@ export default function CheckoutPage() {
                                             <p className="text-muted-foreground mt-1">
                                                 Tu pedido estará listo aproximadamente para él:
                                             </p>
-                                            <p className="text-xl font-semibold text-primary mt-2">
-                                                {estimatedDate.toLocaleDateString('es-ES', {
-                                                    weekday: 'long',
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric'
-                                                })}
+                                            <p className="text-xl font-semibold text-primary mt-2 capitalize">
+                                                {formatEstimatedDate(estimatedDate)}
                                             </p>
                                             <p className="text-xs text-muted-foreground mt-2 italic">
                                                 * El tiempo de entrega puede variar según la demanda.

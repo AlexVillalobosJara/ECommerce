@@ -21,6 +21,8 @@ import { TechnicalSpecs } from "@/components/storefront/technical-specs"
 import { formatPrice } from "@/lib/format-price"
 import { getProductImageUrl } from "@/lib/image-utils"
 import { trackViewItem, trackAddToCart } from "@/lib/analytics"
+import { getEstimatedShippingDate, formatEstimatedDate } from "@/lib/shipping-utils"
+import { Calendar } from "lucide-react"
 
 interface ProductClientPageProps {
     tenant: any
@@ -97,6 +99,11 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
 
     const currentImage = getProductImageUrl(product.images?.[selectedImageIndex]?.url)
     const isOutOfStock = !product.is_quote_only && Boolean(product.manage_stock) && !!selectedVariant && selectedVariant.available_stock === 0
+
+    const estimatedDate = getEstimatedShippingDate({
+        shippingWorkdays: tenant.shipping_workdays,
+        minShippingDays: product.min_shipping_days || 0
+    })
 
     return (
         <div className="min-h-screen bg-white">
@@ -246,6 +253,18 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                                         <span className="text-sm font-medium text-gray-700">
                                             {selectedVariant.available_stock > 0 ? "En stock - Envío inmediato" : "Sin stock actualmente"}
                                         </span>
+                                    </div>
+                                )}
+
+                                {estimatedDate && !product.is_quote_only && (
+                                    <div className="flex items-start gap-3 rounded-2xl bg-primary/5 px-5 py-4 border border-primary/10">
+                                        <Calendar className="size-5 text-primary shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-primary">Fecha estimada de entrega:</p>
+                                            <p className="text-sm text-gray-700 mt-0.5 capitalize">
+                                                {formatEstimatedDate(estimatedDate)}
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
                             </div>
