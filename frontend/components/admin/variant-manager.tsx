@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import type { AdminProductVariant, VariantFormData } from "@/types/admin"
+import { useTenant } from "@/contexts/TenantContext"
+import { formatPrice } from "@/lib/format-price"
 
 interface VariantManagerProps {
     productId?: string
@@ -44,6 +46,39 @@ export function VariantManager({ productId, variants, onVariantsChange }: Varian
         const newVariants = [...editingVariants]
         newVariants[index] = { ...newVariants[index], [field]: value }
         setEditingVariants(newVariants)
+    }
+
+    const { tenant } = useTenant()
+
+    const formatLocalizedValue = (val: any) => {
+        if (val === undefined || val === null || val === '') return ''
+        const num = typeof val === 'string' ? parseFloat(val) : val
+        if (isNaN(num)) return ''
+
+        const decimalPlaces = tenant?.decimal_places ?? 0
+        const thousandsSeparator = tenant?.thousands_separator || "."
+        const decimalSeparator = tenant?.decimal_separator || ","
+
+        const parts = num.toFixed(decimalPlaces).split('.')
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSeparator)
+
+        if (decimalPlaces > 0 && parts.length > 1) {
+            return parts.join(decimalSeparator)
+        }
+        return parts[0]
+    }
+
+    const parseLocalizedValue = (val: string) => {
+        if (!val) return undefined
+        const thousandsSeparator = tenant?.thousands_separator || "."
+        const decimalSeparator = tenant?.decimal_separator || ","
+
+        const cleaned = val
+            .split(thousandsSeparator).join('')
+            .replace(decimalSeparator, '.')
+
+        const num = parseFloat(cleaned)
+        return isNaN(num) ? undefined : num
     }
 
     return (
@@ -88,9 +123,9 @@ export function VariantManager({ productId, variants, onVariantsChange }: Varian
                             <Label htmlFor={`price-${index}`}>Price</Label>
                             <Input
                                 id={`price-${index}`}
-                                type="number"
-                                value={variant.price || ""}
-                                onChange={(e) => handleVariantChange(index, "price", parseFloat(e.target.value) || undefined)}
+                                type="text"
+                                value={formatLocalizedValue(variant.price)}
+                                onChange={(e) => handleVariantChange(index, "price", parseLocalizedValue(e.target.value))}
                                 placeholder="0.00"
                             />
                         </div>

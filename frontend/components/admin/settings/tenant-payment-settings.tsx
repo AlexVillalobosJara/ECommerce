@@ -15,6 +15,7 @@ interface TenantPaymentSettingsProps {
 export function TenantPaymentSettings({ data, onChange }: TenantPaymentSettingsProps) {
     const [showTransbankKey, setShowTransbankKey] = useState(false)
     const [showMercadoPagoToken, setShowMercadoPagoToken] = useState(false)
+    const [showKhipuKey, setShowKhipuKey] = useState(false)
 
     return (
         <div className="space-y-6">
@@ -62,6 +63,57 @@ export function TenantPaymentSettings({ data, onChange }: TenantPaymentSettingsP
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                 >
                                     {showTransbankKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Khipu */}
+            <Card className="shadow-sm border-l-4 border-l-violet-500">
+                <CardContent className="pt-6 space-y-6">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h3 className="text-lg font-semibold mb-1">Khipu</h3>
+                            <p className="text-sm text-muted-foreground">Acepta pagos simplificados mediante transferencias bancarias</p>
+                        </div>
+                        <Button variant="outline" size="sm" className="gap-2 bg-transparent" asChild>
+                            <a href="https://khipu.com/page/api-referencia-v2" target="_blank" rel="noopener noreferrer">
+                                <ExternalLink className="w-4 h-4" />
+                                Docs
+                            </a>
+                        </Button>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="khipu_receiver_id">ID del Cobrador (Receiver ID)</Label>
+                            <Input
+                                id="khipu_receiver_id"
+                                value={data.khipu_receiver_id || ""}
+                                onChange={(e) => onChange({ khipu_receiver_id: e.target.value })}
+                                placeholder="12345"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="khipu_secret_key">Llave Secreta (Secret Key)</Label>
+                            <div className="relative">
+                                <Input
+                                    id="khipu_secret_key"
+                                    type={showKhipuKey ? "text" : "password"}
+                                    value={data.khipu_secret_key || ""}
+                                    onChange={(e) => onChange({ khipu_secret_key: e.target.value })}
+                                    placeholder="••••••••••••••••"
+                                    className="pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowKhipuKey(!showKhipuKey)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                >
+                                    {showKhipuKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                             </div>
                         </div>

@@ -3,6 +3,8 @@ Payment service factory to select the appropriate gateway
 """
 from .base import PaymentGatewayService, PaymentGatewayError
 from .flow_service import FlowService
+from .transbank_service import TransbankService
+from .khipu_service import KhipuService
 
 
 class PaymentServiceFactory:
@@ -12,9 +14,8 @@ class PaymentServiceFactory:
     
     _services = {
         'Flow': FlowService,
-        # Add more gateways here:
-        # 'Transbank': TransbankService,
-        # 'MercadoPago': MercadoPagoService,
+        'Transbank': TransbankService,
+        'Khipu': KhipuService,
     }
     
     @classmethod

@@ -219,6 +219,34 @@ export function OrderDetail({ orderId }: OrderDetailProps) {
                             </CardContent>
                         </Card>
                     )}
+
+                    {/* Billing info (Factura) */}
+                    {order.billing_type === "Factura" && (
+                        <Card className="shadow-sm border-blue-100 bg-blue-50/30">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg flex items-center gap-2 text-blue-900">
+                                    <FileText className="w-5 h-5" />
+                                    Datos de Facturación
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Razón Social</p>
+                                        <p className="font-medium">{order.billing_business_name || "—"}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">RUT Empresa</p>
+                                        <p className="font-mono font-medium">{order.billing_tax_id || "—"}</p>
+                                    </div>
+                                </div>
+                                <div className="pt-2 border-t border-blue-100">
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Giro Comercial</p>
+                                    <p className="font-medium">{order.billing_business_giro || "—"}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
 
                 {/* Sidebar */}

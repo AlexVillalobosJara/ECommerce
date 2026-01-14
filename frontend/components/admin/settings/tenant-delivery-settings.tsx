@@ -110,6 +110,50 @@ export function TenantDeliverySettings({ data, onChange }: TenantDeliverySetting
                         </RadioGroup>
                     </div>
                 )}
+
+                <div className="space-y-4 pt-4 border-t border-border">
+                    <div>
+                        <Label className="text-base font-semibold">Días de Envío</Label>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Selecciona los días de la semana en los que realizas despachos
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                            { label: "Lunes", value: 0 },
+                            { label: "Martes", value: 1 },
+                            { label: "Miércoles", value: 2 },
+                            { label: "Jueves", value: 3 },
+                            { label: "Viernes", value: 4 },
+                            { label: "Sábado", value: 5 },
+                            { label: "Domingo", value: 6 },
+                        ].map((day) => {
+                            const isSelected = (data.shipping_workdays || []).includes(day.value);
+                            return (
+                                <div
+                                    key={day.value}
+                                    className={`flex items-center space-x-2 p-3 rounded-md border border-border cursor-pointer transition-colors ${isSelected ? "bg-primary/10 border-primary" : "hover:bg-muted"
+                                        }`}
+                                    onClick={() => {
+                                        const current = data.shipping_workdays || [];
+                                        const updated = isSelected
+                                            ? current.filter((v: number) => v !== day.value)
+                                            : [...current, day.value].sort((a: number, b: number) => a - b);
+                                        onChange({ shipping_workdays: updated });
+                                    }}
+                                >
+                                    <div className={`w-4 h-4 rounded-sm border ${isSelected ? "bg-primary border-primary text-primary-foreground" : "border-input"} flex items-center justify-center transition-colors`}>
+                                        {isSelected && (
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                        )}
+                                    </div>
+                                    <span className="text-sm font-medium">{day.label}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </CardContent>
         </Card>
     )

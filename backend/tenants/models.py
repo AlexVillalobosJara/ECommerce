@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.core.validators import RegexValidator
+from django.contrib.postgres.fields import ArrayField
 from .payment_config_models import PaymentGatewayConfig  # Import payment config model
 
 
@@ -42,6 +43,8 @@ class Tenant(models.Model):
     transbank_commerce_code = models.CharField(max_length=50, blank=True, null=True)
     mercadopago_access_token = models.TextField(blank=True, null=True)
     mercadopago_public_key = models.TextField(blank=True, null=True)
+    khipu_receiver_id = models.CharField(max_length=50, blank=True, null=True)
+    khipu_secret_key = models.TextField(blank=True, null=True)
     
     # SMTP Configuration
     smtp_host = models.CharField(max_length=255, blank=True, null=True)
@@ -130,6 +133,7 @@ class Tenant(models.Model):
     # Terms & Conditions Variables
     shipping_days_min = models.IntegerField(default=3)
     shipping_days_max = models.IntegerField(default=7)
+    shipping_workdays = ArrayField(models.IntegerField(), default=list, blank=True, help_text="Days of the week for shipping (0=Mon, 6=Sun)")
     return_window_days = models.IntegerField(default=30)
     RETURN_COST_CHOICES = [
         ('Customer', 'Cliente'),
@@ -180,4 +184,28 @@ class TenantUser(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.tenant.name} ({self.role})"
+
+
+class Redirect(models.Model):
+    """
+    Model to store 301 redirects for a tenant.
+    Preserves SEO authority by mapping old URLs to new ones.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='redirects')
+    old_path = models.CharField(max_length=500, help_text="The path to redirect from (e.g., /old-product-url)")
+    new_path = models.CharField(max_length=500, help_text="The path to redirect to (e.g., /products/new-product-url)")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'tenant_redirects'
+        unique_together = ['tenant', 'old_path']
+        indexes = [
+            models.Index(fields=['tenant', 'old_path'], name='idx_redirect_lookup'),
+        ]
+
+    def __str__(self):
+        return f"[{self.tenant.slug}] {self.old_path} -> {self.new_path}"
 

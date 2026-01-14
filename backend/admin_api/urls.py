@@ -36,6 +36,9 @@ from .admin_shipping_views import (
 from .admin_customer_views import CustomerViewSet
 from .admin_coupon_views import DiscountCouponViewSet
 from .admin_user_views import AdminUserViewSet
+from .admin_marketing_views import TenantMarketingConfigViewSet
+from .admin_seo_views import AdminRedirectViewSet
+from .admin_dashboard_views import AdminDashboardViewSet
 
 app_name = 'admin_api'
 
@@ -47,7 +50,7 @@ urlpatterns = [
     
     # Tenant Settings
     path('settings/tenant/', tenant_settings, name='tenant_settings'),
-    path('dashboard/stats/', dashboard_stats, name='dashboard_stats'),
+    path('dashboard/stats/', AdminDashboardViewSet.as_view({'get': 'stats'}), name='dashboard_stats'),
     
     # Products
     path('products/', product_list_create, name='product_list_create'),
@@ -109,4 +112,11 @@ urlpatterns = [
     # Users
     path('users/', AdminUserViewSet.as_view({'get': 'list', 'post': 'create'}), name='user_list'),
     path('users/<uuid:pk>/', AdminUserViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='user_detail'),
+    
+    # Marketing Configuration
+    path('marketing-config/', TenantMarketingConfigViewSet.as_view({'get': 'list', 'put': 'update', 'patch': 'partial_update'}), name='marketing_config'),
+    
+    # SEO & Redirects
+    path('redirects/', AdminRedirectViewSet.as_view({'get': 'list', 'post': 'create'}), name='redirect_list'),
+    path('redirects/<uuid:pk>/', AdminRedirectViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='redirect_detail'),
 ]

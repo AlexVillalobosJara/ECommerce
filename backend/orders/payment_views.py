@@ -198,11 +198,23 @@ def payment_return_handler(request, gateway):
     """
     # Extract parameters from both POST and GET to handle different gateway behaviors
     if request.method == 'POST':
-        token = request.POST.get('token') or (request.data.get('token') if hasattr(request, 'data') else None)
+        # Try multiple token keys based on gateway defaults
+        token = (
+            request.POST.get('token') or 
+            request.POST.get('token_ws') or 
+            request.POST.get('notification_token') or
+            request.POST.get('TBK_TOKEN') or # Transbank cancellation/timeout
+            (request.data.get('token') if hasattr(request, 'data') else None)
+        )
         order_id = request.POST.get('order') or request.GET.get('order')
         tenant_slug = request.POST.get('tenant') or request.GET.get('tenant')
     else:
-        token = request.GET.get('token')
+        token = (
+            request.GET.get('token') or 
+            request.GET.get('token_ws') or 
+            request.GET.get('notification_token') or
+            request.GET.get('TBK_TOKEN')
+        )
         order_id = request.GET.get('order')
         tenant_slug = request.GET.get('tenant')
     
@@ -674,3 +686,47 @@ def verify_payment_manually(request, order_id):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+
+@api_view(['GET'])
+def get_active_payment_gateways(request):
+    """
+    Get list of active payment gateways for a tenant.
+    
+    GET /api/{tenant_slug}/payment-gateways/active/
+    """
+    try:
+        tenant_slug = request.GET.get('tenant')
+        if not tenant_slug:
+            return Response(
+                {'error': 'Tenant slug is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        tenant = get_object_or_404(Tenant, slug=tenant_slug)
+        
+        # Import here to avoid circular imports
+        from tenants.payment_config_models import PaymentGatewayConfig
+        
+        # Get active payment gateways for this tenant
+        active_gateways = PaymentGatewayConfig.objects.filter(
+            tenant=tenant,
+            is_active=True
+        ).values('gateway', 'is_sandbox')
+        
+        # Format response
+        gateways = []
+        for gw in active_gateways:
+            gateways.append({
+                'id': gw['gateway'],
+                'name': gw['gateway'],
+                'is_sandbox': gw['is_sandbox']
+            })
+        
+        return Response(gateways)
+        
+    except Exception as e:
+        logger.error(f'Error fetching active payment gateways: {e}', exc_info=True)
+        return Response(
+            {'error': 'Failed to fetch payment gateways'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

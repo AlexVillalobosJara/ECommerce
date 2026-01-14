@@ -2,10 +2,19 @@ from rest_framework import serializers
 from .models import Tenant
 
 
+class MarketingConfigSerializer(serializers.Serializer):
+    """Nested serializer for marketing configuration"""
+    gtm_container_id = serializers.CharField(allow_null=True, required=False)
+    ga4_measurement_id = serializers.CharField(allow_null=True, required=False)
+    meta_pixel_id = serializers.CharField(allow_null=True, required=False)
+    tiktok_pixel_id = serializers.CharField(allow_null=True, required=False)
+
+
 class TenantSerializer(serializers.ModelSerializer):
     """
     Serializer for Tenant model
     """
+    marketing_config = serializers.SerializerMethodField()
     
     class Meta:
         model = Tenant
@@ -14,6 +23,7 @@ class TenantSerializer(serializers.ModelSerializer):
             'logo_url', 'primary_color', 'secondary_color', 'custom_domain',
             'transbank_api_key', 'transbank_commerce_code',
             'mercadopago_access_token', 'mercadopago_public_key',
+            'khipu_receiver_id', 'khipu_secret_key',
             'smtp_host', 'smtp_port', 'smtp_username', 'smtp_password',
             'smtp_from_email', 'smtp_from_name',
             'legal_name', 'tax_id', 'phone', 'email', 'address',
@@ -34,9 +44,27 @@ class TenantSerializer(serializers.ModelSerializer):
             'about_us_text', 'our_history_text', 'mission_text', 'vision_text', 'faq_text',
             # CTA Section
             'cta_title', 'cta_description', 'cta_button_text', 'cta_link',
+            'shipping_workdays',
+            # Marketing
+            'marketing_config',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'slug', 'created_at', 'updated_at', 'marketing_config']
+    
+    def get_marketing_config(self, obj):
+        """Get marketing configuration for tenant"""
+        try:
+            if hasattr(obj, 'marketing_config'):
+                config = obj.marketing_config
+                return {
+                    'gtm_container_id': config.gtm_container_id,
+                    'ga4_measurement_id': config.ga4_measurement_id,
+                    'meta_pixel_id': config.meta_pixel_id,
+                    'tiktok_pixel_id': config.tiktok_pixel_id,
+                }
+        except Exception:
+            pass
+        return None
     
     def validate_slug(self, value):
         """Ensure slug is URL-friendly"""

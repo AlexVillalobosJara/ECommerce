@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Menu, Search, ShoppingBag, X } from "lucide-react"
+import { Menu, Search, ShoppingBag, X, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MobileMenu } from "./mobile-menu"
 import { SearchBar } from "./search-bar"
@@ -10,6 +10,7 @@ import { useTenant } from "@/contexts/TenantContext"
 import { useCart } from "@/hooks/useCart"
 import { storefrontApi } from "@/services/storefront-api"
 import { getImageUrl } from "@/lib/image-utils"
+import { getFlagUrl } from "@/lib/region-utils"
 import type { Category } from "@/types/product"
 
 interface HeaderProps {
@@ -85,21 +86,47 @@ export function Header({ onCartClick }: HeaderProps) {
                         {/* Removed "Productos" link as requested */}
                     </div>
 
-                    {/* Right: Cart */}
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="relative"
-                        aria-label="Shopping cart"
-                        onClick={onCartClick}
-                    >
-                        <ShoppingBag className="size-5" />
-                        {cartCount > 0 && (
-                            <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground font-bold">
-                                {cartCount > 9 ? "9+" : cartCount}
-                            </span>
+                    {/* Right side actions */}
+                    <div className="flex items-center gap-1 md:gap-4">
+                        {/* Phone Number */}
+                        {tenant?.phone && (
+                            <a
+                                href={`tel:${tenant.phone}`}
+                                className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <Phone className="size-4" />
+                                <span>{tenant.phone}</span>
+                            </a>
                         )}
-                    </Button>
+
+                        {/* Country Flag */}
+                        {tenant?.country && (
+                            <div className="flex items-center px-1">
+                                <img
+                                    src={getFlagUrl(tenant.country)}
+                                    alt={tenant.country}
+                                    title={tenant.country}
+                                    className="h-3.5 w-auto rounded-[2px] shadow-[0_0_1px_rgba(0,0,0,0.5)] object-contain opacity-90"
+                                />
+                            </div>
+                        )}
+
+                        {/* Shopping Bag */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="relative"
+                            aria-label="Shopping cart"
+                            onClick={onCartClick}
+                        >
+                            <ShoppingBag className="size-5" />
+                            {cartCount > 0 && (
+                                <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground font-bold">
+                                    {cartCount > 9 ? "9+" : cartCount}
+                                </span>
+                            )}
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Search Bar Overlay */}

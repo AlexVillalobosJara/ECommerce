@@ -20,6 +20,7 @@ import { ProductReviews } from "@/components/storefront/product-reviews"
 import { TechnicalSpecs } from "@/components/storefront/technical-specs"
 import { formatPrice } from "@/lib/format-price"
 import { getProductImageUrl } from "@/lib/image-utils"
+import { trackViewItem, trackAddToCart } from "@/lib/analytics"
 
 interface ProductClientPageProps {
     tenant: any
@@ -35,6 +36,11 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
     useEffect(() => {
         window.scrollTo(0, 0)
     }, [])
+
+    // Track product view for analytics
+    useEffect(() => {
+        trackViewItem(product)
+    }, [product])
 
     const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
         product.variants?.find(v => v.is_default) || product.variants?.[0] || null
@@ -84,6 +90,9 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
         }
         addToCart(productForCart, selectedVariant, quantity)
         setCartOpen(true)
+
+        // Track add to cart event
+        trackAddToCart(product, selectedVariant, quantity)
     }
 
     const currentImage = getProductImageUrl(product.images?.[selectedImageIndex]?.url)

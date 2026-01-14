@@ -15,6 +15,8 @@ export interface Tenant {
     transbank_commerce_code?: string
     mercadopago_access_token?: string
     mercadopago_public_key?: string
+    khipu_receiver_id?: string
+    khipu_secret_key?: string
 
     // SMTP Configuration
     smtp_host?: string
@@ -81,6 +83,7 @@ export interface Tenant {
     cta_description?: string
     cta_button_text?: string
     cta_link?: string
+    shipping_workdays?: number[]
 
     created_at?: string
     updated_at?: string

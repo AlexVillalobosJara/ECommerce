@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import ShippingZoneViewSet, OrderViewSet, StorefrontCommuneViewSet, ValidateCouponView, ShippingCarrierConfigViewSet
-from .payment_views import initiate_payment, payment_callback, payment_return_handler, payment_status_check, payment_status_by_token, verify_payment_manually
+from .payment_views import initiate_payment, payment_callback, payment_return_handler, payment_status_check, payment_status_by_token, verify_payment_manually, get_active_payment_gateways
 
 router = DefaultRouter()
 router.register(r'shipping-zones', ShippingZoneViewSet, basename='shipping-zone')
@@ -22,4 +22,5 @@ urlpatterns = [
     
     # Storefront endpoints
     path('cart/validate-coupon/', ValidateCouponView.as_view(), name='validate_coupon'),
+    path('payment-gateways/active/', get_active_payment_gateways, name='active_payment_gateways'),
 ]

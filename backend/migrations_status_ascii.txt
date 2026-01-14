@@ -1,0 +1,55 @@
+admin
+ [X] 0001_initial
+ [X] 0002_logentry_remove_auto_add
+ [X] 0003_logentry_add_action_flag_choices
+admin_api
+ (no migrations)
+auth
+ [X] 0001_initial
+ [X] 0002_alter_permission_name_max_length
+ [X] 0003_alter_user_email_max_length
+ [X] 0004_alter_user_username_opts
+ [X] 0005_alter_user_last_login_null
+ [X] 0006_require_contenttypes_0002
+ [X] 0007_alter_validators_add_error_messages
+ [X] 0008_alter_user_username_max_length
+ [X] 0009_alter_user_last_name_max_length
+ [X] 0010_alter_group_name_max_length
+ [X] 0011_update_proxy_permissions
+ [X] 0012_alter_user_first_name_max_length
+contenttypes
+ [X] 0001_initial
+ [X] 0002_remove_content_type_name
+core
+ [X] 0001_initial
+orders
+ [X] 0001_initial
+ [X] 0002_remove_shippingzone_communes_and_more
+ [X] 0003_order_payment_fields
+ [X] 0004_alter_order_payment_gateway_and_more
+ [X] 0005_add_payment_models
+ [X] 0006_rename_payments_tenant__5c7d9e_idx_payments_tenant__1040c7_idx_and_more
+ [X] 0007_rename_payments_tenant__5c7d9e_idx_payments_tenant__1040c7_idx_and_more
+ [X] 0008_discountcoupon_couponusage_and_more
+ [X] 0009_alter_discountcoupon_discount_type_and_more
+ [X] 0010_shippingcarrierconfig
+ [ ] 0011_alter_shippingzone_commune_codes
+ [ ] 0012_alter_customer_unique_together_and_more
+products
+ [X] 0001_initial
+ [X] 0002_product_average_rating_product_review_count_and_more
+ [X] 0003_product_specifications
+ [ ] 0004_alter_category_unique_together_and_more
+ [ ] 0005_product_min_shipping_days
+sessions
+ [X] 0001_initial
+tenants
+ [X] 0001_initial
+ [X] 0002_paymentgatewayconfig
+ [X] 0003_tenant_hero_cta_text_tenant_hero_image_url_and_more
+ [X] 0004_tenant_about_us_text_tenant_allow_reviews_and_more
+ [X] 0005_rename_refund_policy_mode_tenant_terms_policy_mode_and_more
+ [X] 0006_tenant_cta_button_text_tenant_cta_description_and_more
+ [X] 0007_tenantuser
+ [ ] 0008_alter_tenantuser_role
+ [ ] 0009_tenant_shipping_workdays

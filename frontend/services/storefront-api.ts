@@ -43,6 +43,11 @@ export interface OrderCreate {
     items: OrderItemCreate[]
     customer_notes?: string
     coupon_code?: string
+    // Chilean Billing
+    billing_type?: "Boleta" | "Factura"
+    billing_business_name?: string
+    billing_business_giro?: string
+    billing_tax_id?: string
 }
 
 export interface Order {
@@ -323,6 +328,7 @@ export const storefrontApi = {
         zone_name: string
         cost: number
         estimated_days: number
+        allows_store_pickup: boolean
         is_free: boolean
     }> {
         const response = await fetch(
@@ -565,6 +571,19 @@ export const storefrontApi = {
                 const text = await response.text();
                 throw new Error(`Server Error (${response.status}): ${text.slice(0, 100)}...`)
             }
+        }
+
+        return response.json()
+    },
+
+    async getActivePaymentGateways(tenantSlug: string) {
+        const response = await fetch(`${API_URL}/api/orders/payment-gateways/active/?tenant=${tenantSlug}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        })
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch active payment gateways')
         }
 
         return response.json()

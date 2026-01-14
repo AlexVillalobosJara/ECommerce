@@ -12,6 +12,8 @@ import { ProductPricing } from "./product-pricing"
 import { ProductVariantsEditor } from "./product-variants-editor"
 import { ProductSettings } from "./product-settings"
 import { ProductSpecifications } from "./product-specifications"
+import { ProductSEO } from "./product-seo"
+import { ProductPhysicalAttributes } from "./product-physical-attributes"
 import { getProductImageUrl } from "@/lib/image-utils"
 import type { AdminProduct } from "@/types/admin"
 import { getProduct, createProduct, updateProduct, getCategories, createVariant, updateVariant, deleteVariant } from "@/services/adminProductService"
@@ -33,7 +35,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
     const [loading, setLoading] = useState(!!productId)
     const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([])
     const [originalVariants, setOriginalVariants] = useState<any[]>([])
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<any>({
         name: "",
         slug: "",
         sku: "",
@@ -51,6 +53,16 @@ export function ProductEditor({ productId }: ProductEditorProps) {
         images: [] as import('@/types/admin').AdminProductImage[],
         variants: [] as any[],
         specifications: {} as Record<string, string>,
+        min_shipping_days: 0,
+        // SEO fields
+        meta_title: "",
+        meta_description: "",
+        meta_keywords: "",
+        // Physical attributes
+        weight_kg: "",
+        length_cm: "",
+        width_cm: "",
+        height_cm: "",
     })
 
     const isEditing = !!productId
@@ -124,6 +136,16 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                 // Deep copy variants to prevent reference mutation
                 variants: JSON.parse(JSON.stringify(data.variants || [])),
                 specifications: data.specifications || {},
+                min_shipping_days: data.min_shipping_days || 0,
+                // SEO fields
+                meta_title: data.meta_title || "",
+                meta_description: data.meta_description || "",
+                meta_keywords: data.meta_keywords || "",
+                // Physical attributes
+                weight_kg: data.weight_kg?.toString() || "",
+                length_cm: data.length_cm?.toString() || "",
+                width_cm: data.width_cm?.toString() || "",
+                height_cm: data.height_cm?.toString() || "",
             })
 
             // Store original variants for comparison when saving (also deep copy)
@@ -142,10 +164,10 @@ export function ProductEditor({ productId }: ProductEditorProps) {
         const currentVariants = formData.variants
 
         // Identify variants to create, update, and delete
-        const variantsToCreate = currentVariants.filter(v => v.id?.startsWith('temp-'))
-        const variantsToUpdate = currentVariants.filter(v => !v.id?.startsWith('temp-') && v.id)
+        const variantsToCreate = currentVariants.filter((v: any) => v.id?.startsWith('temp-'))
+        const variantsToUpdate = currentVariants.filter((v: any) => !v.id?.startsWith('temp-') && v.id)
         const variantsToDelete = originalVariants.filter(
-            orig => !orig.id?.startsWith('temp-') && !currentVariants.find(curr => curr.id === orig.id)
+            (orig: any) => !orig.id?.startsWith('temp-') && !currentVariants.find((curr: any) => curr.id === orig.id)
         )
 
         try {
@@ -170,6 +192,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                     attributes: variant.attributes || {},
                     price: variant.price ? parseFloat(variant.price.toString()) : undefined,
                     compare_at_price: variant.compare_at_price ? parseFloat(variant.compare_at_price.toString()) : undefined,
+                    cost: variant.cost ? parseFloat(variant.cost.toString()) : undefined,
                     stock_quantity: variant.stock_quantity !== undefined ? parseInt(variant.stock_quantity.toString()) : 0,
                     is_default: variant.is_default || false,
                     is_active: true,
@@ -194,6 +217,9 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                 if (variant.compare_at_price !== undefined && variant.compare_at_price !== null) {
                     variantData.compare_at_price = parseFloat(variant.compare_at_price.toString())
                 }
+                if (variant.cost !== undefined && variant.cost !== null) {
+                    variantData.cost = parseFloat(variant.cost.toString())
+                }
                 if (variant.stock_quantity !== undefined && variant.stock_quantity !== null) {
                     variantData.stock_quantity = parseInt(variant.stock_quantity.toString())
                 }
@@ -202,7 +228,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
             }
 
             // Update originalVariants to current state after successful sync
-            setOriginalVariants(formData.variants.filter(v => !v.id?.startsWith('temp-')))
+            setOriginalVariants(formData.variants.filter((v: any) => !v.id?.startsWith('temp-')))
         } catch (error: any) {
             console.error('Error syncing variants:', error)
             throw new Error(`Error al sincronizar variantes: ${error.message}`)
@@ -228,8 +254,18 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                 status: formData.status,
                 is_featured: formData.is_featured,
                 specifications: formData.specifications,
+                min_shipping_days: formData.min_shipping_days,
+                // SEO fields
+                meta_title: formData.meta_title,
+                meta_description: formData.meta_description,
+                meta_keywords: formData.meta_keywords,
+                // Physical attributes (convert to numbers or null)
+                weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
+                length_cm: formData.length_cm ? parseFloat(formData.length_cm) : null,
+                width_cm: formData.width_cm ? parseFloat(formData.width_cm) : null,
+                height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
                 // Include images with Supabase URLs
-                images_data: formData.images.map(img => ({
+                images_data: formData.images.map((img: any) => ({
                     url: img.url,
                     alt_text: img.alt_text || '',
                     sort_order: img.sort_order,
@@ -265,7 +301,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
     }
 
     const updateFormData = (updates: Partial<typeof formData>) => {
-        setFormData((prev) => ({ ...prev, ...updates }))
+        setFormData((prev: any) => ({ ...prev, ...updates }))
     }
 
     if (loading) {
@@ -327,6 +363,10 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                     {/* Sidebar - Right Column */}
                     <div className="space-y-6">
                         <ProductSettings data={formData} onChange={updateFormData} />
+
+                        <ProductSEO data={formData} onChange={updateFormData} />
+
+                        <ProductPhysicalAttributes data={formData} onChange={updateFormData} />
 
                         {/* Preview Card */}
                         <Card className="p-6 space-y-4 sticky top-24">

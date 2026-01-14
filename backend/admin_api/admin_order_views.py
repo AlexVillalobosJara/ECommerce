@@ -357,19 +357,7 @@ def respond_quote(request, pk):
     
     
     
-    # Send email notification to customer
-    # Refresh order to ensure all fields have correct data types (e.g. dates instead of strings)
-    order.refresh_from_db()
-    
-    try:
-        from orders.email_service import send_quote_response_notification
-        response = send_quote_response_notification(order)
-        logger.info(f"Email sent response: {response}")
-    except Exception as e:
-        logger.exception(f"CRITICAL: Failed to send quote response email: {e}")
-        # Log traceback
-        import traceback
-        logger.error(traceback.format_exc())
+    # Email notification is now handled automatically by signals.py
     
     # Return updated order
     serializer = AdminOrderDetailSerializer(order)

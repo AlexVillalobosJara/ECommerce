@@ -108,7 +108,7 @@ class ProductListAdminSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug', 'sku', 'brand', 'short_description', 'category_name',
                   'is_quote_only', 'is_featured', 'status', 'primary_image',
                   'min_price', 'max_price', 'variants_count', 'in_stock', 'total_stock',
-                  'total_available', 'total_reserved', 'created_at', 'updated_at', 'published_at']
+                  'total_available', 'total_reserved', 'min_shipping_days', 'created_at', 'updated_at', 'published_at']
     
     def get_in_stock(self, obj):
         # We can derive this from annotated_total_stock or custom field
@@ -142,7 +142,7 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
         model = Product
         fields = ['id', 'name', 'slug', 'short_description', 'description', 'specifications',
                   'sku', 'barcode', 'brand', 'category', 'category_id',
-                  'is_quote_only', 'manage_stock', 'status', 'is_featured',
+                  'is_quote_only', 'manage_stock', 'min_shipping_days', 'status', 'is_featured',
                   'meta_title', 'meta_description', 'meta_keywords',
                   'weight_kg', 'length_cm', 'width_cm', 'height_cm',
                   'views_count', 'sales_count', 'variants', 'images', 'images_data',

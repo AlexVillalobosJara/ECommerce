@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 import { Header } from "@/components/storefront/header"
 import { Footer } from "@/components/storefront/footer"
 import { OrderSummary } from "@/components/storefront/order-summary"
@@ -16,14 +17,16 @@ import { CheckoutSkeleton } from "@/components/storefront/checkout-skeleton"
 import { useTenant } from "@/contexts/TenantContext"
 import { useCart } from "@/hooks/useCart"
 import { storefrontApi, type OrderCreate } from "@/services/storefront-api"
-import { FileText, Loader2, TicketPercent, ChevronLeft } from "lucide-react"
+import { FileText, Loader2, TicketPercent, ChevronLeft, Calendar } from "lucide-react"
 import { formatPrice } from "@/lib/format-price"
+import { trackBeginCheckout } from "@/lib/analytics"
 
 export default function CheckoutPage() {
     const router = useRouter()
     const { tenant, loading: tenantLoading } = useTenant()
     const [initialLoading, setInitialLoading] = useState(true)
-    const { purchaseItems, quoteItems, getTotalItems, mounted } = useCart()
+    const { purchaseItems, quoteItems, getTotalItems, mounted, clearCart } = useCart()
+    const [freshLeadTimes, setFreshLeadTimes] = useState<Record<string, number>>({})
 
     // Simulated loading delay for development
     useEffect(() => {
@@ -34,6 +37,7 @@ export default function CheckoutPage() {
             setInitialLoading(false)
         }
     }, [])
+
 
     const [loading, setLoading] = useState(false)
     const [calculatingShipping, setCalculatingShipping] = useState(false)
@@ -49,12 +53,17 @@ export default function CheckoutPage() {
     const [shippingCost, setShippingCost] = useState(0)
     const [shippingZoneId, setShippingZoneId] = useState<string | null>(null)
     const [shippingMethodName, setShippingMethodName] = useState<string>("")
+    const [allowsStorePickup, setAllowsStorePickup] = useState(false)
+    const [isStorePickup, setIsStorePickup] = useState(false)
 
     // Coupon State
     const [couponCode, setCouponCode] = useState("")
     const [discountAmount, setDiscountAmount] = useState(0)
     const [couponMessage, setCouponMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
     const [validatingCoupon, setValidatingCoupon] = useState(false)
+
+    // Billing Type
+    const [wantsFactura, setWantsFactura] = useState(false)
 
     // Determine if this is a quote-only request
     const isQuoteOnly = quoteItems.length > 0 && purchaseItems.length === 0
@@ -73,7 +82,35 @@ export default function CheckoutPage() {
         region: "", // Stores region CODE
         regionName: "", // Stores region NAME
         notes: "",
+        // Factura fields
+        billingBusinessName: "",
+        billingBusinessGiro: "",
+        billingTaxId: "",
     })
+
+    // Lead Time Sync: Fetch latest product data to ensure calculation is NOT stale
+    useEffect(() => {
+        if (!tenant || !mounted) return;
+
+        const syncLeadTimes = async () => {
+            const allItems = [...purchaseItems, ...quoteItems];
+            const newLeadTimes: Record<string, number> = {};
+
+            for (const item of allItems) {
+                try {
+                    // We use getProduct to get the latest min_shipping_days
+                    const product = await storefrontApi.getProduct(tenant.slug, item.product.slug);
+                    newLeadTimes[item.product.id] = Number(product.min_shipping_days) || 0;
+                } catch (err) {
+                    console.error(`Failed to sync lead time for ${item.product.name}:`, err);
+                    newLeadTimes[item.product.id] = Number(item.product.min_shipping_days) || 0;
+                }
+            }
+            setFreshLeadTimes(newLeadTimes);
+        };
+
+        syncLeadTimes();
+    }, [tenant, mounted]); // Only once on mount per tenant
 
     // Load regions and communes
     useEffect(() => {
@@ -108,15 +145,84 @@ export default function CheckoutPage() {
 
     if (tenant?.prices_include_tax) {
         tax = subtotal * (1 - (1 / (1 + taxRate)))
-        total = Math.max(0, subtotal + shippingCost - discountAmount)
+        total = Math.max(0, subtotal + (isStorePickup ? 0 : shippingCost) - discountAmount)
     } else {
         tax = subtotal * taxRate
-        total = Math.max(0, subtotal + tax + shippingCost - discountAmount)
+        total = Math.max(0, subtotal + tax + (isStorePickup ? 0 : shippingCost) - discountAmount)
     }
 
+    // Track begin_checkout when purchaseItems are available
+    useEffect(() => {
+        if (mounted && purchaseItems.length > 0) {
+            trackBeginCheckout(purchaseItems, subtotal + tax)
+        }
+    }, [mounted, purchaseItems, subtotal, tax])
+
+    const formatRut = (value: string) => {
+        const raw = value.replace(/[^0-9kK]/g, '').toUpperCase();
+        if (!raw) return '';
+
+        const clean = raw.slice(0, 9);
+        if (clean.length <= 1) return clean;
+
+        const dv = clean.slice(-1);
+        const rest = clean.slice(0, -1);
+
+        const dotted = rest.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        return `${dotted}-${dv}`;
+    };
+
     const updateField = (field: string, value: string) => {
-        setFormData((prev) => ({ ...prev, [field]: value }))
+        let finalValue = value;
+        if (field === "billingTaxId") {
+            finalValue = formatRut(value);
+        }
+        setFormData((prev) => ({ ...prev, [field]: finalValue }))
     }
+
+    // Helper to calculate estimated shipping date
+    const getEstimatedShippingDate = () => {
+        if (!tenant?.shipping_workdays || tenant.shipping_workdays.length === 0) return null;
+        if (isQuoteOnly) return null;
+
+        if (purchaseItems.length === 0) return null;
+
+        const maxMinDays = Math.max(...purchaseItems.map(item => {
+            // Use fresh lead time if available, otherwise fallback to item data
+            const fresh = freshLeadTimes[item.product.id];
+            return fresh !== undefined ? fresh : (Number(item.product.min_shipping_days) || 0);
+        }), 0);
+
+        const date = new Date();
+        date.setHours(0, 0, 0, 0); // Normalize to start of day for cleaner calculation
+
+        // Add lead time skipping weekends (días hábiles)
+        let daysAdded = 0;
+        while (daysAdded < maxMinDays) {
+            date.setDate(date.getDate() + 1);
+            const day = date.getDay();
+            if (day !== 0 && day !== 6) { // 0 = Sunday, 6 = Saturday
+                daysAdded++;
+            }
+        }
+
+        const workdays = tenant.shipping_workdays;
+        // Check if a day is a shipping day (robust against string/number types)
+        const isShippingDay = (jsDay: number) => {
+            const backendDay = jsDay === 0 ? 6 : jsDay - 1;
+            return workdays.some(d => Number(d) === backendDay);
+        };
+
+        let iterations = 0;
+        // Don't loop more than 14 days
+        while (!isShippingDay(date.getDay()) && iterations < 14) {
+            date.setDate(date.getDate() + 1);
+            iterations++;
+        }
+        return date;
+    }
+
+    const estimatedDate = getEstimatedShippingDate();
 
     const handleRegionChange = (regionCode: string) => {
         const region = regionsData.find(r => r.region_code === regionCode)
@@ -159,15 +265,28 @@ export default function CheckoutPage() {
                     5, // Default weight 5kg for now
                     subtotal
                 )
-                setShippingCost(Number(result.cost))
+                setShippingCost(parseFloat(result.cost.toString()))
                 setShippingZoneId(result.zone_id)
                 setShippingMethodName(result.zone_name)
+                setAllowsStorePickup(result.allows_store_pickup)
+
+                // Auto-disable pickup if it's no longer allowed for this commune
+                if (!result.allows_store_pickup) {
+                    setIsStorePickup(false)
+                }
             } catch (err) {
                 console.error("Shipping calc error:", err)
                 setShippingCost(0)
                 setShippingZoneId(null)
                 setShippingMethodName("")
-                setShippingError("No hay cobertura de envío para esta comuna o ocurrió un error.")
+                setShippingError("No hay cobertura de envío a domicilio para esta comuna.")
+
+                // Even if no shipping coverage, check if we should still allow pickup
+                // For now, if the tenant has an address, we can assume pickup might be possible 
+                // or we could check a global tenant setting.
+                if (tenant.address) {
+                    setAllowsStorePickup(true)
+                }
             } finally {
                 setCalculatingShipping(false)
             }
@@ -210,14 +329,14 @@ export default function CheckoutPage() {
             return
         }
 
-        if (!isQuoteOnly && !shippingZoneId && !shippingMethodName && !shippingError) {
+        if (!isQuoteOnly && !isStorePickup && !shippingZoneId && !shippingMethodName && !shippingError) {
             if (!formData.commune) {
                 setError("Selecciona una comuna")
                 return
             }
         }
 
-        if (!isQuoteOnly && !shippingZoneId && !shippingMethodName) {
+        if (!isQuoteOnly && !isStorePickup && !shippingZoneId && !shippingMethodName) {
             setError("No hemos encontrado opción de envío para esta comuna. Contáctanos.")
             return
         }
@@ -246,7 +365,7 @@ export default function CheckoutPage() {
                 shipping_commune: formData.communeName,
                 shipping_city: formData.city,
                 shipping_region: formData.regionName,
-                is_store_pickup: false,
+                is_store_pickup: isStorePickup,
                 items: allItems.map((item) => ({
                     product_variant_id: item.variant.id,
                     quantity: item.quantity,
@@ -254,10 +373,18 @@ export default function CheckoutPage() {
                 customer_notes: formData.notes,
                 shipping_zone_id: shippingZoneId || undefined,
                 shipping_method: shippingMethodName,
-                coupon_code: discountAmount > 0 ? couponCode : undefined
+                coupon_code: discountAmount > 0 ? couponCode : undefined,
+                // Chilean Billing
+                billing_type: wantsFactura ? "Factura" : "Boleta",
+                billing_business_name: wantsFactura ? formData.billingBusinessName : undefined,
+                billing_business_giro: wantsFactura ? formData.billingBusinessGiro : undefined,
+                billing_tax_id: wantsFactura ? formData.billingTaxId : undefined,
             }
 
             const order = await storefrontApi.createOrder(tenant.slug, orderData)
+
+            // CLEAR CART on success
+            clearCart()
 
             if (orderType === "Quote") {
                 router.push(`/checkout/success?order=${order.order_number}&id=${order.id}&tenant=${tenant.slug}`)
@@ -441,7 +568,7 @@ export default function CheckoutPage() {
                             </Card>
 
                             <Card className="border-border bg-white p-6 lg:p-8">
-                                <div className="flex items-center gap-2 mb-6">
+                                <div className="flex items-center gap-3 mb-6">
                                     <FileText className="w-5 h-5 text-muted-foreground" />
                                     <h2 className="font-serif text-2xl font-normal tracking-tight">
                                         {isQuoteOnly ? "Detalles de su Solicitud" : "Notas Adicionales"}
@@ -458,6 +585,121 @@ export default function CheckoutPage() {
                                         className="mt-1.5 min-h-[120px] resize-none"
                                     />
                                 </div>
+                            </Card>
+
+                            {allowsStorePickup && !isQuoteOnly && (
+                                <Card className="border-border bg-white p-6 lg:p-8">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <h2 className="font-serif text-2xl font-normal tracking-tight">Retiro en Tienda</h2>
+                                            <p className="text-sm text-muted-foreground">Retira tu pedido directamente en nuestro local sin costo de envío</p>
+                                        </div>
+                                        <Switch
+                                            checked={isStorePickup}
+                                            onCheckedChange={setIsStorePickup}
+                                        />
+                                    </div>
+                                    {isStorePickup && (
+                                        <div className="mt-4 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                                            <p className="text-sm font-medium text-primary">Dirección de retiro:</p>
+                                            <p className="text-sm text-muted-foreground">{tenant?.address || "Avenida Providencia 1234, Santiago"}</p>
+                                        </div>
+                                    )}
+                                </Card>
+                            )}
+
+                            {estimatedDate && (
+                                <Card className="border-border bg-white p-6 lg:p-8">
+                                    <div className="flex items-start gap-3">
+                                        <div className="p-2 bg-primary/10 rounded-full">
+                                            <Calendar className="w-5 h-5 text-primary" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-medium text-lg">Fecha estimada de entrega</h3>
+                                            <p className="text-muted-foreground mt-1">
+                                                Tu pedido estará listo aproximadamente para él:
+                                            </p>
+                                            <p className="text-xl font-semibold text-primary mt-2">
+                                                {estimatedDate.toLocaleDateString('es-ES', {
+                                                    weekday: 'long',
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                })}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground mt-2 italic">
+                                                * El tiempo de entrega puede variar según la demanda.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </Card>
+                            )}
+
+                            <Card className="border-border bg-white p-6 lg:p-8">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="space-y-1">
+                                        <h2 className="font-serif text-2xl font-normal tracking-tight">Tipo de Documento</h2>
+                                        <p className="text-sm text-muted-foreground">Elija si necesita Boleta o Factura</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                    <div
+                                        onClick={() => setWantsFactura(false)}
+                                        className={`cursor-pointer p-4 rounded-lg border-2 transition-all text-center ${!wantsFactura ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                                    >
+                                        <p className="font-semibold">Boleta</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Consumidor Final</p>
+                                    </div>
+                                    <div
+                                        onClick={() => setWantsFactura(true)}
+                                        className={`cursor-pointer p-4 rounded-lg border-2 transition-all text-center ${wantsFactura ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}`}
+                                    >
+                                        <p className="font-semibold">Factura</p>
+                                        <p className="text-xs text-muted-foreground mt-1">Empresas (IVA)</p>
+                                    </div>
+                                </div>
+
+                                {wantsFactura && (
+                                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                        <div>
+                                            <Label htmlFor="billingTaxId" className="text-sm font-medium">RUT Empresa *</Label>
+                                            <Input
+                                                id="billingTaxId"
+                                                required={wantsFactura}
+                                                placeholder="12.345.678-9"
+                                                value={formData.billingTaxId}
+                                                onChange={(e) => updateField("billingTaxId", e.target.value)}
+                                                className="mt-1.5"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="billingBusinessName" className="text-sm font-medium">Razón Social *</Label>
+                                            <Input
+                                                id="billingBusinessName"
+                                                required={wantsFactura}
+                                                placeholder="Mi Empresa S.A."
+                                                value={formData.billingBusinessName}
+                                                onChange={(e) => updateField("billingBusinessName", e.target.value)}
+                                                className="mt-1.5"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label htmlFor="billingBusinessGiro" className="text-sm font-medium">Giro Comercial *</Label>
+                                            <Input
+                                                id="billingBusinessGiro"
+                                                required={wantsFactura}
+                                                placeholder="Venta de artículos..."
+                                                value={formData.billingBusinessGiro}
+                                                onChange={(e) => updateField("billingBusinessGiro", e.target.value)}
+                                                className="mt-1.5"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-100 italic">
+                                            * Los datos de facturación serán validados antes de emitir el documento.
+                                        </p>
+                                    </div>
+                                )}
                             </Card>
 
                             <div className="flex items-center space-x-2">
@@ -524,7 +766,7 @@ export default function CheckoutPage() {
                                 purchaseItems={purchaseItems}
                                 quoteItems={quoteItems}
                                 subtotal={subtotal}
-                                shipping={shippingCost}
+                                shipping={isStorePickup ? 0 : shippingCost}
                                 tax={tax}
                                 discount={discountAmount}
                                 total={total}

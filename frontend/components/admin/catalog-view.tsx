@@ -9,8 +9,9 @@ import { Plus, Pencil, Trash2, AlertTriangle, Search } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { Switch } from "@/components/ui/switch"
 import type { AdminProductListItem, ProductFilters } from "@/types/admin"
-import { getProducts, deleteProduct } from "@/services/adminProductService"
+import { getProducts, deleteProduct, updateProduct } from "@/services/adminProductService"
 import { useTenant } from "@/contexts/TenantContext"
 import { formatPrice } from "@/lib/format-price"
 import { getProductImageUrl } from "@/lib/image-utils"
@@ -104,6 +105,29 @@ export function CatalogView() {
         }
     }
 
+    const handleToggleFeatured = async (productId: string, currentFeatured: boolean) => {
+        try {
+            await updateProduct(productId, { is_featured: !currentFeatured })
+            setProducts(prev => prev.map(p => p.id === productId ? { ...p, is_featured: !currentFeatured } : p))
+            toast.success(currentFeatured ? "Producto quitado de destacados" : "Producto destacado")
+        } catch (error) {
+            console.error("Error updating featured status:", error)
+            toast.error("Error al actualizar estado destacado")
+        }
+    }
+
+    const handleTogglePublished = async (productId: string, currentStatus: string) => {
+        const newStatus = currentStatus === "Published" ? "Draft" : "Published"
+        try {
+            await updateProduct(productId, { status: newStatus as any })
+            setProducts(prev => prev.map(p => p.id === productId ? { ...p, status: newStatus as any } : p))
+            toast.success(newStatus === "Published" ? "Producto publicado" : "Producto movido a borrador")
+        } catch (error) {
+            console.error("Error updating publication status:", error)
+            toast.error("Error al actualizar estado de publicación")
+        }
+    }
+
     const { tenant } = useTenant()
 
     const formatPriceDisplay = (price: number | null) => {
@@ -161,7 +185,8 @@ export function CatalogView() {
                                 <tr>
                                     <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Producto</th>
                                     <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">SKU</th>
-                                    <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Estado</th>
+                                    <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Publicado</th>
+                                    <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Destacado</th>
                                     <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Stock</th>
                                     <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Precio</th>
                                     <th className="text-right text-xs font-medium text-muted-foreground px-6 py-4">Acciones</th>
@@ -211,9 +236,22 @@ export function CatalogView() {
                                                 <span className="text-sm text-muted-foreground font-mono">{product.sku || "—"}</span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <Badge variant={product.status === "Published" ? "default" : "secondary"}>
-                                                    {product.status === "Published" ? "Publicado" : "Borrador"}
-                                                </Badge>
+                                                <div className="flex items-center justify-center">
+                                                    <Switch
+                                                        checked={product.status === "Published"}
+                                                        onCheckedChange={() => handleTogglePublished(product.id, product.status)}
+                                                        className="scale-75"
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center justify-center">
+                                                    <Switch
+                                                        checked={product.is_featured}
+                                                        onCheckedChange={() => handleToggleFeatured(product.id, product.is_featured)}
+                                                        className="scale-75"
+                                                    />
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex flex-col gap-1">

@@ -32,7 +32,7 @@ export function HeroSection({
                     className="size-full object-cover scale-105 animate-fade-in"
                     loading={priority ? "eager" : "lazy"}
                     // @ts-ignore
-                    fetchpriority={priority ? "high" : "auto"}
+                    fetchPriority={priority ? "high" : "auto"}
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/40" />
             </div>

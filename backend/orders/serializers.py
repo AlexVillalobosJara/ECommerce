@@ -176,7 +176,9 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = [
             'id', 'order_number', 'order_type', 'status', 'customer',
-            'customer_email', 'customer_phone', 'shipping_recipient_name',
+            'customer_email', 'customer_phone',
+            'billing_type', 'billing_business_name', 'billing_business_giro',
+            'shipping_recipient_name',
             'shipping_phone', 'shipping_street_address', 'shipping_apartment',
             'shipping_commune', 'shipping_city', 'shipping_region',
             'shipping_postal_code', 'shipping_country', 'subtotal',
@@ -209,6 +211,12 @@ class OrderCreateSerializer(serializers.Serializer):
     shipping_city = serializers.CharField(max_length=100, required=False, allow_blank=True)
     shipping_region = serializers.CharField(max_length=100, required=False, allow_blank=True)
     shipping_postal_code = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    
+    # Billing Info (Chile)
+    billing_type = serializers.ChoiceField(choices=['Boleta', 'Factura'], default='Boleta')
+    billing_business_name = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    billing_business_giro = serializers.CharField(max_length=300, required=False, allow_blank=True)
+    billing_tax_id = serializers.CharField(max_length=20, required=False, allow_blank=True)  # For Factura
     
     # Shipping method
     is_store_pickup = serializers.BooleanField(default=False)

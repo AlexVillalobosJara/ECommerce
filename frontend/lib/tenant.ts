@@ -79,7 +79,7 @@ export async function fetchTenantConfig(params: { slug?: string, domain?: string
             return null
         }
 
-        const response = await fetch(url)
+        const response = await fetch(url, { cache: 'no-store' })
 
         if (!response.ok) {
             return null

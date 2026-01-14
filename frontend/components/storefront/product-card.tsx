@@ -53,7 +53,7 @@ export function ProductCard({ product, onAddToCart, onRequestQuote, className, a
                     className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading={priority ? "eager" : "lazy"}
                     // @ts-ignore
-                    fetchpriority={priority ? "high" : "auto"}
+                    fetchPriority={priority ? "high" : "auto"}
                 />
 
                 {/* Stock Badge */}

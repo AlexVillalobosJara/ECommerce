@@ -61,6 +61,13 @@ const GATEWAY_INFO = {
         docsUrl: "https://www.transbankdevelopers.cl",
         fields: ["commerce_code", "api_key"]
     },
+    Khipu: {
+        name: "Khipu",
+        description: "Pagos simplificados mediante transferencias bancarias",
+        color: "from-violet-500 to-indigo-600",
+        docsUrl: "https://khipu.com/page/api-referencia-v2",
+        fields: ["api_key", "secret_key"]
+    },
     MercadoPago: {
         name: "Mercado Pago",
         description: "Acepta pagos en toda Latinoamérica con múltiples métodos de pago",
@@ -366,6 +373,43 @@ export function PaymentSettings() {
                                                             placeholder={gateway.credentials?.api_key || "Ingresa tu API Key de Transbank"}
                                                             value={form.api_key || ""}
                                                             onChange={(e) => updateFormData(gateway.gateway, "api_key", e.target.value)}
+                                                            className="pr-10"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleSecret(`${gateway.gateway}-secret`)}
+                                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                                        >
+                                                            {showSecrets[`${gateway.gateway}-secret`] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {gateway.gateway === "Khipu" && (
+                                            <>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor={`${gateway.gateway}-api-key`}>Receiver ID</Label>
+                                                    <Input
+                                                        id={`${gateway.gateway}-api-key`}
+                                                        type="text"
+                                                        autoComplete="off"
+                                                        placeholder={gateway.credentials?.api_key || "Ej: 12345"}
+                                                        value={form.api_key || ""}
+                                                        onChange={(e) => updateFormData(gateway.gateway, "api_key", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor={`${gateway.gateway}-secret-key`}>Secret Key</Label>
+                                                    <div className="relative">
+                                                        <Input
+                                                            id={`${gateway.gateway}-secret-key`}
+                                                            type={showSecrets[`${gateway.gateway}-secret`] ? "text" : "password"}
+                                                            autoComplete="new-password"
+                                                            placeholder={gateway.credentials?.secret_key || "Ingresa tu Secret Key de Khipu"}
+                                                            value={form.secret_key || ""}
+                                                            onChange={(e) => updateFormData(gateway.gateway, "secret_key", e.target.value)}
                                                             className="pr-10"
                                                         />
                                                         <button

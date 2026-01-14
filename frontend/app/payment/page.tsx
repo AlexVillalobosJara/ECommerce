@@ -51,27 +51,93 @@ function PaymentContent() {
         return formatPrice(price, tenant)
     }
 
-    const handlePaymentWithFlow = async () => {
+    const [selectedGateway, setSelectedGateway] = useState<string>("") // Will be set to first active gateway
+    const [availableGateways, setAvailableGateways] = useState<Array<{
+        id: string
+        name: string
+        description: string
+        icon: React.ReactNode
+        color: string
+        borderColor: string
+        bgColor: string
+    }>>([])
+
+    // Load active payment gateways
+    useEffect(() => {
+        async function loadGateways() {
+            if (!tenant) return
+
+            try {
+                const activeGateways = await storefrontApi.getActivePaymentGateways(tenant.slug)
+
+                // Map backend gateways to UI configuration
+                const gatewayConfig: Record<string, any> = {
+                    'Transbank': {
+                        name: 'Webpay Plus',
+                        description: 'Tarjetas de crédito y débito',
+                        icon: <CreditCard className="h-6 w-6 text-white" />,
+                        color: 'from-red-500 to-rose-600',
+                        borderColor: 'border-red-500',
+                        bgColor: 'bg-red-50'
+                    },
+                    'Khipu': {
+                        name: 'Khipu',
+                        description: 'Transferencia bancaria simplificada',
+                        icon: <div className="font-bold text-white text-xl">K</div>,
+                        color: 'from-violet-500 to-indigo-600',
+                        borderColor: 'border-violet-500',
+                        bgColor: 'bg-violet-50'
+                    },
+                    'Flow': {
+                        name: 'Flow',
+                        description: 'Webpay, Servipag, Multicaja y más',
+                        icon: <CreditCard className="h-6 w-6 text-white" />,
+                        color: 'from-blue-500 to-purple-600',
+                        borderColor: 'border-blue-500',
+                        bgColor: 'bg-blue-50'
+                    }
+                }
+
+                const gateways = activeGateways.map((gw: any) => ({
+                    id: gw.id,
+                    ...gatewayConfig[gw.id]
+                })).filter((gw: any) => gw.name) // Filter out any unknown gateways
+
+                setAvailableGateways(gateways)
+
+                // Set first gateway as default
+                if (gateways.length > 0 && !selectedGateway) {
+                    setSelectedGateway(gateways[0].id)
+                }
+            } catch (err) {
+                console.error("Error loading payment gateways:", err)
+            }
+        }
+
+        loadGateways()
+    }, [tenant])
+
+    const handlePayment = async () => {
         if (!order || !tenant) return
 
         setProcessing(true)
         setError(null)
 
         try {
-            // Initiate payment with Flow
+            // Initiate payment with selected gateway
             const paymentResponse = await storefrontApi.initiatePayment(
                 tenant.slug,
                 order.id,
-                "Flow",
+                selectedGateway,
                 `${window.location.origin}/payment/callback`,
                 `${window.location.origin}/payment/cancelled`
             )
 
-            // Redirect to Flow payment page
+            // Redirect to gateway payment page
             if (paymentResponse.payment_url) {
                 window.location.href = paymentResponse.payment_url
             } else {
-                throw new Error("No se recibió URL de pago")
+                throw new Error("No se recibió URL de pago del comercio")
             }
         } catch (err) {
             console.error("Payment initiation error:", err)
@@ -138,48 +204,62 @@ function PaymentContent() {
                         <div className="space-y-6">
                             <Card className="border-border bg-white p-6 lg:p-8">
                                 <h2 className="mb-6 font-serif text-2xl font-normal tracking-tight">
-                                    Método de Pago
+                                    Selecciona tu Método de Pago
                                 </h2>
 
                                 <div className="space-y-4">
-                                    <div className="flex items-center gap-4 rounded-lg border-2 border-blue-500 bg-blue-50 p-6">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
-                                            <CreditCard className="h-6 w-6 text-white" />
+                                    {availableGateways.map((gw) => (
+                                        <div
+                                            key={gw.id}
+                                            onClick={() => setSelectedGateway(gw.id)}
+                                            className={`flex items-center gap-4 rounded-lg border-2 p-6 cursor-pointer transition-all ${selectedGateway === gw.id
+                                                ? `${gw.borderColor} ${gw.bgColor} shadow-md`
+                                                : "border-border hover:border-muted-foreground/30 hover:bg-secondary/10"
+                                                }`}
+                                        >
+                                            <div className={`flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br ${gw.color}`}>
+                                                {gw.icon}
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold">{gw.name}</h3>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {gw.description}
+                                                </p>
+                                            </div>
+                                            {selectedGateway === gw.id && (
+                                                <div className={`h-6 w-6 rounded-full ${gw.borderColor.replace('border-', 'bg-')} flex items-center justify-center`}>
+                                                    <div className="h-2 w-2 rounded-full bg-white" />
+                                                </div>
+                                            )}
                                         </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold">Flow</h3>
-                                            <p className="text-sm text-muted-foreground">
-                                                Paga con tarjeta de crédito, débito o transferencia
-                                            </p>
-                                        </div>
-                                    </div>
+                                    ))}
 
-                                    <div className="rounded-lg bg-secondary/50 p-4">
-                                        <p className="text-sm text-muted-foreground">
-                                            Serás redirigido a Flow para completar tu pago de forma segura.
+                                    <div className="rounded-lg bg-secondary/50 p-4 mt-8">
+                                        <p className="text-sm text-muted-foreground italic">
+                                            Serás redirigido a la plataforma de pago seleccionada para completar tu transacción de forma segura.
                                         </p>
                                     </div>
 
                                     <Button
-                                        onClick={handlePaymentWithFlow}
+                                        onClick={handlePayment}
                                         disabled={processing}
-                                        className="w-full gap-2 py-6 text-lg font-semibold"
+                                        className="w-full gap-2 py-6 text-lg font-semibold shadow-lg hover:translate-y-[-2px] transition-all"
                                     >
                                         {processing ? (
                                             <>
                                                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                                Redirigiendo a Flow...
+                                                Redirigiendo a {selectedGateway}...
                                             </>
                                         ) : (
                                             <>
                                                 <CreditCard className="h-5 w-5" />
-                                                Pagar con Flow
+                                                Pagar con {selectedGateway}
                                             </>
                                         )}
                                     </Button>
                                 </div>
                             </Card>
-                        </div>
+                            调节                        </div>
 
                         {/* Right: Order Summary */}
                         <Card className="h-fit border-border bg-white p-6 lg:sticky lg:top-8">

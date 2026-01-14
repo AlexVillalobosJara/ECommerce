@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Search, Eye, Calendar, DollarSign, Package } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -16,6 +17,7 @@ import { getOrders, getOrderStats } from "@/services/adminOrderService"
 import type { AdminOrderListItem, OrderStats } from "@/types/admin"
 import { useTenant } from "@/contexts/TenantContext"
 import { formatPrice } from "@/lib/format-price"
+import { cn } from "@/lib/utils"
 
 export function OrdersManagement() {
     const router = useRouter()
@@ -212,6 +214,7 @@ export function OrdersManagement() {
                                             <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Cliente</th>
                                             <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Estado</th>
                                             <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Fecha</th>
+                                            <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Documento</th>
                                             <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Items</th>
                                             <th className="text-left text-xs font-medium text-muted-foreground px-6 py-4">Total</th>
                                             <th className="text-right text-xs font-medium text-muted-foreground px-6 py-4">Acciones</th>
@@ -239,6 +242,14 @@ export function OrdersManagement() {
                                                     <div className="text-xs text-muted-foreground">
                                                         {format(new Date(order.created_at), "HH:mm", { locale: es })}
                                                     </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <Badge variant="outline" className={cn(
+                                                        "text-[10px] uppercase font-bold",
+                                                        order.billing_type === "Factura" ? "border-blue-200 bg-blue-50 text-blue-700" : "border-border bg-muted/50 text-muted-foreground"
+                                                    )}>
+                                                        {order.billing_type || "Boleta"}
+                                                    </Badge>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <span className="text-sm text-muted-foreground">{order.items_count} items</span>

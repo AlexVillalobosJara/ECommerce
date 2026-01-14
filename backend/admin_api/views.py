@@ -169,6 +169,11 @@ def tenant_settings(request):
         if serializer.is_valid():
             logger.info("Settings are valid, saving...")
             serializer.save()
+            # Clear storefront common data cache if it exists
+            from django.core.cache import cache
+            cache_key = f"storefront_common_data_{tenant.id}"
+            cache.delete(cache_key)
+            logger.info(f"Invalidated cache {cache_key} after settings update")
             return Response(serializer.data)
         logger.error(f"Settings validation failed: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

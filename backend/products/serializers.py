@@ -153,7 +153,8 @@ class ProductListSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'short_description', 'category_name',
             'is_quote_only', 'is_featured', 'status', 'primary_image',
             'min_price', 'max_price', 'min_compare_at_price', 'has_discount',
-            'variants_count', 'in_stock', 'average_rating', 'review_count'
+            'variants_count', 'in_stock', 'average_rating', 'review_count',
+            'min_shipping_days'
         ]
     
     def get_primary_image(self, obj):
@@ -231,7 +232,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'manage_stock', 'status', 'is_featured', 'meta_title',
             'meta_description', 'weight_kg', 'length_cm', 'width_cm',
             'height_cm', 'views_count', 'sales_count', 'variants',
-            'images', 'created_at', 'updated_at',
+            'images', 'created_at', 'updated_at', 'min_shipping_days',
             'average_rating', 'review_count'
         ]
     

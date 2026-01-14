@@ -268,6 +268,19 @@ def send_order_confirmation_email(order):
         if order.shipping_region: shipping_parts.append(order.shipping_region)
         shipping_address = ", ".join(shipping_parts) if shipping_parts else "Retiro en tienda"
         
+        delivery_info_html = ""
+        if order.estimated_delivery_date:
+            delivery_date_str = order.estimated_delivery_date.strftime('%d/%m/%Y')
+            delivery_info_html = f"""
+<table width="100%" cellpadding="16" cellspacing="0" border="0" bgcolor="#e0e7ff" style="margin-bottom:32px; border-radius:8px;">
+<tr>
+<td align="center">
+<div style="font-size:12px;color:#4338ca;font-weight:bold;text-transform:uppercase;margin-bottom:4px;">FECHA DE ENTREGA COMPROMETIDA</div>
+<div style="font-size:20px;color:#1e1b4b;font-weight:bold;">{delivery_date_str}</div>
+</td>
+</tr>
+</table>"""
+        
         html_content = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -294,6 +307,7 @@ def send_order_confirmation_email(order):
 <td>Pedido: <strong>{order_number}</strong><br/>Fecha: {created_date}</td>
 </tr>
 </table>
+{delivery_info_html}
 <h3 style="margin:0 0 16px 0;font-size:18px;font-weight:bold;"> Direccion de Envio</h3>
 <table width="100%" cellpadding="16" cellspacing="0" border="0" bgcolor="#f0fdf4" style="margin-bottom:32px;">
 <tr>
@@ -424,4 +438,140 @@ def send_new_order_notification(order):
         return resend.Emails.send(params)
     except Exception as e:
         logger.error(f"Failed to send new order notification: {e}")
+        return None
+
+
+def send_order_status_update_email(order):
+    """
+    Send email notification to customer when their order or quote status changes
+    """
+    try:
+        from .models import OrderStatus
+        
+        status_map = {
+            'QuoteSent': {
+                'title': 'Tu Cotización está Lista',
+                'subtitle': 'Hemos preparado tu cotización personalizada',
+                'description': 'Tu cotización ha sido generada y está disponible para su revisión.',
+                'color': '#8b5cf6', # Purple
+                'button_text': 'Ver y Pagar Cotización',
+                'button_link': True
+            },
+            'Processing': {
+                'title': 'Tu Pedido está en Preparación',
+                'subtitle': 'Estamos alistando tus productos',
+                'description': 'Nuestro equipo ya está trabajando en preparar tu pedido para que llegue pronto a tus manos.',
+                'color': '#f59e0b', # Amber
+            },
+            'Shipped': {
+                'title': 'Tu Pedido va en Camino',
+                'subtitle': 'Tu encomienda ha sido despachada',
+                'description': '¡Buenas noticias! Tu pedido ya salió de nuestras bodegas y está en manos del transportista.',
+                'color': '#3b82f6', # Blue
+            },
+            'Delivered': {
+                'title': 'Pedido Entregado',
+                'subtitle': 'Hemos completado la entrega',
+                'description': 'Tu pedido ha sido entregado exitosamente. ¡Esperamos que disfrutes tu compra!',
+                'color': '#10b981', # Green
+            },
+            'Cancelled': {
+                'title': 'Pedido Cancelado',
+                'subtitle': 'Información sobre tu pedido',
+                'description': 'Te informamos que tu pedido ha sido cancelado.',
+                'color': '#ef4444', # Red
+            },
+            'Refunded': {
+                'title': 'Reembolso Procesado',
+                'subtitle': 'Actualización de pago',
+                'description': 'Se ha procesado un reembolso para tu pedido.',
+                'color': '#6b7280', # Gray
+            }
+        }
+        
+        config = status_map.get(order.status)
+        if not config:
+            # If QuoteSent, we prefer regular send_quote_response_notification as it has attachment
+            if order.status == 'QuoteSent':
+                return send_quote_response_notification(order)
+            return None
+            
+        customer_name = order.shipping_recipient_name or order.customer_email.split('@')[0]
+        order_number = order.order_number
+        
+        button_html = ""
+        if config.get('button_link'):
+            if order.tenant.custom_domain:
+                base_url = order.tenant.custom_domain
+                if not base_url.startswith(('http://', 'https://')): base_url = f"https://{base_url}"
+            else:
+                base_url = settings.FRONTEND_URL
+            if base_url.endswith('/'): base_url = base_url[:-1]
+            
+            # Use payment link for quote, or order detail for others
+            if order.status == 'QuoteSent':
+                link = f"{base_url}/payment?order={order.id}&tenant={order.tenant.slug}"
+            else:
+                link = f"{base_url}/order/{order.id}" # Placeholder or specific order tracking
+                
+            button_html = f"""
+<table width="100%" cellpadding="24" cellspacing="0" border="0" style="margin-top:24px;">
+<tr>
+<td align="center">
+<a href="{link}" style="display:inline-block;padding:16px 32px;background-color:{config['color']};color:#ffffff;text-decoration:none;font-weight:bold;border-radius:6px;">{config['button_text']}</a>
+</td>
+</tr>
+</table>"""
+
+        html_content = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background-color:#fafafa;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fafafa">
+<tr>
+<td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="max-width:600px; border-radius:8px; overflow:hidden; border:1px solid #e5e7eb;">
+<tr>
+<td align="center" bgcolor="{config['color']}" style="padding:48px 40px;">
+<h1 style="margin:0 0 12px 0;color:#ffffff;font-size:28px;font-weight:bold;">{config['title']}</h1>
+<p style="margin:0;color:#ffffff;font-size:16px;">{config['subtitle']}</p>
+</td>
+</tr>
+<tr>
+<td style="padding:40px;">
+<p style="font-size:16px; margin-bottom:24px;">Hola <strong>{customer_name}</strong>,</p>
+<p style="font-size:16px; color:#4b5563; line-height:1.6; margin-bottom:32px;">{config['description']}</p>
+<table width="100%" cellpadding="20" cellspacing="0" border="0" bgcolor="#f9fafb" style="margin-bottom:32px;border-left:4px solid {config['color']};">
+<tr>
+<td>
+Pedido: <strong>{order_number}</strong><br/>
+Estado Actual: <strong style="color:{config['color']};">{order.get_status_display()}</strong>
+</td>
+</tr>
+</table>
+{button_html}
+<p style="margin-top:40px; font-size:14px; color:#9ca3af; text-align:center;">
+Gracias por confiar en {order.tenant.name}
+</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>"""
+
+        params = {
+            "from": "Zumi Store <onboarding@resend.dev>",
+            "to": order.customer_email,
+            "subject": f"{config['title']} - Pedido {order.order_number}",
+            "html": html_content,
+        }
+        return resend.Emails.send(params)
+    except Exception as e:
+        logger.error(f"Failed to send status update email ({order.status}): {e}")
         return None

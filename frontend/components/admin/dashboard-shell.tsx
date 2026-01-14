@@ -20,6 +20,8 @@ import {
     ChevronLeft,
     ChevronRight,
     UserCircle,
+    BarChart3,
+    Link2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -48,6 +50,8 @@ const navigation = [
     { name: "Cupones", href: "/admin/coupons", icon: FileText },
     { name: "Zonas de Reparto", href: "/admin/shipping-zones", icon: Truck, roles: ['Owner', 'Admin'] },
     { name: "Pasarelas de Pago", href: "/admin/settings/payments", icon: CreditCard, roles: ['Owner', 'Admin'] },
+    { name: "Marketing & Analytics", href: "/admin/settings/marketing", icon: BarChart3, roles: ['Owner', 'Admin'] },
+    { name: "Redirecciones SEO", href: "/admin/settings/seo/redirects", icon: Link2, roles: ['Owner', 'Admin'] },
 ]
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {

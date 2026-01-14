@@ -75,6 +75,7 @@ export interface AdminProduct {
     manage_stock: boolean
     status: 'Draft' | 'Published' | 'Archived'
     is_featured: boolean
+    min_shipping_days: number
     meta_title?: string
     meta_description?: string
     meta_keywords?: string
@@ -111,6 +112,7 @@ export interface AdminProductListItem {
     total_stock?: number | null
     total_available?: number | null
     total_reserved?: number | null
+    min_shipping_days: number
     created_at: string
     updated_at: string
     published_at?: string | null
@@ -129,6 +131,7 @@ export interface ProductFormData {
     manage_stock: boolean
     status: 'Draft' | 'Published' | 'Archived'
     is_featured: boolean
+    min_shipping_days: number
     meta_title?: string
     meta_description?: string
     meta_keywords?: string
@@ -161,7 +164,8 @@ export interface VariantFormData {
     image_url?: string
 }
 
-export interface CategoryFormData {
+export interface AdminCategory {
+    id: string
     name: string
     slug: string
     description?: string
@@ -222,8 +226,10 @@ export interface AdminOrder {
     shipping_region?: string
     shipping_postal_code?: string
     shipping_country?: string
-    // Billing address
-    billing_recipient_name?: string
+    // Billing Info (Chilean Factura)
+    billing_type?: 'Boleta' | 'Factura'
+    billing_business_name?: string
+    billing_business_giro?: string
     billing_tax_id?: string
     billing_street_address?: string
     billing_commune?: string
@@ -276,6 +282,8 @@ export interface AdminOrderListItem {
     paid_at?: string
     shipped_at?: string
     delivered_at?: string
+    cancelled_at?: string
+    billing_type?: 'Boleta' | 'Factura'
 }
 
 export interface OrderFilters {

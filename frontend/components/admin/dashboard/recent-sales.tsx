@@ -18,7 +18,7 @@ export function RecentSales({ orders }: RecentSalesProps) {
             {orders.map((order) => (
                 <div key={order.id} className="flex items-center">
                     <Avatar className="h-9 w-9">
-                        <AvatarImage src={`/avatars/${(order.id.charCodeAt(0) % 5) + 1}.png`} alt="Avatar" />
+                        <AvatarImage src={`https://avatar.vercel.sh/${order.customer_email}`} alt="Avatar" />
                         <AvatarFallback>{order.customer_name.substring(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="ml-4 space-y-1">

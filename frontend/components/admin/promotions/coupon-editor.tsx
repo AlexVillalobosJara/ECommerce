@@ -18,6 +18,7 @@ import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { adminApi } from "@/services/admin-api"
 import { toast } from "sonner"
+import { useTenant } from "@/contexts/TenantContext"
 
 interface CouponEditorProps {
     couponId?: string
@@ -27,6 +28,43 @@ export function CouponEditor({ couponId }: CouponEditorProps) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
+    const { tenant } = useTenant()
+
+    const formatLocalizedValue = (val: any) => {
+        if (val === undefined || val === null || val === '') return ''
+        const num = typeof val === 'string' ? parseFloat(val) : val
+        if (isNaN(num)) return ''
+
+        const isInteger = !['discount_value', 'minimum_purchase_amount', 'maximum_discount_amount'].includes(currentField)
+        // Wait, I need a way to know the field. 
+        // Let's just use generic logic that respects decimal_places for money fields.
+        const decimalPlaces = tenant?.decimal_places ?? 0
+        const thousandsSeparator = tenant?.thousands_separator || "."
+        const decimalSeparator = tenant?.decimal_separator || ","
+
+        const parts = num.toFixed(decimalPlaces).split('.')
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSeparator)
+
+        if (decimalPlaces > 0 && parts.length > 1) {
+            return parts.join(decimalSeparator)
+        }
+        return parts[0]
+    }
+
+    const parseLocalizedValue = (val: string) => {
+        if (!val) return ''
+        const thousandsSeparator = tenant?.thousands_separator || "."
+        const decimalSeparator = tenant?.decimal_separator || ","
+
+        const cleaned = val
+            .split(thousandsSeparator).join('')
+            .replace(decimalSeparator, '.')
+
+        const num = parseFloat(cleaned)
+        return isNaN(num) ? '' : num.toString()
+    }
+
+    const [currentField, setCurrentField] = useState("")
 
     const [formData, setFormData] = useState({
         code: "",
@@ -177,10 +215,13 @@ export function CouponEditor({ couponId }: CouponEditorProps) {
                                 <div className="space-y-2">
                                     <Label>Valor</Label>
                                     <Input
-                                        type="number"
+                                        type="text"
                                         placeholder="0"
-                                        value={formData.discount_value}
-                                        onChange={(e) => handleChange("discount_value", e.target.value)}
+                                        value={formatLocalizedValue(formData.discount_value)}
+                                        onChange={(e) => {
+                                            setCurrentField('discount_value')
+                                            handleChange("discount_value", parseLocalizedValue(e.target.value))
+                                        }}
                                     />
                                 </div>
                             </div>
@@ -189,10 +230,13 @@ export function CouponEditor({ couponId }: CouponEditorProps) {
                                 <div className="space-y-2">
                                     <Label>Tope Máximo de Descuento (Opcional)</Label>
                                     <Input
-                                        type="number"
+                                        type="text"
                                         placeholder="Ej. 10000"
-                                        value={formData.maximum_discount_amount}
-                                        onChange={(e) => handleChange("maximum_discount_amount", e.target.value)}
+                                        value={formatLocalizedValue(formData.maximum_discount_amount)}
+                                        onChange={(e) => {
+                                            setCurrentField('maximum_discount_amount')
+                                            handleChange("maximum_discount_amount", parseLocalizedValue(e.target.value))
+                                        }}
                                     />
                                     <p className="text-xs text-muted-foreground">Monto máximo a descontar si es porcentual.</p>
                                 </div>
@@ -209,10 +253,13 @@ export function CouponEditor({ couponId }: CouponEditorProps) {
                                 <div className="space-y-2">
                                     <Label>Compra Mínima</Label>
                                     <Input
-                                        type="number"
+                                        type="text"
                                         placeholder="0"
-                                        value={formData.minimum_purchase_amount}
-                                        onChange={(e) => handleChange("minimum_purchase_amount", e.target.value)}
+                                        value={formatLocalizedValue(formData.minimum_purchase_amount)}
+                                        onChange={(e) => {
+                                            setCurrentField('minimum_purchase_amount')
+                                            handleChange("minimum_purchase_amount", parseLocalizedValue(e.target.value))
+                                        }}
                                     />
                                 </div>
                                 <div className="space-y-2">

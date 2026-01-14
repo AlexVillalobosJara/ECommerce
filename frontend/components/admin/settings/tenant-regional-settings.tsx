@@ -20,6 +20,20 @@ export function TenantRegionalSettings({ data, onChange }: TenantRegionalSetting
         })
     }
 
+    const formatPreview = (value: number) => {
+        const dps = data.decimal_places ?? 0
+        const ds = data.decimal_separator || '.'
+        const ts = data.thousands_separator || ','
+
+        const parts = value.toFixed(dps).split('.')
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ts)
+
+        if (dps > 0 && parts[1]) {
+            return `$${parts[0]}${ds}${parts[1]}`
+        }
+        return `$${parts[0]}`
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -43,14 +57,40 @@ export function TenantRegionalSettings({ data, onChange }: TenantRegionalSetting
                         <Label htmlFor="tax_rate">Impuesto General (%)</Label>
                         <Input
                             id="tax_rate"
-                            type="number"
-                            step="0.01"
+                            type="text"
                             value={data.tax_rate ?? 19}
-                            onChange={(e) => onChange({ tax_rate: parseFloat(e.target.value) })}
+                            onChange={(e) => {
+                                const val = e.target.value.replace(',', '.')
+                                if (!isNaN(parseFloat(val)) || val === '') {
+                                    onChange({ tax_rate: val === '' ? 0 : parseFloat(val) })
+                                }
+                            }}
                         />
                         <p className="text-xs text-muted-foreground">
                             Porcentaje de IVA o impuesto aplicable (Ej: 19 para 19%)
                         </p>
+                    </div>
+                </div>
+
+                <div className="p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/20">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-2 block">Vista Previa</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-1">
+                            <span className="text-xs text-muted-foreground">Normal</span>
+                            <p className="text-xl font-bold font-mono text-primary">{formatPreview(125000)}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-xs text-muted-foreground">Con Decimales</span>
+                            <p className="text-xl font-bold font-mono text-primary">{formatPreview(1250.50)}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-xs text-muted-foreground">Millones</span>
+                            <p className="text-xl font-bold font-mono text-primary">{formatPreview(1250000)}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <span className="text-xs text-muted-foreground">Cero</span>
+                            <p className="text-xl font-bold font-mono text-primary">{formatPreview(0)}</p>
+                        </div>
                     </div>
                 </div>
 
@@ -65,21 +105,23 @@ export function TenantRegionalSettings({ data, onChange }: TenantRegionalSetting
                                 <SelectValue placeholder="Seleccione" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value=".">Punto (.)</SelectItem>
-                                <SelectItem value=",">Coma (,)</SelectItem>
+                                <SelectItem value=".">Punto (.) - Ej: 1,250.00 (US/Intl)</SelectItem>
+                                <SelectItem value=",">Coma (,) - Ej: 1.250,00 (Chile/Latam)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
                     <div className="space-y-2">
                         <Label>Separador de Miles</Label>
-                        <Input
-                            value={data.thousands_separator || ','}
-                            disabled
-                            className="bg-muted"
-                        />
+                        <div className="flex items-center gap-2">
+                            <Input
+                                value={data.thousands_separator === ',' ? 'Coma (,)' : 'Punto (.)'}
+                                disabled
+                                className="bg-muted"
+                            />
+                        </div>
                         <p className="text-xs text-muted-foreground">
-                            Calculado automáticamente
+                            Calculado automáticamente (opuesto al decimal)
                         </p>
                     </div>
 

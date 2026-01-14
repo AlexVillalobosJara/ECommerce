@@ -9,6 +9,8 @@ import { useEffect, useState } from "react"
 import { adminApi } from "@/services/admin-api"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
+import { StatsCards } from "@/components/admin/dashboard/stats-cards"
+import { TopRankings } from "@/components/admin/dashboard/top-rankings"
 
 export default function AdminDashboardPage() {
     const [stats, setStats] = useState<any>(null)
@@ -67,74 +69,16 @@ export default function AdminDashboardPage() {
                 </div>
 
                 {/* KPI Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Ventas Totales</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                                <DollarSign className="h-4 w-4 text-green-600" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">${stats?.total_sales?.toLocaleString()}</div>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                <TrendingUp className="h-3 w-3 text-green-500" />
-                                <span className="text-green-500 font-medium">+0%</span> vs mes anterior
-                            </p>
-                        </CardContent>
-                    </Card>
+                <StatsCards stats={stats} />
 
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Clientes</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                <Users className="h-4 w-4 text-blue-600" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats?.total_customers}</div>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                <span className="text-muted-foreground font-medium">Total Registrados</span>
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Órdenes</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center">
-                                <ShoppingCart className="h-4 w-4 text-orange-600" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats?.total_orders}</div>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                <span className="text-muted-foreground font-medium">Procesadas</span>
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Productos Activos</CardTitle>
-                            <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-                                <Package className="h-4 w-4 text-purple-600" />
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stats?.total_products}</div>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                                <span className="text-muted-foreground font-medium">En Catálogo</span>
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Charts & Recent Sales */}
+                {/* Main Stats and Recent Sales */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                     <Card className="col-span-4">
-                        <CardHeader>
-                            <CardTitle>Resumen de Ventas</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Resumen de Ventas</CardTitle>
+                                <CardDescription>Tendencia de ingresos de los últimos 30 días</CardDescription>
+                            </div>
                         </CardHeader>
                         <CardContent className="pl-2">
                             <Overview data={stats?.sales_chart || []} />
@@ -152,6 +96,9 @@ export default function AdminDashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Advanced Rankings */}
+                <TopRankings rankings={stats?.rankings} />
             </div>
         </DashboardShell>
     )

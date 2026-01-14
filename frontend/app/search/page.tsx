@@ -12,6 +12,7 @@ import { storefrontApi } from "@/services/storefront-api"
 import type { ProductList } from "@/types/product"
 import { useRouter } from "next/navigation"
 import { Suspense } from "react"
+import { trackSearch, trackViewItemList, trackAddToCart as trackAnalyticsAddToCart } from "@/lib/analytics"
 
 function SearchContent() {
     const router = useRouter()
@@ -22,6 +23,7 @@ function SearchContent() {
     const {
         purchaseItems,
         quoteItems,
+        addToCart, // Moved from event handlers
         updateQuantity,
         removeFromCart,
         getTotalItems,
@@ -41,8 +43,16 @@ function SearchContent() {
 
             try {
                 setLoading(true)
+                // Track search event
+                trackSearch(query)
+
                 const results = await storefrontApi.getProducts(tenant.slug, { search: query })
                 setProducts(results)
+
+                // Track search results list
+                if (results.length > 0) {
+                    trackViewItemList(`Search Results: ${query}`, results)
+                }
             } catch (err) {
                 console.error("Search error:", err)
                 setProducts([])
@@ -68,9 +78,11 @@ function SearchContent() {
                 return
             }
 
-            const { addToCart } = useCart()
             addToCart(product, defaultVariant, 1)
             setCartOpen(true)
+
+            // Track add to cart event
+            trackAnalyticsAddToCart(product, defaultVariant, 1)
         } catch (err) {
             console.error("Error loading product variants:", err)
             alert("Error al agregar el producto al carrito")
@@ -91,9 +103,11 @@ function SearchContent() {
                 return
             }
 
-            const { addToCart } = useCart()
-            addToCart(product, defaultVariant, 1)
+            addToCart(product, defaultVariant, 1) // Using quote implies adding to cart for now
             setCartOpen(true)
+
+            // Track add to cart event (quote)
+            trackAnalyticsAddToCart(product, defaultVariant, 1)
         } catch (err) {
             console.error("Error loading product variants:", err)
             alert("Error al solicitar cotización")

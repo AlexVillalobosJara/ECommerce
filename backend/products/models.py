@@ -98,6 +98,7 @@ class Product(models.Model):
     length_cm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     width_cm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     height_cm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    min_shipping_days = models.IntegerField(default=0, help_text="Minimum days required before shipping this product")
     
     # Statistics
     views_count = models.IntegerField(default=0)

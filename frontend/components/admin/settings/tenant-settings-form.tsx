@@ -16,11 +16,13 @@ import { TenantGeneralSettings } from "@/components/admin/settings/tenant-genera
 import { adminApi } from "@/services/admin-api"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { useTenant } from "@/contexts/TenantContext"
 
 export function TenantSettingsForm() {
     const [isSaving, setIsSaving] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [activeTab, setActiveTab] = useState("branding")
+    const { refreshTenantConfig } = useTenant()
 
     const [formData, setFormData] = useState({
         // Branding
@@ -193,6 +195,7 @@ export function TenantSettingsForm() {
             }
 
             await adminApi.updateTenantSettings(payload)
+            await refreshTenantConfig()
             toast.success("Configuración actualizada correctamente")
         } catch (error) {
             console.error(error)

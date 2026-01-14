@@ -59,6 +59,7 @@ export interface ProductList {
     in_stock: boolean
     total_stock: number | null
     total_reserved: number | null
+    min_shipping_days: number
     average_rating?: string
     review_count?: number
 }
@@ -80,10 +81,12 @@ export interface ProductDetail {
     is_featured: boolean
     meta_title: string | null
     meta_description: string | null
+    meta_keywords: string | null
     weight_kg: string | null
     length_cm: string | null
     width_cm: string | null
     height_cm: string | null
+    min_shipping_days: number
     views_count: number
     sales_count: number
     variants: ProductVariant[]

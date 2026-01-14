@@ -5,24 +5,45 @@ import { useSearchParams } from "next/navigation"
 import { CheckCircle, Package, Truck, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { storefrontApi } from "@/services/storefront-api"
+import { useTenant } from "@/contexts/TenantContext"
+import { trackPurchase } from "@/lib/analytics"
 import { useCart } from "@/hooks/useCart"
 import Link from "next/link"
 import { Suspense } from "react"
 
 function PaymentSuccessContent() {
     const searchParams = useSearchParams()
+    const { tenant } = useTenant()
     const { clearCart } = useCart()
     const [orderNumber, setOrderNumber] = useState<string | null>(null)
     const hasCleared = useRef(false)
+    const hasTracked = useRef(false)
 
     useEffect(() => {
-        setOrderNumber(searchParams.get("order"))
+        const orderId = searchParams.get("order")
+        setOrderNumber(orderId)
+
         // Clear cart only once after successful payment
         if (!hasCleared.current) {
             clearCart()
             hasCleared.current = true
         }
-    }, [searchParams, clearCart])
+
+        // Track purchase event
+        if (tenant && orderId && !hasTracked.current) {
+            const trackOrder = async () => {
+                try {
+                    const orderData = await storefrontApi.getOrder(tenant.slug, orderId)
+                    trackPurchase(orderData)
+                    hasTracked.current = true
+                } catch (err) {
+                    console.error("Failed to track purchase:", err)
+                }
+            }
+            trackOrder()
+        }
+    }, [searchParams, clearCart, tenant])
 
     return (
         <div className="flex min-h-screen items-center justify-center bg-secondary/30 px-4">

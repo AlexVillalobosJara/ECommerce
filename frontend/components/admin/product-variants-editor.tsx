@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTenant } from "@/contexts/TenantContext"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +17,80 @@ interface ProductVariantsEditorProps {
 }
 
 export function ProductVariantsEditor({ variants, onChange, isQuoteOnly, basePrice }: ProductVariantsEditorProps) {
+    const { tenant } = useTenant()
     const [showVariants, setShowVariants] = useState(variants.length > 0)
+
+    const decimalStep = tenant?.decimal_places === 0 ? "1" : (1 / Math.pow(10, tenant?.decimal_places || 2)).toString()
+
+    const formatLocalizedValue = (val: any) => {
+        if (val === undefined || val === null || val === '') return ''
+        const num = typeof val === 'string' ? parseFloat(val) : val
+        if (isNaN(num)) return ''
+
+        const decimalPlaces = tenant?.decimal_places ?? 0
+        const thousandsSeparator = tenant?.thousands_separator || "."
+        const decimalSeparator = tenant?.decimal_separator || ","
+
+        const parts = num.toFixed(decimalPlaces).split('.')
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSeparator)
+
+        if (decimalPlaces > 0 && parts.length > 1) {
+            return parts.join(decimalSeparator)
+        }
+        return parts[0]
+    }
+
+    const parseLocalizedValue = (val: string) => {
+        if (!val) return ''
+        const thousandsSeparator = tenant?.thousands_separator || "."
+        const decimalSeparator = tenant?.decimal_separator || ","
+
+        // Remove thousands separator and replace decimal separator with dot
+        const cleaned = val
+            .split(thousandsSeparator).join('')
+            .replace(decimalSeparator, '.')
+
+        const num = parseFloat(cleaned)
+        return isNaN(num) ? '' : num.toString()
+    }
+
+    const LocalizedNumericInput = ({ value, onChange, placeholder, className }: any) => {
+        const [isFocused, setIsFocused] = useState(false)
+        const [localValue, setLocalValue] = useState("")
+
+        // Sync local value when blurred
+        const displayValue = isFocused ? localValue : formatLocalizedValue(value)
+
+        const handleFocus = () => {
+            setLocalValue(value?.toString() || "")
+            setIsFocused(true)
+        }
+
+        const handleBlur = () => {
+            setIsFocused(false)
+            const parsed = parseLocalizedValue(localValue)
+            onChange({ target: { value: parsed } })
+        }
+
+        const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+            const val = e.target.value
+            // Allow only numbers, decimal separator and thousands separator (if typed by user)
+            // But actually while focused we prefer numeric-only or standard decimals
+            setLocalValue(val)
+        }
+
+        return (
+            <Input
+                type="text"
+                value={displayValue}
+                onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                placeholder={placeholder || (tenant?.decimal_separator === ',' ? '0,00' : '0.00')}
+                className={className}
+            />
+        )
+    }
 
     const addVariant = () => {
         const newVariant = {
@@ -122,38 +196,45 @@ export function ProductVariantsEditor({ variants, onChange, isQuoteOnly, basePri
                                                 <>
                                                     <div className="space-y-1.5">
                                                         <Label className="text-xs">Precio</Label>
-                                                        <Input
-                                                            type="number"
-                                                            step="0.01"
-                                                            value={variant.price || ''}
-                                                            onChange={(e) => updateVariant(index, { price: e.target.value })}
+                                                        <LocalizedNumericInput
+                                                            value={variant.price}
+                                                            onChange={(e: any) => updateVariant(index, { price: e.target.value })}
                                                             placeholder="0.00"
                                                             className="h-9"
                                                         />
                                                     </div>
                                                     <div className="space-y-1.5">
                                                         <Label className="text-xs">Precio con Descuento</Label>
-                                                        <Input
-                                                            type="number"
-                                                            step="0.01"
-                                                            value={variant.compare_at_price || ''}
-                                                            onChange={(e) => updateVariant(index, { compare_at_price: e.target.value })}
+                                                        <LocalizedNumericInput
+                                                            value={variant.compare_at_price}
+                                                            onChange={(e: any) => updateVariant(index, { compare_at_price: e.target.value })}
                                                             placeholder="0.00"
                                                             className="h-9"
                                                         />
-                                                        <p className="text-xs text-muted-foreground">Precio original antes del descuento (se mostrará tachado)</p>
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-xs">Stock</Label>
-                                                        <Input
-                                                            type="number"
-                                                            value={variant.stock_quantity || ''}
-                                                            onChange={(e) => updateVariant(index, { stock_quantity: e.target.value })}
-                                                            placeholder="0"
-                                                            className="h-9"
-                                                        />
+                                                        <p className="text-xs text-muted-foreground">Opcional</p>
                                                     </div>
                                                 </>
+                                            )}
+                                            <div className="space-y-1.5">
+                                                <Label className="text-xs">Costo ($)</Label>
+                                                <LocalizedNumericInput
+                                                    value={variant.cost}
+                                                    onChange={(e: any) => updateVariant(index, { cost: e.target.value })}
+                                                    placeholder="0.00"
+                                                    className="h-9"
+                                                />
+                                                <p className="text-xs text-muted-foreground">Solo para admin (cálculo de utilidades)</p>
+                                            </div>
+                                            {!isQuoteOnly && (
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-xs">Stock</Label>
+                                                    <LocalizedNumericInput
+                                                        value={variant.stock_quantity}
+                                                        onChange={(e: any) => updateVariant(index, { stock_quantity: e.target.value })}
+                                                        placeholder="0"
+                                                        className="h-9"
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     </div>

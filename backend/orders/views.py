@@ -67,17 +67,17 @@ class ShippingZoneViewSet(viewsets.ReadOnlyModelViewSet):
             )
         
         # Find shipping zone for commune
-        # Check both JSON list AND potential legacy string formats just in case
+        # We order by -allows_store_pickup so if multiple zones match, we prefer the one that allows pickup
         zones = ShippingZone.objects.filter(
             tenant=tenant,
             is_active=True,
             deleted_at__isnull=True
-        )
+        ).order_by('-allows_store_pickup', 'id')
         
         # Filter zones that contain the commune in their commune_codes array
         zone = None
         for z in zones:
-            if z.commune_codes and commune in z.commune_codes:
+            if z.commune_codes and (commune in z.commune_codes or str(commune) in z.commune_codes):
                 zone = z
                 break
         
@@ -107,6 +107,7 @@ class ShippingZoneViewSet(viewsets.ReadOnlyModelViewSet):
                 'zone_name': zone.name,
                 'cost': cost,
                 'estimated_days': zone.estimated_days,
+                'allows_store_pickup': zone.allows_store_pickup,
                 'is_free': cost == 0
             })
             
@@ -134,6 +135,7 @@ class ShippingZoneViewSet(viewsets.ReadOnlyModelViewSet):
                 'zone_name': f"{best_rate['carrier']} - {best_rate['service']}",
                 'cost': best_rate['cost'],
                 'estimated_days': best_rate['estimated_days'],
+                'allows_store_pickup': False,
                 'is_free': False,
                 'carrier_data': best_rate # Extra info for debugging or future use
             })
@@ -385,6 +387,11 @@ class OrderViewSet(viewsets.ModelViewSet):
             if total < Decimal('0'):
                 total = Decimal('0')
             
+            # Update customer tax_id if provided
+            if data.get('billing_tax_id'):
+                customer.tax_id = data['billing_tax_id']
+                customer.save(update_fields=['tax_id'])
+
             # Create order
             order = Order.objects.create(
                 tenant=tenant,
@@ -394,6 +401,13 @@ class OrderViewSet(viewsets.ModelViewSet):
                 status='QuoteRequested' if data['order_type'] == 'Quote' else 'PendingPayment',
                 customer_email=data['customer_email'],
                 customer_phone=data.get('customer_phone', ''),
+                
+                # Billing Info
+                billing_type=data.get('billing_type', 'Boleta'),
+                billing_business_name=data.get('billing_business_name', ''),
+                billing_business_giro=data.get('billing_business_giro', ''),
+                billing_tax_id=data.get('billing_tax_id', ''),
+                
                 shipping_recipient_name=data['shipping_recipient_name'],
                 shipping_phone=data['shipping_phone'],
                 shipping_street_address=data.get('shipping_street_address', ''),

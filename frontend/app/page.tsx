@@ -24,6 +24,9 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
       title: data.tenant.name || "Tienda Virtual",
       description: data.tenant.hero_subtitle || "Nuestra colección exclusiva",
+      alternates: {
+        canonical: `https://${host}`
+      }
     }
   } catch (e) {
     return {

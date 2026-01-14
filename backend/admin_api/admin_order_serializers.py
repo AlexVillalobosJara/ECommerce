@@ -40,7 +40,8 @@ class AdminOrderListSerializer(serializers.ModelSerializer):
             'id', 'order_number', 'order_type', 'status',
             'customer_email', 'customer_name', 'items_count',
             'subtotal', 'shipping_cost', 'tax_amount', 'total',
-            'created_at', 'paid_at', 'shipped_at', 'delivered_at'
+            'created_at', 'paid_at', 'shipped_at', 'delivered_at',
+            'billing_type'
         ]
         read_only_fields = ['id', 'order_number']
     
@@ -66,6 +67,7 @@ class AdminOrderDetailSerializer(serializers.ModelSerializer):
             'shipping_apartment', 'shipping_commune', 'shipping_city', 'shipping_region',
             'shipping_postal_code', 'shipping_country',
             # Billing address
+            'billing_type', 'billing_business_name', 'billing_business_giro',
             'billing_recipient_name', 'billing_tax_id', 'billing_street_address',
             'billing_commune', 'billing_city', 'billing_region',
             # Financial

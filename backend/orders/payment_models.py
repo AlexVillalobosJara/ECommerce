@@ -11,6 +11,7 @@ class PaymentGateway(models.TextChoices):
     FLOW = 'Flow', 'Flow'
     TRANSBANK = 'Transbank', 'Transbank WebPay Plus'
     MERCADOPAGO = 'MercadoPago', 'Mercado Pago'
+    KHIPU = 'Khipu', 'Khipu'
 
 
 class PaymentStatus(models.TextChoices):

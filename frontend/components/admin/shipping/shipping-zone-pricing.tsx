@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DollarSign } from "lucide-react"
 import { useTenant } from "@/contexts/TenantContext"
+import { useState } from "react"
 import { formatPrice } from "@/lib/format-price"
 
 interface ShippingZonePricingProps {
@@ -18,6 +19,38 @@ interface ShippingZonePricingProps {
 
 export function ShippingZonePricing({ data, onChange }: ShippingZonePricingProps) {
   const { tenant } = useTenant()
+
+  const formatLocalizedValue = (val: any) => {
+    if (val === undefined || val === null || val === '') return ''
+    const num = typeof val === 'string' ? parseFloat(val) : val
+    if (isNaN(num)) return ''
+
+    const decimalPlaces = tenant?.decimal_places ?? 0
+    const thousandsSeparator = tenant?.thousands_separator || "."
+    const decimalSeparator = tenant?.decimal_separator || ","
+
+    const parts = num.toFixed(decimalPlaces).split('.')
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSeparator)
+
+    if (decimalPlaces > 0 && parts.length > 1) {
+      return parts.join(decimalSeparator)
+    }
+    return parts[0]
+  }
+
+  const parseLocalizedValue = (val: string) => {
+    if (!val) return null
+    const thousandsSeparator = tenant?.thousands_separator || "."
+    const decimalSeparator = tenant?.decimal_separator || ","
+
+    const cleaned = val
+      .split(thousandsSeparator).join('')
+      .replace(decimalSeparator, '.')
+
+    const num = parseFloat(cleaned)
+    return isNaN(num) ? null : num
+  }
+
 
   return (
     <Card className="shadow-sm">
@@ -35,10 +68,10 @@ export function ShippingZonePricing({ data, onChange }: ShippingZonePricingProps
             </Label>
             <Input
               id="base_cost"
-              type="number"
+              type="text"
               placeholder="0"
-              value={data.base_cost}
-              onChange={(e) => onChange({ base_cost: Number(e.target.value) })}
+              value={formatLocalizedValue(data.base_cost)}
+              onChange={(e) => onChange({ base_cost: parseLocalizedValue(e.target.value) || 0 })}
             />
             <p className="text-xs text-muted-foreground">Costo fijo de envío en CLP</p>
           </div>
@@ -47,10 +80,10 @@ export function ShippingZonePricing({ data, onChange }: ShippingZonePricingProps
             <Label htmlFor="cost_per_kg">Costo por Kg</Label>
             <Input
               id="cost_per_kg"
-              type="number"
+              type="text"
               placeholder="0"
-              value={data.cost_per_kg}
-              onChange={(e) => onChange({ cost_per_kg: Number(e.target.value) })}
+              value={formatLocalizedValue(data.cost_per_kg)}
+              onChange={(e) => onChange({ cost_per_kg: parseLocalizedValue(e.target.value) || 0 })}
             />
             <p className="text-xs text-muted-foreground">Costo adicional por kilogramo</p>
           </div>
@@ -60,10 +93,10 @@ export function ShippingZonePricing({ data, onChange }: ShippingZonePricingProps
           <Label htmlFor="free_shipping_threshold">Envío Gratis desde</Label>
           <Input
             id="free_shipping_threshold"
-            type="number"
+            type="text"
             placeholder="Dejar vacío para no aplicar"
-            value={data.free_shipping_threshold || ""}
-            onChange={(e) => onChange({ free_shipping_threshold: e.target.value ? Number(e.target.value) : null })}
+            value={formatLocalizedValue(data.free_shipping_threshold)}
+            onChange={(e) => onChange({ free_shipping_threshold: parseLocalizedValue(e.target.value) })}
           />
           <p className="text-xs text-muted-foreground">
             Monto mínimo de compra para envío gratis. Dejar vacío si no aplica.

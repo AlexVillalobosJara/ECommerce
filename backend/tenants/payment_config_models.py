@@ -92,6 +92,16 @@ class PaymentGatewayConfig(models.Model):
             self.commerce_code_encrypted = encrypt_credential(value)
         else:
             self.commerce_code_encrypted = ""
+
+    @property
+    def receiver_id(self):
+        """Alias for commerce_code (used by Khipu)"""
+        return self.commerce_code
+
+    @receiver_id.setter
+    def receiver_id(self, value):
+        """Alias for commerce_code (used by Khipu)"""
+        self.commerce_code = value
     
     @property
     def public_key(self):

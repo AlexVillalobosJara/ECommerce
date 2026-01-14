@@ -32,6 +32,15 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
         manage_stock: true,
         status: "Draft",
         is_featured: false,
+        min_shipping_days: 0,
+        meta_title: "",
+        meta_description: "",
+        meta_keywords: "",
+        weight_kg: undefined,
+        length_cm: undefined,
+        width_cm: undefined,
+        height_cm: undefined,
+        specifications: {},
     })
 
     useEffect(() => {
@@ -47,8 +56,17 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
                 description: product.description || "",
                 is_quote_only: product.is_quote_only || false,
                 manage_stock: product.manage_stock !== undefined ? product.manage_stock : true,
-                status: product.status || "Draft",
+                status: (product.status || "Draft") as "Draft" | "Published" | "Archived",
                 is_featured: product.is_featured || false,
+                min_shipping_days: product.min_shipping_days || 0,
+                meta_title: product.meta_title || "",
+                meta_description: product.meta_description || "",
+                meta_keywords: product.meta_keywords || "",
+                weight_kg: product.weight_kg,
+                length_cm: product.length_cm,
+                width_cm: product.width_cm,
+                height_cm: product.height_cm,
+                specifications: product.specifications || {},
             })
         }
     }, [product])
@@ -93,7 +111,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
                         <Input
                             id="name"
                             value={formData.name}
-                            onChange={(e) => handleChange("name", e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange("name", e.target.value)}
                             placeholder="Ej: Mesa de Roble Moderna"
                             required
                         />
@@ -104,7 +122,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
                         <Input
                             id="slug"
                             value={formData.slug}
-                            onChange={(e) => handleChange("slug", e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange("slug", e.target.value)}
                             placeholder="mesa-de-roble-moderna"
                         />
                         <p className="text-xs text-muted-foreground">Se genera automáticamente del nombre</p>
@@ -116,7 +134,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
                             <Input
                                 id="sku"
                                 value={formData.sku}
-                                onChange={(e) => handleChange("sku", e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange("sku", e.target.value)}
                                 placeholder="MES-001"
                                 required
                             />
@@ -127,7 +145,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
                             <Input
                                 id="barcode"
                                 value={formData.barcode}
-                                onChange={(e) => handleChange("barcode", e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange("barcode", e.target.value)}
                                 placeholder="7501234567890"
                             />
                         </div>
@@ -139,7 +157,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
                             <Input
                                 id="brand"
                                 value={formData.brand}
-                                onChange={(e) => handleChange("brand", e.target.value)}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange("brand", e.target.value)}
                                 placeholder="Nordic Furniture"
                             />
                         </div>
@@ -172,7 +190,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
                         <Textarea
                             id="short_description"
                             value={formData.short_description}
-                            onChange={(e) => handleChange("short_description", e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleChange("short_description", e.target.value)}
                             placeholder="Breve descripción del producto"
                             rows={2}
                         />
@@ -183,7 +201,7 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
                         <Textarea
                             id="description"
                             value={formData.description}
-                            onChange={(e) => handleChange("description", e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleChange("description", e.target.value)}
                             placeholder="Descripción detallada del producto"
                             rows={4}
                         />
@@ -262,6 +280,18 @@ export function ProductForm({ product, onSubmit, onCancel, isSubmitting }: Produ
                             checked={formData.is_featured}
                             onCheckedChange={(checked) => handleChange("is_featured", checked)}
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="min_shipping_days">Días hábiles mínimos de envío</Label>
+                        <Input
+                            id="min_shipping_days"
+                            type="number"
+                            value={formData.min_shipping_days}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleChange("min_shipping_days", parseInt(e.target.value) || 0)}
+                            placeholder="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Tiempo de preparación/envío del producto</p>
                     </div>
                 </CardContent>
             </Card>

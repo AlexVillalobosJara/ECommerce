@@ -51,6 +51,11 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
         manage_stock: true,
         status: "Draft",
         is_featured: false,
+        min_shipping_days: 0,
+        meta_title: "",
+        meta_description: "",
+        meta_keywords: "",
+        specifications: {},
     })
 
     useEffect(() => {
@@ -69,8 +74,11 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
                     manage_stock: product.manage_stock,
                     status: product.status,
                     is_featured: product.is_featured,
-                    meta_title: product.meta_title,
-                    meta_description: product.meta_description,
+                    min_shipping_days: product.min_shipping_days || 0,
+                    meta_title: product.meta_title || "",
+                    meta_description: product.meta_description || "",
+                    meta_keywords: product.meta_keywords || "",
+                    specifications: product.specifications || {},
                 })
             } else {
                 // Reset form for new product
@@ -86,6 +94,11 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
                     manage_stock: true,
                     status: "Draft",
                     is_featured: false,
+                    min_shipping_days: 0,
+                    meta_title: "",
+                    meta_description: "",
+                    meta_keywords: "",
+                    specifications: {},
                 })
             }
         }
@@ -136,7 +149,7 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
         setFormData({ ...formData, name })
         if (!product) {
             // Auto-generate slug for new products
-            setFormData(prev => ({ ...prev, name, slug: generateSlug(name) }))
+            setFormData((prev: any) => ({ ...prev, name, slug: generateSlug(name) }))
         }
     }
 
@@ -165,7 +178,7 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
                                 <Input
                                     id="name"
                                     value={formData.name}
-                                    onChange={(e) => handleNameChange(e.target.value)}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleNameChange(e.target.value)}
                                     placeholder="Enter product name"
                                 />
                             </div>
@@ -175,7 +188,7 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
                                 <Input
                                     id="slug"
                                     value={formData.slug}
-                                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, slug: e.target.value })}
                                     placeholder="product-slug"
                                 />
                             </div>
@@ -185,7 +198,7 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
                                 <Input
                                     id="sku"
                                     value={formData.sku}
-                                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, sku: e.target.value })}
                                     placeholder="PROD-001"
                                 />
                             </div>
@@ -195,7 +208,7 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
                                 <Input
                                     id="brand"
                                     value={formData.brand}
-                                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, brand: e.target.value })}
                                     placeholder="Brand name"
                                 />
                             </div>
@@ -224,7 +237,7 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
                                 <Textarea
                                     id="short_description"
                                     value={formData.short_description}
-                                    onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
+                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, short_description: e.target.value })}
                                     placeholder="Brief product description"
                                     rows={2}
                                 />
@@ -235,7 +248,7 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
                                 <Textarea
                                     id="description"
                                     value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
                                     placeholder="Detailed product description"
                                     rows={4}
                                 />
@@ -303,6 +316,17 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: Pr
                                 id="is_featured"
                                 checked={formData.is_featured}
                                 onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="min_shipping_days">Min Shipping Days</Label>
+                            <Input
+                                id="min_shipping_days"
+                                type="number"
+                                value={formData.min_shipping_days}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, min_shipping_days: parseInt(e.target.value) || 0 })}
+                                placeholder="0"
                             />
                         </div>
 

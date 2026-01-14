@@ -14,6 +14,7 @@ import type { Category, ProductList } from "@/types/product"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { getImageUrl } from "@/lib/image-utils"
+import { trackViewItemList, trackAddToCart as trackAnalyticsAddToCart } from "@/lib/analytics"
 
 interface CategoryClientPageProps {
     tenant: any
@@ -35,6 +36,13 @@ export function CategoryClientPage({
     const [productsLoading, setProductsLoading] = useState(false)
     const [filters, setFilters] = useState<ProductFilters>({ category: category.slug })
     const [cartOpen, setCartOpen] = useState(false)
+
+    // Track view_item_list when products change
+    useEffect(() => {
+        if (products.length > 0) {
+            trackViewItemList(category.name, products)
+        }
+    }, [products, category.name])
 
     // Sync products when filters change
     useEffect(() => {
@@ -83,6 +91,9 @@ export function CategoryClientPage({
             if (defaultVariant) {
                 addToCart(product, defaultVariant, 1)
                 setCartOpen(true)
+
+                // Track add to cart event
+                trackAnalyticsAddToCart(product, defaultVariant, 1)
             }
         } catch (err) {
             console.error(err)

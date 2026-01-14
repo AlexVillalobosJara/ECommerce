@@ -4,6 +4,8 @@ import { useEffect } from "react"
 import Link from "next/link"
 import { type Category } from "@/types/product"
 import { type Tenant } from "@/types/tenant"
+import { Phone } from "lucide-react"
+import { getFlagUrl } from "@/lib/region-utils"
 
 interface MobileMenuProps {
     open: boolean
@@ -154,6 +156,30 @@ export function MobileMenu({ open, onOpenChange, categories = [], tenant }: Mobi
                         </div>
                     )}
                 </nav>
+
+                {/* Bottom Contact Section */}
+                <div className="mt-12 flex flex-col items-center gap-6 border-t border-border pt-8 text-center">
+                    {tenant?.phone && (
+                        <a
+                            href={`tel:${tenant.phone}`}
+                            className="flex items-center gap-3 text-lg font-medium text-foreground transition-all hover:scale-105"
+                        >
+                            <Phone className="size-5 text-primary" />
+                            <span>{tenant.phone}</span>
+                        </a>
+                    )}
+
+                    {tenant?.country && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground uppercase tracking-widest">
+                            <img
+                                src={getFlagUrl(tenant.country)}
+                                alt={tenant.country}
+                                className="h-4 w-auto rounded-[2px] shadow-sm grayscale-[0.2]"
+                            />
+                            <span>{tenant.country}</span>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     )

@@ -1,7 +1,7 @@
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponsePermanentRedirect
 from django.utils.deprecation import MiddlewareMixin
 from django.db.models import Q
-from tenants.models import Tenant
+from tenants.models import Tenant, Redirect
 import logging
 
 logger = logging.getLogger(__name__)
@@ -154,3 +154,44 @@ class TenantMiddleware(MiddlewareMixin):
                     'detail': f'Error resolving tenant: {str(e)}'
                 }, status=500)
             raise e
+
+
+class RedirectMiddleware(MiddlewareMixin):
+    """
+    Middleware to handle 301 redirects for tenants.
+    Must run AFTER TenantMiddleware.
+    """
+    def process_request(self, request):
+        # 1. Skip admin routes
+        if request.path.startswith('/admin/'):
+            return None
+            
+        # 2. Get tenant
+        tenant = getattr(request, 'tenant', None)
+        if not tenant:
+            return None
+            
+        # 3. Check for exact match in redirect table
+        try:
+            path = request.path
+            # Normalize: check with and without trailing slash to be more robust
+            paths_to_check = [path]
+            if path.endswith('/') and len(path) > 1:
+                paths_to_check.append(path[:-1])
+            elif not path.endswith('/'):
+                paths_to_check.append(path + '/')
+                
+            redirect = Redirect.objects.filter(
+                tenant=tenant, 
+                old_path__in=paths_to_check, 
+                is_active=True
+            ).first()
+            
+            if redirect:
+                logger.info(f"Redirect found: {redirect.old_path} -> {redirect.new_path}")
+                return HttpResponsePermanentRedirect(redirect.new_path)
+                
+        except Exception as e:
+            logger.error(f"Error in RedirectMiddleware: {str(e)}")
+            
+        return None
