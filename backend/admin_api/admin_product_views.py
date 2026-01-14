@@ -36,6 +36,24 @@ def product_list_create(request):
     tenant = request.tenant
     
     if request.method == 'GET':
+        # Generate cache key based on filters
+        from django.core.cache import cache
+        from urllib.parse import urlencode
+        
+        filter_params = {
+            'search': search,
+            'status': status_filter,
+            'category': category_id,
+            'is_featured': is_featured,
+            'page': request.GET.get('page', '1')
+        }
+        cache_key = f"products_list_{tenant.id}_{urlencode(filter_params)}"
+        
+        # Try to get from cache (5 min TTL)
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+        
         # Get query parameters
         search = request.GET.get('search', '')
         status_filter = request.GET.get('status', '')
@@ -90,12 +108,22 @@ def product_list_create(request):
         result_page = paginator.paginate_queryset(products, request)
         
         serializer = ProductListAdminSerializer(result_page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        response_data = paginator.get_paginated_response(serializer.data).data
+        
+        # Cache the result for 5 minutes
+        cache.set(cache_key, response_data, 300)
+        
+        return Response(response_data)
     
     elif request.method == 'POST':
         serializer = ProductDetailAdminSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
+            
+            # Invalidate product list cache
+            from django.core.cache import cache
+            cache.delete_pattern(f"products_list_{tenant.id}_*")
+            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -137,6 +165,11 @@ def product_detail(request, product_id):
         )
         if serializer.is_valid():
             serializer.save()
+            
+            # Invalidate product list cache
+            from django.core.cache import cache
+            cache.delete_pattern(f"products_list_{tenant.id}_*")
+            
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -144,6 +177,11 @@ def product_detail(request, product_id):
         # Soft delete
         product.deleted_at = timezone.now()
         product.save()
+        
+        # Invalidate product list cache
+        from django.core.cache import cache
+        cache.delete_pattern(f"products_list_{tenant.id}_*")
+        
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -212,6 +250,14 @@ def category_list_create(request):
     tenant = request.tenant
     
     if request.method == 'GET':
+        # Try to get from cache
+        from django.core.cache import cache
+        cache_key = f"categories_{tenant.id}"
+        
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+        
         categories = Category.objects.filter(
             tenant=tenant,
             deleted_at__isnull=True
@@ -220,12 +266,22 @@ def category_list_create(request):
         ).prefetch_related('children').order_by('sort_order', 'name')
         
         serializer = CategoryListSerializer(categories, many=True)
+        
+        # Cache for 10 minutes
+        cache.set(cache_key, serializer.data, 600)
+        
         return Response(serializer.data)
     
     elif request.method == 'POST':
         serializer = CategoryDetailSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
+            
+            # Invalidate category cache
+            from django.core.cache import cache
+            cache.delete(f"categories_{tenant.id}")
+            cache.delete_pattern(f"products_list_{tenant.id}_*")  # Products depend on categories
+            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

@@ -103,13 +103,41 @@ DATABASES = {
     )
 }
 
-# Caching
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
+# Caching Configuration
+# Use Redis in production, LocMemCache in development
+REDIS_URL = os.getenv('REDIS_URL', None)
+
+if REDIS_URL and not DEBUG:
+    # Production: Use Redis for persistent, shared caching
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                },
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+            },
+            'KEY_PREFIX': 'ecommerce',
+            'TIMEOUT': 300,  # 5 minutes default
+        }
     }
-}
+    
+    # Use Redis for session storage in production
+    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+    SESSION_CACHE_ALIAS = 'default'
+else:
+    # Development: Use local memory cache
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
+    }
 
 
 # Password validation

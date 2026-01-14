@@ -158,8 +158,20 @@ def tenant_settings(request):
         return Response({'error': 'Tenant not found'}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
+        # Try to get from cache
+        from django.core.cache import cache
+        cache_key = f"tenant_settings_{tenant.id}"
+        
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+        
         from tenants.serializers import TenantSerializer
         serializer = TenantSerializer(tenant)
+        
+        # Cache for 10 minutes
+        cache.set(cache_key, serializer.data, 600)
+        
         return Response(serializer.data)
     
     elif request.method == 'PATCH':
@@ -169,11 +181,13 @@ def tenant_settings(request):
         if serializer.is_valid():
             logger.info("Settings are valid, saving...")
             serializer.save()
-            # Clear storefront common data cache if it exists
+            
+            # Clear all related caches
             from django.core.cache import cache
-            cache_key = f"storefront_common_data_{tenant.id}"
-            cache.delete(cache_key)
-            logger.info(f"Invalidated cache {cache_key} after settings update")
+            cache.delete(f"tenant_settings_{tenant.id}")
+            cache.delete(f"storefront_common_data_{tenant.id}")
+            
+            logger.info(f"Invalidated caches after settings update")
             return Response(serializer.data)
         logger.error(f"Settings validation failed: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -189,6 +203,14 @@ def dashboard_stats(request):
         tenant = getattr(request, 'tenant', None)
         if not tenant:
             return Response({'error': 'Tenant not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Try to get from cache (2 minutes for fresh stats)
+        from django.core.cache import cache
+        cache_key = f"dashboard_stats_{tenant.id}"
+        
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
 
         from orders.models import Order, OrderStatus, Customer
         from products.models import Product
@@ -281,14 +303,19 @@ def dashboard_stats(request):
                 'created_at': order.created_at
             })
 
-        return Response({
+        result = {
             'total_sales': float(total_sales),
             'total_orders': total_orders,
             'total_products': total_products,
             'total_customers': total_customers,
             'sales_chart': chart_data,
             'recent_orders': recent_orders
-        })
+        }
+        
+        # Cache for 2 minutes
+        cache.set(cache_key, result, 120)
+        
+        return Response(result)
     except Exception as e:
         import traceback
         return Response({

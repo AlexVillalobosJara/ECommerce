@@ -1,0 +1,42 @@
+services:
+  # Redis Cache Service
+  - type: redis
+    name: ecommerce-redis
+    plan: starter  # Free tier: 25MB, Starter: $7/month 256MB
+    ipAllowList: []  # Allow all IPs (or restrict to specific IPs)
+    maxmemoryPolicy: allkeys-lru  # Evict least recently used keys when full
+
+  # Web Service (Backend)
+  - type: web
+    name: ecommerce-backend
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn tenants_project.wsgi --log-file - --workers 2 --threads 4 --timeout 120"
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: RENDER
+        value: "True"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: ecommerce-redis
+          property: connectionString
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        value: "dosmil487@gmail.com"
+      - key: FLOW_ENV
+        value: "production"
+      - key: TRANSBANK_ENV
+        value: "PRODUCTION"
