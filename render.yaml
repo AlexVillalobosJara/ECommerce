@@ -10,6 +10,7 @@ services:
   - type: web
     name: ecommerce-backend
     env: python
+    rootDir: backend
     buildCommand: "./build.sh"
     startCommand: "gunicorn tenants_project.wsgi --log-file - --workers 2 --threads 4 --timeout 120"
     envVars:
