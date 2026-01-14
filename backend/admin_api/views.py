@@ -162,15 +162,21 @@ def tenant_settings(request):
         from django.core.cache import cache
         cache_key = f"tenant_settings_{tenant.id}"
         
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data)
+        try:
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return Response(cached_data)
+        except Exception:
+            pass
         
         from tenants.serializers import TenantSerializer
         serializer = TenantSerializer(tenant)
         
         # Cache for 10 minutes
-        cache.set(cache_key, serializer.data, 600)
+        try:
+            cache.set(cache_key, serializer.data, 600)
+        except Exception:
+            pass
         
         return Response(serializer.data)
     
@@ -207,9 +213,12 @@ def dashboard_stats(request):
         from django.core.cache import cache
         cache_key = f"dashboard_stats_{tenant.id}"
         
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data)
+        try:
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return Response(cached_data)
+        except Exception:
+            pass
 
         from orders.models import Order, OrderStatus, Customer
         from products.models import Product
@@ -312,7 +321,10 @@ def dashboard_stats(request):
         }
         
         # Cache for 2 minutes
-        cache.set(cache_key, result, 120)
+        try:
+            cache.set(cache_key, result, 120)
+        except Exception:
+            pass
         
         return Response(result)
     except Exception as e:

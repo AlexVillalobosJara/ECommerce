@@ -44,7 +44,10 @@ def invalidate_category_cache(tenant_id):
     Args:
         tenant_id: UUID of the tenant
     """
-    cache.delete(f"categories_{tenant_id}")
+    try:
+        cache.delete(f"categories_{tenant_id}")
+    except Exception:
+        pass
     invalidate_product_cache(tenant_id)
 
 
@@ -55,6 +58,9 @@ def invalidate_tenant_cache(tenant_id):
     Args:
         tenant_id: UUID of the tenant
     """
-    cache.delete(f"tenant_settings_{tenant_id}")
-    cache.delete(f"storefront_common_data_{tenant_id}")
-    cache.delete(f"dashboard_stats_{tenant_id}")
+    try:
+        cache.delete(f"tenant_settings_{tenant_id}")
+        cache.delete(f"storefront_common_data_{tenant_id}")
+        cache.delete(f"dashboard_stats_{tenant_id}")
+    except Exception:
+        pass

@@ -49,10 +49,13 @@ def product_list_create(request):
         }
         cache_key = f"products_list_{tenant.id}_{urlencode(filter_params)}"
         
-        # Try to get from cache (5 min TTL)
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data)
+        # Try to get from cache (5 min TTL) - fail silently if cache unavailable
+        try:
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return Response(cached_data)
+        except Exception:
+            pass  # Cache not available, continue without it
         
         # Get query parameters
         search = request.GET.get('search', '')
@@ -111,7 +114,10 @@ def product_list_create(request):
         response_data = paginator.get_paginated_response(serializer.data).data
         
         # Cache the result for 5 minutes
-        cache.set(cache_key, response_data, 300)
+        try:
+            cache.set(cache_key, response_data, 300)
+        except Exception:
+            pass
         
         return Response(response_data)
     
@@ -254,9 +260,12 @@ def category_list_create(request):
         from django.core.cache import cache
         cache_key = f"categories_{tenant.id}"
         
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data)
+        try:
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                return Response(cached_data)
+        except Exception:
+            pass
         
         categories = Category.objects.filter(
             tenant=tenant,
@@ -268,7 +277,10 @@ def category_list_create(request):
         serializer = CategoryListSerializer(categories, many=True)
         
         # Cache for 10 minutes
-        cache.set(cache_key, serializer.data, 600)
+        try:
+            cache.set(cache_key, serializer.data, 600)
+        except Exception:
+            pass
         
         return Response(serializer.data)
     
