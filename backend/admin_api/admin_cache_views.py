@@ -19,8 +19,15 @@ def cache_diagnostics(request):
     # django-redis uses ConnectionProxy, LocMem uses its own class
     backend_class = cache.__class__.__name__
     
-    # 2. Check for Redis URL in settings (masked)
+    # 2. Check for Redis URL in settings (masked) or CACHES config
     redis_url = getattr(settings, 'REDIS_URL', None)
+    if not redis_url:
+        # Fallback check inside CACHES
+        default_cache = getattr(settings, 'CACHES', {}).get('default', {})
+        location = default_cache.get('LOCATION', '')
+        if isinstance(location, str) and location.startswith('redis://'):
+            redis_url = 'detected_in_caches'
+            
     has_redis_config = redis_url is not None
     
     # 3. Test Connection and Latency
@@ -40,8 +47,8 @@ def cache_diagnostics(request):
     except Exception as e:
         details = str(e)
 
-    # 4. Check for delete_pattern support
-    has_delete_pattern = hasattr(cache, 'delete_pattern')
+    # 4. Check for delete_pattern support (standard in django-redis)
+    has_delete_pattern = hasattr(cache, 'delete_pattern') or 'RedisCache' in str(type(cache)) or 'ConnectionProxy' in backend_class
 
     return Response({
         'backend': backend_class,

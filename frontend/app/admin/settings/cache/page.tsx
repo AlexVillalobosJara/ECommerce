@@ -166,12 +166,19 @@ export default function CacheDiagnosticsPage() {
                         {loading ? (
                             <div className="h-8 w-24 animate-pulse bg-muted rounded" />
                         ) : (
-                            <div className="text-2xl font-bold">
-                                {stats?.has_redis_config ? 'Válida' : 'Pendiente'}
+                            <div className="flex items-center gap-2">
+                                <span className="text-2xl font-bold">
+                                    {stats?.has_redis_config ? 'Válida' : 'Incompleta'}
+                                </span>
+                                {stats?.has_redis_config ? (
+                                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                ) : (
+                                    <XCircle className="h-5 w-5 text-red-500" />
+                                )}
                             </div>
                         )}
                         <p className="text-xs text-muted-foreground mt-1">
-                            Variable REDIS_URL detectada
+                            {stats?.has_redis_config ? 'Variable REDIS_URL detectada' : 'Falta configurar REDIS_URL'}
                         </p>
                     </CardContent>
                 </Card>
@@ -192,18 +199,18 @@ export default function CacheDiagnosticsPage() {
                             <p className="font-mono text-sm">{stats?.backend || '...'}</p>
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">Soporta Patrones (Delete Pattern)</p>
-                            <p className="text-sm">{stats?.has_delete_pattern ? 'Sí (Avanzado)' : 'No (Básico)'}</p>
+                            <p className="text-sm font-medium text-muted-foreground">Soporta Patrones (Cache Invalidation)</p>
+                            <p className="text-sm">{stats?.has_delete_pattern ? 'Sí (Avanzado)' : 'No (Limitado)'}</p>
                         </div>
                         <div>
                             <p className="text-sm font-medium text-muted-foreground">Prefijo de Llaves</p>
-                            <p className="font-mono text-sm">{stats?.cache_prefix || 'Ninguno'}</p>
+                            <p className="font-mono text-sm">{stats?.cache_prefix || 'Ninguno (ecommerce)'}</p>
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-muted-foreground">Estado Crítico</p>
+                            <p className="text-sm font-medium text-muted-foreground">Estado del Enlace</p>
                             <p className="text-sm font-semibold">
                                 {stats?.connection_working
-                                    ? 'Sistema Operativo y Optimizado'
+                                    ? 'Conexión Estable con Motor Redis'
                                     : stats?.error_details
                                         ? `Error: ${stats.error_details}`
                                         : 'Esperando configuración...'}
