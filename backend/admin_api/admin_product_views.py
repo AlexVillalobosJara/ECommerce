@@ -36,6 +36,13 @@ def product_list_create(request):
     tenant = request.tenant
     
     if request.method == 'GET':
+        # Get query parameters first so they can be used for cache key
+        search = request.GET.get('search', '')
+        status_filter = request.GET.get('status', '')
+        category_id = request.GET.get('category', '')
+        is_featured = request.GET.get('is_featured', '')
+        page = request.GET.get('page', '1')
+        
         # Generate cache key based on filters
         from django.core.cache import cache
         from urllib.parse import urlencode
@@ -45,7 +52,7 @@ def product_list_create(request):
             'status': status_filter,
             'category': category_id,
             'is_featured': is_featured,
-            'page': request.GET.get('page', '1')
+            'page': page
         }
         cache_key = f"products_list_{tenant.id}_{urlencode(filter_params)}"
         
@@ -56,12 +63,6 @@ def product_list_create(request):
                 return Response(cached_data)
         except Exception:
             pass  # Cache not available, continue without it
-        
-        # Get query parameters
-        search = request.GET.get('search', '')
-        status_filter = request.GET.get('status', '')
-        category_id = request.GET.get('category', '')
-        is_featured = request.GET.get('is_featured', '')
         
         # Subquery for primary image
         primary_image_subquery = ProductImage.objects.filter(
