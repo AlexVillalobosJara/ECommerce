@@ -304,4 +304,18 @@ export const adminApi = {
             body: JSON.stringify(data),
         })
     },
+
+    // ============================================================================
+    // CACHE & PERFORMANCE
+    // ============================================================================
+
+    async getCacheDiagnostics() {
+        return authFetch(`${API_URL}/api/admin/settings/cache/diagnostics/`)
+    },
+
+    async clearCache() {
+        return authFetch(`${API_URL}/api/admin/settings/cache/clear/`, {
+            method: 'POST'
+        })
+    },
 }

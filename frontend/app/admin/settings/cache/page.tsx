@@ -16,7 +16,7 @@ import {
     Clock
 } from 'lucide-react'
 import { toast } from "sonner"
-import api from '@/lib/api' // Assuming this is the admin api client
+import { adminApi } from '@/services/admin-api'
 
 interface CacheStats {
     backend: string
@@ -37,8 +37,8 @@ export default function CacheDiagnosticsPage() {
     const fetchStats = async () => {
         setLoading(true)
         try {
-            const response = await api.get('/admin/settings/cache/diagnostics/')
-            setStats(response.data)
+            const data = await adminApi.getCacheDiagnostics()
+            setStats(data)
         } catch (error) {
             console.error('Error fetching cache stats:', error)
             toast.error('No se pudieron obtener las estadísticas del cache')
@@ -52,7 +52,7 @@ export default function CacheDiagnosticsPage() {
 
         setClearing(true)
         try {
-            await api.post('/admin/settings/cache/clear/')
+            await adminApi.clearCache()
             toast.success('Cache limpiado correctamente')
             fetchStats()
         } catch (error) {
