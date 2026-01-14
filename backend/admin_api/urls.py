@@ -14,6 +14,10 @@ from .admin_product_views import (
     image_detail,
     image_set_primary,
 )
+from .admin_cache_views import (
+    cache_diagnostics,
+    clear_tenant_cache,
+)
 from .admin_order_views import (
     order_list,
     order_detail,
@@ -50,6 +54,8 @@ urlpatterns = [
     
     # Tenant Settings
     path('settings/tenant/', tenant_settings, name='tenant_settings'),
+    path('settings/cache/diagnostics/', cache_diagnostics, name='cache_diagnostics'),
+    path('settings/cache/clear/', clear_tenant_cache, name='clear_tenant_cache'),
     path('dashboard/stats/', AdminDashboardViewSet.as_view({'get': 'stats'}), name='dashboard_stats'),
     
     # Products
