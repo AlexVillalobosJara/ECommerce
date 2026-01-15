@@ -13,6 +13,7 @@ import { useCart } from "@/hooks/useCart"
 import { storefrontApi } from "@/services/storefront-api"
 import type { Category, ProductList } from "@/types/product"
 import { Loader2, ChevronRight } from "lucide-react"
+import { ProductGridSkeleton } from "@/components/storefront/product-skeleton"
 
 function ProductsContent() {
     const router = useRouter()
@@ -161,7 +162,7 @@ function ProductsContent() {
                     {/* Grid */}
                     <div className="flex-1">
                         {loading ? (
-                            <div className="flex justify-center py-20"><Loader2 className="animate-spin" /></div>
+                            <ProductGridSkeleton count={8} />
                         ) : products.length > 0 ? (
                             <ProductGrid
                                 products={products}
@@ -192,7 +193,7 @@ function ProductsContent() {
 
 export default function ProductsPage() {
     return (
-        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>}>
+        <Suspense fallback={<div className="min-h-screen bg-white" />}>
             <ProductsContent />
         </Suspense>
     )
