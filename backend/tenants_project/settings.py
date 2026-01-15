@@ -300,7 +300,7 @@ LOGGING = {
 # REST Framework Settings
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 100,
+    'PAGE_SIZE': 48,
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'admin_api.jwt_authentication.TenantJWTAuthentication',  # Custom JWT with tenant
         'rest_framework.authentication.SessionAuthentication',  # Keep for Django admin

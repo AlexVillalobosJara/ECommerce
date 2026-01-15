@@ -2,7 +2,8 @@ from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, Min, Max, Count, OuterRef, Subquery, Exists, F
+from django.core.cache import cache
 from .models import Category, Product, ProductVariant, ProductReview, ProductImage
 from .serializers import (
     CategorySerializer,
@@ -20,14 +21,27 @@ class StorefrontCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CategorySerializer
     lookup_field = 'slug'
     
+    def list(self, request, *args, **kwargs):
+        tenant = self.request.tenant
+        if not tenant:
+            return Response([])
+            
+        cache_key = f"storefront_categories_{tenant.id}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+            
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        
+        cache.set(cache_key, data, 600) # Cache for 10 minutes
+        return Response(data)
+
     def get_queryset(self):
         tenant = self.request.tenant
         if not tenant:
             return Category.objects.none()
-        
-        # Optimize with product count annotation and avoid recursive children queries in viewset if possible
-        # However, CategorySerializer handles children. To optimize N+1 in children:
-        from django.db.models import Count, Q
         
         queryset = Category.objects.filter(
             tenant=tenant,
@@ -67,12 +81,29 @@ class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
             return ProductDetailSerializer
         return ProductListSerializer
     
+    def list(self, request, *args, **kwargs):
+        tenant = self.request.tenant
+        if not tenant:
+            return Response({"results": []})
+
+        # Generate unique cache key based on tenant and all query parameters
+        params_str = "&".join([f"{k}={v}" for k, v in sorted(request.query_params.items())])
+        cache_key = f"storefront_products_list_{tenant.id}_{params_str}"
+        
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
+        response = super().list(request, *args, **kwargs)
+        
+        # Cache for 2 minutes to balance performance and freshness
+        cache.set(cache_key, response.data, 120)
+        return response
+
     def get_queryset(self):
         tenant = self.request.tenant
         if not tenant:
             return Product.objects.none()
-        
-        from django.db.models import Min, Max, Count, OuterRef, Subquery, Q
         
         # Subquery for primary image URL to avoid N+1 in serializer
         primary_image_subquery = ProductImage.objects.filter(
@@ -92,7 +123,14 @@ class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
             annotated_min_compare_price=Min('variants__compare_at_price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
             annotated_variants_count=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True), distinct=True),
             annotated_primary_image=Subquery(primary_image_subquery),
-            has_stock=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True, variants__stock_quantity__gt=0))
+            has_stock=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True, variants__stock_quantity__gt=0)),
+            annotated_has_discount=Exists(
+                ProductVariant.objects.filter(
+                    product=OuterRef('pk'),
+                    is_active=True,
+                    deleted_at__isnull=True
+                ).exclude(price=F('compare_at_price'))
+            )
         ).select_related('category')
         
         if self.action == 'retrieve':
@@ -134,6 +172,9 @@ class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
         exclude_id = self.request.query_params.get('exclude')
         if exclude_id:
             queryset = queryset.exclude(id=exclude_id)
+
+        # Performance: Use only necessary fields if possible, but list serializer needs many.
+        # Just ensure we aren't fetching too many rows. Pagination is handled by DRF.
 
         return queryset
     

@@ -7,7 +7,7 @@ from .models import Tenant
 from .serializers import TenantSerializer
 from products.models import Category, Product, ProductImage, ProductVariant
 from products.serializers import CategorySerializer, ProductListSerializer, ProductDetailSerializer
-from django.db.models import Min, Max, Count, OuterRef, Subquery, Q
+from django.db.models import Min, Max, Count, OuterRef, Subquery, Q, Exists, F
 from django.core.cache import cache
 
 class TenantViewSet(viewsets.ModelViewSet):
@@ -108,12 +108,12 @@ class StorefrontBaseView(views.APIView):
             annotated_variants_count=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True), distinct=True),
             annotated_primary_image=Subquery(primary_image_subquery),
             has_stock=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True, variants__stock_quantity__gt=0)),
-            annotated_has_discount=models.Exists(
+            annotated_has_discount=Exists(
                 ProductVariant.objects.filter(
                     product=OuterRef('pk'),
                     is_active=True,
                     deleted_at__isnull=True
-                ).exclude(price=models.F('compare_at_price'))
+                ).exclude(price=F('compare_at_price'))
             )
         ).select_related('category')
 
@@ -122,6 +122,11 @@ class StorefrontHomeView(StorefrontBaseView):
         tenant = self.resolve_tenant(request)
         if not tenant:
             return Response({"error": "Tenant not found"}, status=404)
+
+        cache_key = f"storefront_home_data_{tenant.id}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
 
         tenant_data, categories_data = self.get_common_data(request, tenant)
         products_qs = self.get_annotated_products_queryset(tenant)
@@ -135,11 +140,15 @@ class StorefrontHomeView(StorefrontBaseView):
             
         products_data = ProductListSerializer(display_qs, many=True, context={'request': request}).data
         
-        return Response({
+        response_data = {
             "tenant": tenant_data,
             "categories": categories_data,
             "featured_products": products_data
-        })
+        }
+        
+        # Cache for 5 minutes
+        cache.set(cache_key, response_data, 300)
+        return Response(response_data)
 
 class StorefrontCategoryView(StorefrontBaseView):
     def get(self, request, *args, **kwargs):
@@ -149,6 +158,13 @@ class StorefrontCategoryView(StorefrontBaseView):
             return Response({"error": "Tenant not found"}, status=404)
         if not category_slug:
             return Response({"error": "Category slug required"}, status=400)
+
+        # Build cache key from all relevant parameters
+        params_str = "&".join([f"{k}={v}" for k, v in sorted(request.query_params.items())])
+        cache_key = f"storefront_category_data_{tenant.id}_{category_slug}_{params_str}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
 
         tenant_data, categories_data = self.get_common_data(request, tenant)
         
@@ -178,12 +194,16 @@ class StorefrontCategoryView(StorefrontBaseView):
 
         products_data = ProductListSerializer(products_qs, many=True, context={'request': request}).data
         
-        return Response({
+        response_data = {
             "tenant": tenant_data,
             "categories": categories_data,
             "category": category_data,
             "products": products_data
-        })
+        }
+        
+        # Cache for 2 minutes (category page changes more frequently with filters)
+        cache.set(cache_key, response_data, 120)
+        return Response(response_data)
 
 class StorefrontProductDetailView(StorefrontBaseView):
     def get(self, request, *args, **kwargs):
