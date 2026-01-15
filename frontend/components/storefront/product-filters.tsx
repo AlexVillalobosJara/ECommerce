@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { SlidersHorizontal } from "lucide-react"
 import type { Category } from "@/types/product"
 
@@ -195,12 +196,14 @@ export function ProductFiltersSidebar({
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="w-80">
-                        <SheetHeader>
+                        <SheetHeader className="px-6">
                             <SheetTitle>Filtros</SheetTitle>
                         </SheetHeader>
-                        <div className="mt-6">
-                            <FiltersContent />
-                        </div>
+                        <ScrollArea className="h-[calc(100vh-8rem)] px-6 mt-6">
+                            <div className="pb-8">
+                                <FiltersContent />
+                            </div>
+                        </ScrollArea>
                     </SheetContent>
                 </Sheet>
             </div>

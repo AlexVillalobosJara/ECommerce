@@ -9,7 +9,7 @@ import { UserBasicInfo } from "./user-basic-info"
 import { UserPermissions } from "./user-permissions"
 import { UserSettings } from "./user-settings"
 import { getUser, createUser, updateUser } from "@/services/adminUserService"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { AdminTenantUser, UserFormData } from "@/types/admin"
 
 interface UserEditorProps {
@@ -22,7 +22,6 @@ type UserFormState = UserFormData & {
 
 export function UserEditor({ userId }: UserEditorProps) {
   const router = useRouter()
-  const { toast } = useToast()
 
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(!!userId)
@@ -47,21 +46,17 @@ export function UserEditor({ userId }: UserEditorProps) {
           setIsLoading(true)
           const tu = await getUser(userId)
           setFormData({
-            username: tu.user.username,
-            email: tu.user.email,
-            first_name: tu.user.first_name,
-            last_name: tu.user.last_name,
+            username: tu.user.username || "",
+            email: tu.user.email || "",
+            first_name: tu.user.first_name || "",
+            last_name: tu.user.last_name || "",
             role: tu.role,
             password: "",
             confirm_password: "",
           })
           setIsActive(tu.is_active)
         } catch (err: any) {
-          toast({
-            title: "Error",
-            description: "No se pudo cargar la información del usuario",
-            variant: "destructive",
-          })
+          toast.error("No se pudo cargar la información del usuario")
           router.push("/admin/users")
         } finally {
           setIsLoading(false)
@@ -74,17 +69,17 @@ export function UserEditor({ userId }: UserEditorProps) {
   const handleSave = async () => {
     // Basic validation
     if (!formData.username || !formData.email || !formData.first_name || !formData.last_name) {
-      toast({ title: "Error", description: "Completa todos los campos obligatorios", variant: "destructive" })
+      toast.error("Completa todos los campos obligatorios")
       return
     }
 
     if (!isEditing && !formData.password) {
-      toast({ title: "Error", description: "La contraseña es obligatoria para nuevos usuarios", variant: "destructive" })
+      toast.error("La contraseña es obligatoria para nuevos usuarios")
       return
     }
 
     if (formData.password && formData.password !== formData.confirm_password) {
-      toast({ title: "Error", description: "Las contraseñas no coinciden", variant: "destructive" })
+      toast.error("Las contraseñas no coinciden")
       return
     }
 
@@ -106,19 +101,15 @@ export function UserEditor({ userId }: UserEditorProps) {
 
       if (isEditing) {
         await updateUser(userId, payload)
-        toast({ title: "Éxito", description: "Usuario actualizado correctamente" })
+        toast.success("Usuario actualizado correctamente")
       } else {
         await createUser(payload)
-        toast({ title: "Éxito", description: "Usuario creado correctamente" })
+        toast.success("Usuario creado correctamente")
       }
 
       router.push("/admin/users")
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message || "No se pudo guardar el usuario",
-        variant: "destructive",
-      })
+      toast.error(err.message || "No se pudo guardar el usuario")
     } finally {
       setIsSaving(false)
     }
