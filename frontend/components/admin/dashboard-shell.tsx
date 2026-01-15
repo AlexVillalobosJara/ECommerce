@@ -22,6 +22,7 @@ import {
     UserCircle,
     BarChart3,
     Link2,
+    Activity,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -52,6 +53,7 @@ const navigation = [
     { name: "Pasarelas de Pago", href: "/admin/settings/payments", icon: CreditCard, roles: ['Owner', 'Admin'] },
     { name: "Marketing & Analytics", href: "/admin/settings/marketing", icon: BarChart3, roles: ['Owner', 'Admin'] },
     { name: "Redirecciones SEO", href: "/admin/settings/seo/redirects", icon: Link2, roles: ['Owner', 'Admin'] },
+    { name: "Monitoreo Cache", href: "/admin/settings/cache", icon: Activity, isSuperuserOnly: true },
 ]
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -133,7 +135,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     {/* Navigation */}
                     <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
                         {navigation
-                            .filter(item => !item.roles || (user.role && item.roles.includes(user.role)))
+                            .filter(item => {
+                                // @ts-ignore
+                                if (item.isSuperuserOnly && !user.is_superuser) return false
+                                return !item.roles || (user.role && item.roles.includes(user.role))
+                            })
                             .map((item) => {
                                 const isActive = pathname === item.href
                                 return (
@@ -240,7 +246,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         </div>
                         <nav className="flex-1 px-3 py-6 space-y-1">
                             {navigation
-                                .filter(item => !item.roles || (user.role && item.roles.includes(user.role)))
+                                .filter(item => {
+                                    // @ts-ignore
+                                    if (item.isSuperuserOnly && !user.is_superuser) return false
+                                    return !item.roles || (user.role && item.roles.includes(user.role))
+                                })
                                 .map((item) => {
                                     const isActive = pathname === item.href
                                     return (

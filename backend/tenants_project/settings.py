@@ -99,8 +99,15 @@ DATABASES = {
     'default': dj_database_url.config(
         # Look for DATABASE_URL in env, otherwise use local Postgres credentials
         default=os.getenv('DATABASE_URL', f"postgres://postgres:{'$$kairos01%%'}@localhost:5432/ecommerce"),
-        conn_max_age=600
+        conn_max_age=600,
+        conn_health_checks=True,
     )
+}
+
+# Add database options separately as dj_database_url doesn't support them in config() directly
+DATABASES['default']['OPTIONS'] = {
+    'connect_timeout': 10,
+    'options': '-c statement_timeout=30000',  # 30 second timeout for queries
 }
 
 # Caching Configuration
