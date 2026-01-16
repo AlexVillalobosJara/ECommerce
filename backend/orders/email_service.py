@@ -130,7 +130,7 @@ def send_quote_request_notification(order):
         
         params = {
             "from": "Zumi Store <onboarding@resend.dev>",
-            "to": settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else "admin@empresa.cl",
+            "to": order.tenant.email if order.tenant.email else (settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else "admin@empresa.cl"),
             "subject": f" Nueva Solicitud de Cotizacion - {order.order_number}",
             "html": html_content,
         }
@@ -431,7 +431,7 @@ def send_new_order_notification(order):
         
         params = {
             "from": "Zumi Store <onboarding@resend.dev>",
-            "to": settings.ADMIN_EMAIL,
+            "to": order.tenant.email if order.tenant.email else settings.ADMIN_EMAIL,
             "subject": f" Nueva Venta: {order.order_number} ({total_formatted})",
             "html": html_content,
         }
