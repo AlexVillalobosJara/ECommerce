@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "D:\source\reposV2026\ecommerce\backend\audit_home_queries.py", line 93, in <module>
+    analyze_queries()
+  File "D:\source\reposV2026\ecommerce\backend\audit_home_queries.py", line 24, in analyze_queries
+    print(f"Testing with tenant: {tenant.name} ({tenant.domain})")
+AttributeError: 'Tenant' object has no attribute 'domain'

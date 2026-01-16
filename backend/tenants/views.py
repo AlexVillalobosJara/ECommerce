@@ -134,10 +134,13 @@ class StorefrontHomeView(StorefrontBaseView):
         if not tenant:
             return Response({"error": "Tenant not found"}, status=404)
 
-        # Removed Full Page Cache to allow "rest from database" behavior
-        # Static data (Tenant/Categories) is cached inside get_common_data
+        # Full Page Cache (Invalidated by Signals)
+        cache_key = f"storefront_home_data_{tenant.id}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         tenant_data, categories_data = self.get_common_data(request, tenant)
-        
         products_qs = self.get_annotated_products_queryset(tenant)
         
         featured_qs = products_qs.filter(is_featured=True)
@@ -155,6 +158,8 @@ class StorefrontHomeView(StorefrontBaseView):
             "featured_products": products_data
         }
         
+        # Cache for 1 Hour (Signal Invalidation handles updates)
+        cache.set(cache_key, response_data, 3600)
         return Response(response_data)
 
 class StorefrontCategoryView(StorefrontBaseView):
@@ -208,8 +213,8 @@ class StorefrontCategoryView(StorefrontBaseView):
             "products": products_data
         }
         
-        # Cache for 2 minutes (category page changes more frequently with filters)
-        cache.set(cache_key, response_data, 120)
+        # Cache for 1 Hour (Signal Invalidation handles updates)
+        cache.set(cache_key, response_data, 3600)
         return Response(response_data)
 
 class StorefrontProductDetailView(StorefrontBaseView):
@@ -249,8 +254,8 @@ class StorefrontProductDetailView(StorefrontBaseView):
             
             related_data = ProductListSerializer(related_qs, many=True, context={'request': request}).data
             
-            # Cache for 5 minutes
-            cache.set(product_cache_key, {'product': product_data, 'related': related_data}, 300)
+            # Cache for 1 Hour (Signal Invalidation handles updates)
+            cache.set(product_cache_key, {'product': product_data, 'related': related_data}, 3600)
         
         return Response({
             "tenant": tenant_data,
