@@ -120,9 +120,10 @@ export const adminApi = {
     /**
      * Configure or update a payment gateway
      */
-    async certifyTransbank() {
+    async certifyTransbank(returnUrl?: string) {
         return authFetch(`${API_URL}/api/admin/payment-gateways/transbank/certify/`, {
             method: 'POST',
+            body: JSON.stringify({ return_url: returnUrl })
         })
     },
 

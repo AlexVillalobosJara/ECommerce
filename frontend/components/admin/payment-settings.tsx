@@ -108,7 +108,8 @@ export function PaymentSettings() {
     const handleCertifyTransbank = async () => {
         setSaving(true)
         try {
-            const response = await adminApi.certifyTransbank()
+            const returnUrl = window.location.href
+            const response = await adminApi.certifyTransbank(returnUrl)
             if (response.success) {
                 setCertificationResult({
                     token: response.token,
