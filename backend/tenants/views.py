@@ -96,7 +96,8 @@ class StorefrontBaseView(views.APIView):
         ).order_by('sort_order', 'name')
         categories_data = CategorySerializer(categories_qs, many=True, context={'request': request}).data
         
-        cache.set(cache_key, {'tenant': tenant_data, 'categories': categories_data}, 300) # 5 minutes cache
+        # Cache Static Data for 1 Hour (3600s)
+        cache.set(cache_key, {'tenant': tenant_data, 'categories': categories_data}, 3600)
         return tenant_data, categories_data
 
     def get_annotated_products_queryset(self, tenant):
@@ -133,12 +134,10 @@ class StorefrontHomeView(StorefrontBaseView):
         if not tenant:
             return Response({"error": "Tenant not found"}, status=404)
 
-        cache_key = f"storefront_home_data_{tenant.id}"
-        cached_data = cache.get(cache_key)
-        if cached_data:
-            return Response(cached_data)
-
+        # Removed Full Page Cache to allow "rest from database" behavior
+        # Static data (Tenant/Categories) is cached inside get_common_data
         tenant_data, categories_data = self.get_common_data(request, tenant)
+        
         products_qs = self.get_annotated_products_queryset(tenant)
         
         featured_qs = products_qs.filter(is_featured=True)
@@ -156,8 +155,6 @@ class StorefrontHomeView(StorefrontBaseView):
             "featured_products": products_data
         }
         
-        # Cache for 5 minutes
-        cache.set(cache_key, response_data, 300)
         return Response(response_data)
 
 class StorefrontCategoryView(StorefrontBaseView):
