@@ -15,12 +15,13 @@ import { TenantRegionalSettings } from "@/components/admin/settings/tenant-regio
 import { TenantGeneralSettings } from "@/components/admin/settings/tenant-general-settings"
 import { adminApi } from "@/services/admin-api"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { Loader2, Check } from "lucide-react"
 import { useTenant } from "@/contexts/TenantContext"
 
 export function TenantSettingsForm() {
     const [isSaving, setIsSaving] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
     const [activeTab, setActiveTab] = useState("branding")
     const { refreshTenantConfig } = useTenant()
 
@@ -38,6 +39,21 @@ export function TenantSettingsForm() {
         warning_color: "#F59E0B",
         info_color: "#3B82F6",
         muted_color: "#94A3B8",
+        secondary_text_color: "#F0EFEC",
+        accent_dark_color: "#2B2C30",
+        accent_medium_color: "#3F4A52",
+        header_bg_color: "",
+        header_text_color: "",
+        hero_text_color: "",
+        hero_btn_bg_color: "",
+        hero_btn_text_color: "",
+        cta_text_color: "",
+        cta_btn_bg_color: "",
+        cta_btn_text_color: "",
+        footer_bg_color: "",
+        footer_text_color: "",
+        primary_btn_text_color: "",
+        is_premium: false,
 
         // Store Settings
         hero_image_url: "",
@@ -124,6 +140,7 @@ export function TenantSettingsForm() {
     const loadSettings = async () => {
         try {
             setIsLoading(true)
+            setError(null)
             const data = await adminApi.getTenantSettings()
 
             // Transform shipping_mode to UI flags
@@ -163,13 +180,26 @@ export function TenantSettingsForm() {
                 // Terms defaults
                 shipping_days_min: data.shipping_days_min || 3,
                 shipping_days_max: data.shipping_days_max || 7,
-                return_window_days: data.return_window_days || 30,
-                return_shipping_cost_cover: data.return_shipping_cost_cover || "Customer",
                 warranty_period: data.warranty_period || "6 meses",
+                is_premium: !!data.is_premium,
+                secondary_text_color: data.secondary_text_color || "#F0EFEC",
+                accent_dark_color: data.accent_dark_color || "#2B2C30",
+                accent_medium_color: data.accent_medium_color || "#3F4A52",
+                header_bg_color: data.header_bg_color || "",
+                header_text_color: data.header_text_color || "",
+                hero_text_color: data.hero_text_color || "",
+                hero_btn_bg_color: data.hero_btn_bg_color || "",
+                hero_btn_text_color: data.hero_btn_text_color || "",
+                cta_text_color: data.cta_text_color || "",
+                cta_btn_bg_color: data.cta_btn_bg_color || "",
+                cta_btn_text_color: data.cta_btn_text_color || "",
+                footer_bg_color: data.footer_bg_color || "",
+                footer_text_color: data.footer_text_color || "",
+                primary_btn_text_color: data.primary_btn_text_color || "",
             }))
-        } catch (error) {
-            console.error(error)
-            toast.error("Error al cargar configuración")
+        } catch (err: any) {
+            console.error(err)
+            setError(err.message || "Error al cargar configuración")
         } finally {
             setIsLoading(false)
         }
@@ -181,16 +211,30 @@ export function TenantSettingsForm() {
 
             // Transform UI flags to shipping_mode
             let shipping_mode = 'Zones'
-            if (formData.use_shipping_zones && formData.use_external_delivery) {
+            if ((formData as any).use_shipping_zones && (formData as any).use_external_delivery) {
                 shipping_mode = 'Hybrid'
-            } else if (formData.use_external_delivery) {
+            } else if ((formData as any).use_external_delivery) {
                 shipping_mode = 'Provider'
             } else {
                 shipping_mode = 'Zones'
             }
 
+            const sanitizedData = { ...formData }
+            // Convert empty strings to null for color fields to avoid RegEx validation errors in backend
+            const colorFields = [
+                'header_bg_color', 'header_text_color',
+                'hero_text_color', 'hero_btn_bg_color', 'hero_btn_text_color',
+                'cta_text_color', 'cta_btn_bg_color', 'cta_btn_text_color',
+                'footer_bg_color', 'footer_text_color', 'primary_btn_text_color'
+            ];
+            colorFields.forEach(field => {
+                if ((sanitizedData as any)[field] === "") {
+                    (sanitizedData as any)[field] = null;
+                }
+            });
+
             const payload = {
-                ...formData,
+                ...sanitizedData,
                 shipping_mode
             }
 
@@ -211,6 +255,30 @@ export function TenantSettingsForm() {
 
     if (isLoading) {
         return <div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin" /></div>
+    }
+
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center h-96 p-8 text-center bg-background rounded-xl border border-dashed border-muted-foreground/20">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-6">
+                    <Save className="w-8 h-8 text-amber-600 opacity-50" />
+                </div>
+                <h2 className="text-2xl font-bold mb-3">Contexto de Tienda No Identificado</h2>
+                <div className="max-w-md space-y-4">
+                    <p className="text-muted-foreground">
+                        {error}
+                    </p>
+                    <p className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
+                        <strong>Nota para Superadmins:</strong> Si has iniciado sesión desde el dominio principal,
+                        ve a la sección de <strong>Tenants</strong> para gestionar cada tienda individualmente o
+                        accede usando el subdominio de la tienda.
+                    </p>
+                    <Button onClick={() => window.location.reload()} variant="outline">
+                        Reintentar
+                    </Button>
+                </div>
+            </div>
+        )
     }
 
     return (
@@ -277,6 +345,28 @@ export function TenantSettingsForm() {
                     <TenantSubscription data={formData} />
                 </TabsContent>
             </Tabs>
+
+            {/* Save Button */}
+            <div className="pt-6">
+                <Button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="w-full h-12 text-base font-medium"
+                    size="lg"
+                >
+                    {isSaving ? (
+                        <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Guardando cambios...
+                        </>
+                    ) : (
+                        <>
+                            <Check className="mr-2 h-5 w-5" />
+                            Guardar cambios
+                        </>
+                    )}
+                </Button>
+            </div>
         </div>
     )
 }

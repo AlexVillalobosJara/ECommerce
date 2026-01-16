@@ -12,13 +12,38 @@ function getAuthToken(): string | null {
     return localStorage.getItem('admin_access_token')
 }
 
+// Helper to get tenant slug from current hostname
+function getTenantSlug(): string | null {
+    if (typeof window === 'undefined') return null
+
+    const hostname = window.location.hostname
+    const parts = hostname.split('.')
+
+    // For localhost development (e.g., autotest.localhost)
+    if (hostname.includes('localhost') && parts.length >= 2 && parts[0] !== 'localhost') {
+        return parts[0]
+    }
+
+    // For platform domains (e.g., autotest.onrender.com)
+    if (parts.length >= 3 && (hostname.includes('onrender.com') || hostname.includes('vercel.app'))) {
+        const subdomain = parts[0]
+        if (subdomain !== 'www' && subdomain !== 'api') {
+            return subdomain
+        }
+    }
+
+    return null
+}
+
 // Helper for authenticated requests
 async function authFetch(url: string, options: RequestInit = {}) {
     const token = getAuthToken()
+    const tenantSlug = getTenantSlug()
 
     const headers = {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...(tenantSlug && { 'X-Tenant': tenantSlug }),
         ...options.headers,
     }
 
@@ -95,6 +120,19 @@ export const adminApi = {
     /**
      * Configure or update a payment gateway
      */
+    async certifyTransbank() {
+        return authFetch(`${API_URL}/api/admin/payment-gateways/transbank/certify/`, {
+            method: 'POST',
+        })
+    },
+
+    async confirmTransbankCertification(token: string) {
+        return authFetch(`${API_URL}/api/admin/payment-gateways/transbank/confirm/`, {
+            method: 'POST',
+            body: JSON.stringify({ token })
+        })
+    },
+
     async configurePaymentGateway(gateway: string, data: any) {
         return authFetch(`${API_URL}/api/admin/payment-gateways/${gateway}/`, {
             method: 'POST',

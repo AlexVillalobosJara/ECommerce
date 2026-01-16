@@ -17,8 +17,19 @@ import {
     Eye,
     EyeOff,
     Loader2,
-    XCircle
+    XCircle,
+    Copy,
+    ExternalLink
 } from "lucide-react"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 import { adminApi } from "@/services/admin-api"
 import { useToast } from "@/hooks/use-toast"
 
@@ -85,34 +96,84 @@ export function PaymentSettings() {
     const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({})
     const [formData, setFormData] = useState<Record<string, GatewayFormData>>({})
     const { toast } = useToast()
+    const [certificationResult, setCertificationResult] = useState<{ token: string; url: string; amount: number } | null>(null)
+    const [showCertificationDialog, setShowCertificationDialog] = useState(false)
 
     useEffect(() => {
         loadGateways()
     }, [])
 
+    // ... imports need to be updated first, doing it in separate call if easier, but let's try to add the function logic first
+
+    const handleCertifyTransbank = async () => {
+        setSaving(true)
+        try {
+            const response = await adminApi.certifyTransbank()
+            if (response.success) {
+                setCertificationResult({
+                    token: response.token,
+                    url: response.url,
+                    amount: response.amount
+                })
+                setShowCertificationDialog(true)
+                toast({
+                    title: "Certificación Iniciada",
+                    description: "Se ha generado el token de prueba correctamente"
+                })
+            } else {
+                throw new Error(response.error || "Error desconocido")
+            }
+        } catch (error) {
+            console.error("Error initiating certification:", error)
+            toast({
+                title: "Error",
+                description: "No se pudo iniciar la certificación",
+                variant: "destructive"
+            })
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    // ... (rest of the component)
+
     const loadGateways = async () => {
         try {
             setLoading(true)
             setError(null)
-            const data = await adminApi.listPaymentGateways()
+            console.log("Loading gateways...")
+
+            // Failsafe timeout
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Timeout loading gateways")), 10000)
+            )
+
+            const data = await Promise.race([
+                adminApi.listPaymentGateways(),
+                timeoutPromise
+            ])
+
+            console.log("Gateways loaded:", data)
             setGateways(data)
 
             // Initialize form data with current gateway settings
             const initialFormData: Record<string, GatewayFormData> = {}
-            data.forEach((gateway: PaymentGateway) => {
-                initialFormData[gateway.gateway] = {
-                    api_key: "",
-                    secret_key: "",
-                    commerce_code: "",
-                    public_key: "",
-                    access_token: "",
-                    is_sandbox: gateway.is_sandbox
-                }
-            })
+            if (Array.isArray(data)) {
+                data.forEach((gateway: PaymentGateway) => {
+                    initialFormData[gateway.gateway] = {
+                        api_key: "",
+                        secret_key: "",
+                        commerce_code: "",
+                        public_key: "",
+                        access_token: "",
+                        is_sandbox: gateway.is_sandbox
+                    }
+                })
+            }
             setFormData(initialFormData)
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error loading gateways:", error)
-            const errorMessage = error instanceof Error ? error.message : "No se pudieron cargar las pasarelas de pago"
+            const errorMessage = error?.message || "No se pudieron cargar las pasarelas de pago"
             setError(errorMessage)
         } finally {
             setLoading(false)
@@ -261,6 +322,13 @@ export function PaymentSettings() {
             <div className="grid gap-6">
                 {gateways.map((gateway) => {
                     const info = GATEWAY_INFO[gateway.gateway as keyof typeof GATEWAY_INFO]
+
+                    // Defensive check: if gateway is not in our known list, skip it to prevent crash
+                    if (!info) {
+                        console.warn(`Unknown gateway: ${gateway.gateway}`)
+                        return null
+                    }
+
                     const isConfigured = gateway.id !== null
                     const form = formData[gateway.gateway] || {}
 
@@ -476,14 +544,27 @@ export function PaymentSettings() {
                                                 </a>
                                             </p>
                                         </div>
-                                        <Button
-                                            onClick={() => handleSaveGateway(gateway.gateway)}
-                                            disabled={saving}
-                                            className="ml-4 gap-2"
-                                        >
-                                            <Save className="w-4 h-4" />
-                                            {saving ? "Guardando..." : "Guardar"}
-                                        </Button>
+                                        <div className="flex gap-2 ml-4">
+                                            {gateway.gateway === 'Transbank' && isConfigured && (
+                                                <Button
+                                                    onClick={handleCertifyTransbank}
+                                                    disabled={saving}
+                                                    variant="outline"
+                                                    className="gap-2"
+                                                >
+                                                    <CheckCircle2 className="w-4 h-4" />
+                                                    Iniciar Certificación
+                                                </Button>
+                                            )}
+                                            <Button
+                                                onClick={() => handleSaveGateway(gateway.gateway)}
+                                                disabled={saving}
+                                                className="gap-2"
+                                            >
+                                                <Save className="w-4 h-4" />
+                                                {saving ? "Guardando..." : "Guardar"}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -491,6 +572,91 @@ export function PaymentSettings() {
                     )
                 })}
             </div>
+
+            <Dialog open={showCertificationDialog} onOpenChange={setShowCertificationDialog}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Certificación Transbank</DialogTitle>
+                        <DialogDescription>
+                            Sigue estos pasos para completar el proceso de certificación.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {certificationResult && (
+                        <div className="space-y-6 py-4">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label>1. Copia el Token generado</Label>
+                                    <div className="flex gap-2">
+                                        <Input readOnly value={certificationResult.token} className="font-mono bg-muted" />
+                                        <Button
+                                            size="icon"
+                                            variant="outline"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(certificationResult.token)
+                                                toast({ description: "Token copiado al portapapeles" })
+                                            }}
+                                        >
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Debes enviar este token por correo a <strong>soporte@transbank.cl</strong> indicando que es para certificación.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>2. Realiza la transacción de prueba</Label>
+                                    <Alert>
+                                        <AlertCircle className="h-4 w-4" />
+                                        <AlertDescription>
+                                            IMPORTANTE: Al realizar el pago, selecciona <strong>Tarjeta de Crédito</strong> y elige <strong>Sin Cuotas</strong> (o 1 cuota) para que la certificación sea aprobada.
+                                        </AlertDescription>
+                                    </Alert>
+                                    <div className="pt-2 flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full gap-2"
+                                            onClick={() => window.open(certificationResult.url, '_blank')}
+                                        >
+                                            Ir a Webpay y Pagar ${certificationResult.amount}
+                                            <ExternalLink className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            className="w-full gap-2"
+                                            onClick={async () => {
+                                                try {
+                                                    setSaving(true)
+                                                    const res = await adminApi.confirmTransbankCertification(certificationResult.token)
+                                                    if (res.success) {
+                                                        toast({ title: "¡Transacción Confirmada!", description: "Estado: " + res.status })
+                                                    } else {
+                                                        toast({ title: "Error Confirmación", description: "Estado: " + res.status, variant: "destructive" })
+                                                    }
+                                                } catch (e) {
+                                                    toast({ title: "Error", description: "Falló la confirmación", variant: "destructive" })
+                                                } finally {
+                                                    setSaving(false)
+                                                }
+                                            }}
+                                            disabled={saving}
+                                        >
+                                            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                                            Confirmar Pago
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowCertificationDialog(false)}>
+                            Cerrar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

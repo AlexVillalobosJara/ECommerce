@@ -40,11 +40,11 @@ export function HeroSection({
             {/* Content Overlay */}
             <div className="relative flex size-full items-center justify-center text-center">
                 <div className="max-w-4xl space-y-8 px-4 animate-fade-in-up">
-                    <h1 className="text-balance font-serif text-5xl font-light tracking-tight text-white drop-shadow-lg md:text-6xl lg:text-7xl">
+                    <h1 className="text-balance font-serif text-5xl font-light tracking-tight drop-shadow-lg md:text-6xl lg:text-7xl" style={{ color: 'var(--hero-text, white)' }}>
                         {title}
                     </h1>
                     {subtitle && (
-                        <p className="text-pretty text-xl text-white/95 drop-shadow-md md:text-2xl lg:text-3xl">
+                        <p className="text-pretty text-xl drop-shadow-md md:text-2xl lg:text-3xl" style={{ color: 'var(--hero-text, white)', opacity: 0.95 }}>
                             {subtitle}
                         </p>
                     )}
@@ -52,8 +52,11 @@ export function HeroSection({
                         <div className="pt-4">
                             <Button
                                 size="lg"
-                                variant="secondary"
                                 className="px-10 py-6 text-lg font-medium shadow-xl transition-all duration-300 hover:scale-105"
+                                style={{
+                                    backgroundColor: 'var(--hero-btn-bg, var(--tenant-accent-dark))',
+                                    color: 'var(--hero-btn-text, var(--tenant-secondary-text))'
+                                }}
                                 onClick={onCtaClick}
                                 asChild={!!ctaHref}
                             >

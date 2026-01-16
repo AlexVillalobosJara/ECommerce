@@ -8,6 +8,27 @@ export interface Tenant {
     logo_url?: string
     primary_color?: string
     secondary_color?: string
+    success_color?: string
+    danger_color?: string
+    warning_color?: string
+    info_color?: string
+    muted_color?: string
+    // Premium palette colors
+    secondary_text_color?: string
+    accent_dark_color?: string
+    accent_medium_color?: string
+    // Component Specific Colors
+    header_bg_color?: string
+    header_text_color?: string
+    hero_text_color?: string
+    hero_btn_bg_color?: string
+    hero_btn_text_color?: string
+    cta_text_color?: string
+    cta_btn_bg_color?: string
+    cta_btn_text_color?: string
+    footer_bg_color?: string
+    footer_text_color?: string
+    primary_btn_text_color?: string
     custom_domain?: string
 
     // Payment Configuration
@@ -87,4 +108,29 @@ export interface Tenant {
 
     created_at?: string
     updated_at?: string
+}
+
+export interface PremiumPalette {
+    id: string
+    name: string
+    primary_color: string
+    secondary_color: string
+    secondary_text_color: string
+    accent_dark_color: string
+    accent_medium_color: string
+    header_bg_color?: string
+    header_text_color?: string
+    hero_text_color?: string
+    hero_btn_bg_color?: string
+    hero_btn_text_color?: string
+    cta_text_color?: string
+    cta_btn_bg_color?: string
+    cta_btn_text_color?: string
+    footer_bg_color?: string
+    footer_text_color?: string
+    primary_btn_text_color?: string
+    palette_type: 'basic' | 'premium'
+    is_active: boolean
+    created_at: string
+    updated_at: string
 }

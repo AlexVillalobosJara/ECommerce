@@ -52,11 +52,45 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         checkAuth()
     }, [])
 
+    /**
+     * Extract tenant slug from hostname for platform domains only.
+     * Safe for production - only extracts from localhost/onrender/vercel subdomains.
+     * Custom domains are handled by backend middleware.
+     */
+    const getTenantSlugFromHostname = (): string | null => {
+        if (typeof window === 'undefined') return null
+
+        const hostname = window.location.hostname
+        const parts = hostname.split('.')
+
+        // For localhost development (e.g., autotest.localhost)
+        if (hostname.includes('localhost') && parts.length >= 2 && parts[0] !== 'localhost') {
+            return parts[0]
+        }
+
+        // For platform domains (e.g., autotest.onrender.com, autotest.vercel.app)
+        if (parts.length >= 3 && (hostname.includes('onrender.com') || hostname.includes('vercel.app'))) {
+            const subdomain = parts[0]
+            if (subdomain !== 'www' && subdomain !== 'api') {
+                return subdomain
+            }
+        }
+
+        // For custom domains, return null - backend will handle via custom_domain field
+        return null
+    }
+
     const login = async (username: string, password: string) => {
+        // Extract tenant slug for platform domains (safe for production)
+        const tenantSlug = getTenantSlugFromHostname()
+
         const response = await fetch(API_ENDPOINTS.ADMIN_LOGIN, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                // Include X-Tenant header if we detected a platform subdomain
+                // In production with custom domains, this will be null and backend uses custom_domain
+                ...(tenantSlug && { "X-Tenant": tenantSlug }),
             },
             body: JSON.stringify({ username, password }),
         })

@@ -5,6 +5,104 @@ from django.contrib.postgres.fields import ArrayField
 from .payment_config_models import PaymentGatewayConfig  # Import payment config model
 
 
+class PremiumPalette(models.Model):
+    """
+    Model for storing premium color schemes managed by superadmins.
+    Tenants can select these palettes, and colors are copied to the Tenant record.
+    """
+    name = models.CharField(max_length=100)
+    primary_color = models.CharField(
+        max_length=7,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    secondary_color = models.CharField(
+        max_length=7,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    secondary_text_color = models.CharField(
+        max_length=7,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    accent_dark_color = models.CharField(
+        max_length=7,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    accent_medium_color = models.CharField(
+        max_length=7,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    primary_btn_text_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
+    # Header
+    header_bg_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    header_text_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
+    # Hero
+    hero_text_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    hero_btn_bg_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    hero_btn_text_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
+    # CTA
+    cta_text_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    cta_btn_bg_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    cta_btn_text_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
+    # Footer
+    footer_bg_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    footer_text_color = models.CharField(
+        max_length=7, null=True, blank=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
+    # Metadata
+    palette_type = models.CharField(
+        max_length=10,
+        choices=[('basic', 'Basic'), ('premium', 'Premium')],
+        default='premium',
+        help_text="Type of palette: basic (available to all) or premium (requires premium plan)"
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Paleta Premium"
+        verbose_name_plural = "Paletas Premium"
+
+
 class Tenant(models.Model):
     """
     Tenant model for multi-tenant B2B2C system.
@@ -23,6 +121,7 @@ class Tenant(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=100, unique=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Trial')
+    is_premium = models.BooleanField(default=False, help_text="Manual override for premium features")
     
     # Branding
     logo_url = models.TextField(blank=True, null=True)
@@ -36,6 +135,111 @@ class Tenant(models.Model):
         default='#FFFFFF',
         validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
     )
+    success_color = models.CharField(
+        max_length=7, 
+        default='#10B981',
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    danger_color = models.CharField(
+        max_length=7, 
+        default='#EF4444',
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    warning_color = models.CharField(
+        max_length=7, 
+        default='#F59E0B',
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    info_color = models.CharField(
+        max_length=7, 
+        default='#3B82F6',
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    muted_color = models.CharField(
+        max_length=7, 
+        default='#94A3B8',
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
+    # Premium palette colors (optional, for premium palettes)
+    secondary_text_color = models.CharField(
+        max_length=7,
+        blank=True,
+        null=True,
+        help_text="Text color for headers/footers on dark backgrounds (e.g., #F0EFEC)",
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    accent_dark_color = models.CharField(
+        max_length=7,
+        blank=True,
+        null=True,
+        help_text="Dark accent color for footer, Hero button (e.g., #2B2C30)",
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    accent_medium_color = models.CharField(
+        max_length=7,
+        blank=True,
+        null=True,
+        help_text="Medium accent for CTA buttons (e.g., #3F4A52)",
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    primary_btn_text_color = models.CharField(
+        max_length=7,
+        blank=True,
+        null=True,
+        help_text="Text color for buttons using primary background (e.g., #FFFFFF)",
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
+    # Component Specific Colors
+    # Header
+    header_bg_color = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    header_text_color = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
+    # Hero
+    hero_text_color = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    hero_btn_bg_color = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    hero_btn_text_color = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
+    # CTA
+    cta_text_color = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    cta_btn_bg_color = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    cta_btn_text_color = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
+    # Footer
+    footer_bg_color = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    footer_text_color = models.CharField(
+        max_length=7, blank=True, null=True,
+        validators=[RegexValidator(regex=r'^#[0-9A-Fa-f]{6}$', message='Must be a valid hex color')]
+    )
+    
     custom_domain = models.CharField(max_length=255, blank=True, null=True)
     
     # Payment Configuration (stored as plain text for POC)
@@ -208,4 +412,15 @@ class Redirect(models.Model):
 
     def __str__(self):
         return f"[{self.tenant.slug}] {self.old_path} -> {self.new_path}"
+
+
+# Signals for cache invalidation
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from core.cache_utils import invalidate_tenant_cache
+
+@receiver(post_save, sender=Tenant)
+def handle_tenant_post_save(sender, instance, **kwargs):
+    """Clear tenant cache when settings change"""
+    invalidate_tenant_cache(instance.id)
 

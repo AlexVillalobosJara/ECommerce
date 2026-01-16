@@ -195,3 +195,24 @@ class RedirectMiddleware(MiddlewareMixin):
             logger.error(f"Error in RedirectMiddleware: {str(e)}")
             
         return None
+
+
+class DisableCSRFForAdminAPIMiddleware(MiddlewareMixin):
+    """
+    Middleware to disable CSRF for admin API routes that use JWT authentication.
+    JWT tokens in Authorization headers are not vulnerable to CSRF attacks.
+    
+    Must be placed BEFORE CsrfViewMiddleware in MIDDLEWARE settings.
+    """
+    def process_request(self, request):
+        path = request.path
+        logger.info(f"DisableCSRFForAdminAPIMiddleware - Path: {path}")
+        
+        # Exempt all /api/admin/ routes from CSRF
+        if path.startswith('/api/admin/'):
+            setattr(request, '_dont_enforce_csrf_checks', True)
+            logger.warning(f"CSRF DISABLED for admin API route: {path}")
+            return None
+        
+        logger.info(f"CSRF NOT disabled for path: {path}")
+        return None

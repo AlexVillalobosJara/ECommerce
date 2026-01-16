@@ -1,5 +1,22 @@
 from rest_framework import serializers
-from .models import Tenant
+from .models import Tenant, PremiumPalette
+
+
+class PremiumPaletteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PremiumPalette
+        fields = [
+            'id', 'name', 'primary_color', 'secondary_color',
+            'secondary_text_color', 'accent_dark_color', 'accent_medium_color',
+            'header_bg_color', 'header_text_color',
+            'hero_text_color', 'hero_btn_bg_color', 'hero_btn_text_color',
+            'cta_text_color', 'cta_btn_bg_color', 'cta_btn_text_color',
+            'footer_bg_color', 'footer_text_color',
+            'primary_btn_text_color',
+            'palette_type',
+            'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class MarketingConfigSerializer(serializers.Serializer):
@@ -19,8 +36,16 @@ class TenantSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tenant
         fields = [
-            'id', 'name', 'slug', 'status',
-            'logo_url', 'primary_color', 'secondary_color', 'custom_domain',
+            'id', 'name', 'slug', 'status', 'is_premium',
+            'logo_url', 'primary_color', 'secondary_color', 
+            'success_color', 'danger_color', 'warning_color', 'info_color', 'muted_color',
+            'secondary_text_color', 'accent_dark_color', 'accent_medium_color',
+            'header_bg_color', 'header_text_color',
+            'hero_text_color', 'hero_btn_bg_color', 'hero_btn_text_color',
+            'cta_text_color', 'cta_btn_bg_color', 'cta_btn_text_color',
+            'footer_bg_color', 'footer_text_color',
+            'primary_btn_text_color',
+            'custom_domain',
             'transbank_api_key', 'transbank_commerce_code',
             'mercadopago_access_token', 'mercadopago_public_key',
             'khipu_receiver_id', 'khipu_secret_key',

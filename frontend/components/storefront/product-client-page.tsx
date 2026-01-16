@@ -192,7 +192,15 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
 
                         <div className="prose prose-gray max-w-none">
                             <p className="text-balance leading-relaxed text-gray-600 text-lg lg:text-xl font-light">
-                                {product.short_description || product.description?.substring(0, 150) + "..."}
+                                {product.short_description ? (
+                                    product.short_description.split(/(\*\*.*?\*\*)/g).map((part, i) =>
+                                        part.startsWith('**') && part.endsWith('**') ?
+                                            <strong key={i} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong> :
+                                            part
+                                    )
+                                ) : (
+                                    product.description?.substring(0, 150) + "..."
+                                )}
                             </p>
                         </div>
 
@@ -207,7 +215,7 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                                             disabled={!v.is_active}
                                             className={cn(
                                                 "min-w-[80px] rounded-full border px-6 py-2.5 text-sm font-medium transition-all",
-                                                selectedVariant?.id === v.id ? "border-black bg-black text-white" : "border-gray-200 hover:border-black text-gray-600",
+                                                selectedVariant?.id === v.id ? "border-primary bg-primary text-[var(--secondary-text)]" : "border-gray-200 hover:border-black text-gray-600",
                                                 !v.is_active && "cursor-not-allowed opacity-30"
                                             )}
                                         >
@@ -241,7 +249,7 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                                         Solicitar Cotización
                                     </Button>
                                 ) : (
-                                    <Button size="lg" className="w-full h-14 bg-black hover:bg-gray-900 text-white rounded-xl text-md font-medium uppercase tracking-widest shadow-lg shadow-black/5 flex items-center justify-center gap-3" onClick={handleAddToCart} disabled={!selectedVariant || isOutOfStock}>
+                                    <Button size="lg" className="w-full h-14 bg-primary text-[var(--secondary-text)] hover:bg-primary/90 rounded-xl text-md font-medium uppercase tracking-widest shadow-lg shadow-black/5 flex items-center justify-center gap-3" onClick={handleAddToCart} disabled={!selectedVariant || isOutOfStock}>
                                         <ShoppingCart className="size-5" />
                                         {isOutOfStock ? "Agotado" : "Agregar al Carrito"}
                                     </Button>
@@ -282,7 +290,12 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
                         <TabsContent value="description" className="mt-8">
                             <div className="prose prose-gray max-w-none">
                                 <h3 className="font-serif text-2xl font-light mb-4">Descripción Completa</h3>
-                                <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{product.description}</p>
+                                <div
+                                    className="text-gray-600 leading-relaxed space-y-4"
+                                    dangerouslySetInnerHTML={{
+                                        __html: product.description?.replace(/\n/g, '<br/>') || ""
+                                    }}
+                                />
                             </div>
                         </TabsContent>
                         <TabsContent value="specifications" className="mt-8">

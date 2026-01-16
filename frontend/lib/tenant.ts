@@ -116,6 +116,78 @@ export function applyTenantBranding(config: TenantConfig) {
         root.style.setProperty('--tenant-secondary', config.secondary_color)
     }
 
+    if (config.success_color) {
+        root.style.setProperty('--tenant-success', config.success_color)
+    }
+
+    if (config.danger_color) {
+        root.style.setProperty('--tenant-danger', config.danger_color)
+    }
+
+    if (config.warning_color) {
+        root.style.setProperty('--tenant-warning', config.warning_color)
+    }
+
+    if (config.info_color) {
+        root.style.setProperty('--tenant-info', config.info_color)
+    }
+
+    if (config.muted_color) {
+        root.style.setProperty('--tenant-muted', config.muted_color)
+    }
+
+    // Premium palette colors (optional)
+    if (config.secondary_text_color) {
+        root.style.setProperty('--tenant-secondary-text', config.secondary_text_color)
+    }
+
+    if (config.accent_dark_color) {
+        root.style.setProperty('--tenant-accent-dark', config.accent_dark_color)
+    }
+
+    if (config.accent_medium_color) {
+        root.style.setProperty('--tenant-accent-medium', config.accent_medium_color)
+    }
+
+    // Component Specific Colors
+    if (config.header_bg_color) {
+        root.style.setProperty('--header-bg', config.header_bg_color)
+    }
+    if (config.header_text_color) {
+        root.style.setProperty('--header-text', config.header_text_color)
+    }
+
+    if (config.hero_text_color) {
+        root.style.setProperty('--hero-text', config.hero_text_color)
+    }
+    if (config.hero_btn_bg_color) {
+        root.style.setProperty('--hero-btn-bg', config.hero_btn_bg_color)
+    }
+    if (config.hero_btn_text_color) {
+        root.style.setProperty('--hero-btn-text', config.hero_btn_text_color)
+    }
+
+    if (config.cta_text_color) {
+        root.style.setProperty('--cta-text', config.cta_text_color)
+    }
+    if (config.cta_btn_bg_color) {
+        root.style.setProperty('--cta-btn-bg', config.cta_btn_bg_color)
+    }
+    if (config.cta_btn_text_color) {
+        root.style.setProperty('--cta-btn-text', config.cta_btn_text_color)
+    }
+
+    if (config.footer_bg_color) {
+        root.style.setProperty('--footer-bg', config.footer_bg_color)
+    }
+    if (config.footer_text_color) {
+        root.style.setProperty('--footer-text', config.footer_text_color)
+    }
+
+    if (config.primary_btn_text_color) {
+        root.style.setProperty('--tenant-primary-btn-text', config.primary_btn_text_color)
+    }
+
     // Update page title
     if (config.name) {
         document.title = config.name

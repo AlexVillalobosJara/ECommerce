@@ -32,7 +32,9 @@ export function UsersManagement() {
     try {
       setIsLoading(true)
       const data = await getUsers()
-      setUsers(data)
+      // Handle paginated response
+      const userList = Array.isArray(data) ? data : ((data as any).results || [])
+      setUsers(userList)
       setError(null)
     } catch (err: any) {
       console.error("Error fetching users:", err)

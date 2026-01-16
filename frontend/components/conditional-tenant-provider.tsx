@@ -30,10 +30,9 @@ export function ConditionalTenantProvider({ children }: ConditionalTenantProvide
         )
     }
 
-    // Storefront routes need TenantProvider AND TenantStyleProvider
+    // Storefront routes need TenantProvider
     return (
         <TenantProvider>
-            <TenantStyleProvider />
             {children}
         </TenantProvider>
     )

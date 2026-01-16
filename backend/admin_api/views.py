@@ -65,10 +65,6 @@ def admin_login(request):
             if user_tenants.count() == 1:
                 tenant = user_tenants.first().tenant
             
-            # If user is Superuser and no specific tenant found, Default to 'demo-store'
-            elif user.is_superuser:
-                 tenant = Tenant.objects.filter(slug='demo-store', status='Active').first()
-            
             # If normal user with NO tenants or MULTIPLE tenants (and no subdomain), we can't guess.
             # They must access via subdomain.
 
@@ -133,13 +129,15 @@ def admin_me(request):
     user_data = serializer.data
     
     # Add role if tenant is present
-    if hasattr(request, 'tenant') and request.tenant:
+    if getattr(request, 'tenant', None):
         from tenants.models import TenantUser
         tu = TenantUser.objects.filter(user=request.user, tenant=request.tenant).first()
         if tu:
             user_data['role'] = tu.role
         elif request.user.is_superuser:
             user_data['role'] = 'Owner'
+    elif request.user.is_superuser:
+        user_data['role'] = 'Owner'
     
     return Response(user_data)
 
@@ -153,9 +151,12 @@ def tenant_settings(request):
     tenant = getattr(request, 'tenant', None)
     
     if not tenant:
-        # Fallback if middleware didn't set it (shouldn't happen in prod)
-        # Try to find tenant associated with user or default
-        return Response({'error': 'Tenant not found'}, status=status.HTTP_404_NOT_FOUND)
+        # Better error message for superadmins
+        detail = "No se pudo identificar el comercio. Por favor accede vía subdominio (p.ej. tienda.zumi.app/admin)."
+        return Response({
+            'error': 'Tenant not found',
+            'detail': detail
+        }, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
         # Try to get from cache

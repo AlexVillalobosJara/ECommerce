@@ -23,6 +23,8 @@ import {
     BarChart3,
     Link2,
     Activity,
+    Store,
+    Sparkles,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -54,6 +56,8 @@ const navigation = [
     { name: "Marketing & Analytics", href: "/admin/settings/marketing", icon: BarChart3, roles: ['Owner', 'Admin'] },
     { name: "Redirecciones SEO", href: "/admin/settings/seo/redirects", icon: Link2, roles: ['Owner', 'Admin'] },
     { name: "Monitoreo Cache", href: "/admin/settings/cache", icon: Activity, isSuperuserOnly: true },
+    { name: "Paletas Premium", href: "/admin/premium-palettes", icon: Sparkles, isSuperuserOnly: true },
+    { name: "Gestión de Tenants", href: "/admin/tenants", icon: Store, isSuperuserOnly: true },
 ]
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {

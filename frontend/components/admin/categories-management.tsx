@@ -40,7 +40,9 @@ export function CategoriesManagement() {
         try {
             setLoading(true)
             const data = await getCategories()
-            setCategories(data)
+            // Handle paginated response
+            const categoryList = Array.isArray(data) ? data : ((data as any).results || [])
+            setCategories(categoryList)
         } catch (error) {
             console.error("Error loading categories:", error)
             toast.error("Error al cargar categorías")

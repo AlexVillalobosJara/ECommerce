@@ -314,3 +314,123 @@ def delete_payment_gateway(request, gateway):
             {'error': 'Internal server error'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
+def initiate_transbank_certification(request):
+    """
+    Inititate a certification transaction for Transbank.
+    Creates a dummy order and returns the token and URL.
+    
+    POST /api/admin/payment-gateways/transbank/certify/
+    """
+    try:
+        tenant = request.tenant
+        
+        # Check if Transbank is configured
+        config = PaymentGatewayConfig.objects.filter(
+            tenant=tenant,
+            gateway='Transbank'
+        ).first()
+        
+        if not config:
+            return Response(
+                {'error': 'Transbank is not configured'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        from orders.payment_services.transbank_service import TransbankService
+        from orders.models import Order
+        import uuid
+        
+        # Create a dummy order object structure for the service
+        # We don't necessarily need to save it to DB if the service handles it, 
+        # but TransbankService usually expects an object with .id and .order_number
+        class DummyOrder:
+            def __init__(self):
+                self.id = uuid.uuid4()
+                self.order_number = f"CERT-{uuid.uuid4().hex[:8].upper()}"
+        
+        dummy_order = DummyOrder()
+        
+        # Initialize service with tenant to use specific config
+        service = TransbankService(tenant=tenant)
+        
+        # Create transaction of $10 CLP (Standard for certification)
+        return_url = request.data.get('return_url', 'http://localhost:3000/admin/settings/payments')
+        cancel_url = return_url
+        
+        result = service.create_payment(
+            order=dummy_order,
+            amount=10,
+            return_url=return_url,
+            cancel_url=cancel_url
+        )
+        
+        return Response({
+            'success': True,
+            'token': result.get('token'),
+            'url': result.get('payment_url'), # This URL usually includes token_ws as param
+            'raw_url': result.get('raw_response', {}).get('url'),
+            'amount': 10,
+            'order_number': dummy_order.order_number
+        })
+        
+    except Exception as e:
+        logger.error(f'Error initiating Transbank certification: {e}', exc_info=True)
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
+def confirm_transbank_certification(request):
+    """
+    Confirm a certification transaction for Transbank.
+    Calls commit to finalize the transaction.
+    
+    POST /api/admin/payment-gateways/transbank/confirm/
+    Body: { "token": "..." }
+    """
+    try:
+        tenant = request.tenant
+        token = request.data.get('token')
+        
+        if not token:
+            return Response({'error': 'Token is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        config = PaymentGatewayConfig.objects.filter(
+            tenant=tenant,
+            gateway='Transbank'
+        ).first()
+        
+        if not config:
+            return Response({'error': 'Transbank not configured'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from orders.payment_services.transbank_service import TransbankService
+        
+        service = TransbankService(tenant=tenant)
+        
+        # Verify payment calls the COMMIT endpoint on Transbank
+        result = service.verify_payment({'token_ws': token})
+        
+        if result.get('status') == 'completed':
+            return Response({
+                'success': True,
+                'status': 'authorized',
+                'details': result
+            })
+        else:
+             return Response({
+                'success': False,
+                'status': result.get('status', 'failed'),
+                'details': result
+            })
+            
+    except Exception as e:
+        logger.error(f'Error confirming Transbank certification: {e}', exc_info=True)
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

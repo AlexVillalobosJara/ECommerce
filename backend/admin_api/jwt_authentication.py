@@ -51,18 +51,12 @@ class TenantJWTAuthentication(JWTAuthentication):
                     if tenant_user:
                         request.tenant = tenant_user.tenant
                         logger.info(f'Tenant attached from TenantUser: {request.tenant.slug}')
-                    elif user.is_superuser:
-                        # Superuser fallback: Use the first active tenant
-                        tenant = Tenant.objects.filter(
-                            status='Active',
-                            deleted_at__isnull=True
-                        ).first()
-                        request.tenant = tenant
-                        if tenant:
-                            logger.info(f'Tenant attached via superuser fallback: {tenant.slug}')
                     else:
                         request.tenant = None
-                        logger.warning(f'No tenant found for user: {user.username}')
+                        if not user.is_superuser:
+                            logger.warning(f'No tenant found for user: {user.username}')
+                        else:
+                            logger.info(f'Superuser {user.username} authenticated without a bound tenant context.')
                 except Exception as e:
                     request.tenant = None
                     logger.error(f'Error resolving tenant fallback: {str(e)}')

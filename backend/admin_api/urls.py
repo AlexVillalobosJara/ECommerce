@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.decorators.csrf import csrf_exempt
 from .views import admin_login, admin_logout, admin_me, tenant_settings, dashboard_stats
 from .admin_product_views import (
     product_list_create,
@@ -13,6 +14,8 @@ from .admin_product_views import (
     image_upload,
     image_detail,
     image_set_primary,
+    generate_ai_content,
+    test_csrf_bypass,
 )
 from .admin_cache_views import (
     cache_diagnostics,
@@ -31,6 +34,8 @@ from .admin_payment_views import (
     configure_payment_gateway,
     test_payment_gateway,
     delete_payment_gateway,
+    initiate_transbank_certification,
+    confirm_transbank_certification,
 )
 from .admin_shipping_views import (
     AdminShippingZoneViewSet,
@@ -43,6 +48,7 @@ from .admin_user_views import AdminUserViewSet
 from .admin_marketing_views import TenantMarketingConfigViewSet
 from .admin_seo_views import AdminRedirectViewSet
 from .admin_dashboard_views import AdminDashboardViewSet
+from .admin_tenant_views import AdminTenantViewSet
 
 app_name = 'admin_api'
 
@@ -63,6 +69,8 @@ urlpatterns = [
     path('products/<uuid:product_id>/', product_detail, name='product_detail'),
     path('products/<uuid:product_id>/publish/', product_publish, name='product_publish'),
     path('products/<uuid:product_id>/archive/', product_archive, name='product_archive'),
+    path('products/test-csrf/', test_csrf_bypass, name='test_csrf_bypass'),
+    path('products/generate-ai-content/', csrf_exempt(generate_ai_content), name='generate_ai_content'),
     
     # Categories
     path('categories/', category_list_create, name='category_list_create'),
@@ -90,6 +98,8 @@ urlpatterns = [
     path('payment-gateways/', list_payment_gateways, name='list_payment_gateways'),
     path('payment-gateways/<str:gateway>/', configure_payment_gateway, name='configure_payment_gateway'),
     path('payment-gateways/<str:gateway>/test/', test_payment_gateway, name='test_payment_gateway'),
+    path('payment-gateways/transbank/certify/', initiate_transbank_certification, name='initiate_transbank_certification'),
+    path('payment-gateways/transbank/confirm/', confirm_transbank_certification, name='confirm_transbank_certification'),
     path('payment-gateways/<str:gateway>/delete/', delete_payment_gateway, name='delete_payment_gateway'),
     
     # Shipping Zones
@@ -125,4 +135,8 @@ urlpatterns = [
     # SEO & Redirects
     path('redirects/', AdminRedirectViewSet.as_view({'get': 'list', 'post': 'create'}), name='redirect_list'),
     path('redirects/<uuid:pk>/', AdminRedirectViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='redirect_detail'),
+    
+    # Superadmin Tenant Management
+    path('tenants/', AdminTenantViewSet.as_view({'get': 'list', 'post': 'create'}), name='admin_tenant_list'),
+    path('tenants/<uuid:pk>/', AdminTenantViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='admin_tenant_detail'),
 ]

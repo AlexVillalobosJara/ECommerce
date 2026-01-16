@@ -40,10 +40,12 @@ export function OrdersManagement() {
     const loadData = async () => {
         try {
             setLoading(true)
-            const [ordersData, statsData] = await Promise.all([
+            const [ordersResponse, statsData] = await Promise.all([
                 getOrders(),
                 getOrderStats()
             ])
+            // Handle paginated response if service doesn't extract it
+            const ordersData = Array.isArray(ordersResponse) ? ordersResponse : (ordersResponse as any).results || []
             setOrders(ordersData)
             setStats(statsData)
         } catch (error) {

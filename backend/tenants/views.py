@@ -2,17 +2,29 @@ from rest_framework import viewsets, filters, views
 from rest_framework.response import Response
 from django.utils import timezone
 from django.db import models
-from django.db.models import Q
-from .models import Tenant
-from .serializers import TenantSerializer
+from django.db.models import Q, Min, Max, Count, OuterRef, Subquery, Exists, F
+from .models import Tenant, PremiumPalette
+from .serializers import TenantSerializer, PremiumPaletteSerializer
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from products.models import Category, Product, ProductImage, ProductVariant
 from products.serializers import CategorySerializer, ProductListSerializer, ProductDetailSerializer
-from django.db.models import Min, Max, Count, OuterRef, Subquery, Q, Exists, F
 from django.core.cache import cache
 
+class PremiumPaletteViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for PremiumPalette CRUD.
+    Restricted to superadmins or staff users.
+    """
+    queryset = PremiumPalette.objects.filter(is_active=True)
+    serializer_class = PremiumPaletteSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name']
+    ordering_fields = ['created_at', 'name']
+    ordering = ['name']
+
 class TenantViewSet(viewsets.ModelViewSet):
-    # ... (existing code managed by multi_replace if needed, but simple append/refactor is fine)
-    # Actually, I'll just append and fix imports properly.
     serializer_class = TenantSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'slug', 'email']
@@ -43,8 +55,6 @@ class StorefrontBaseView(views.APIView):
     def resolve_tenant(self, request):
         slug = request.query_params.get('slug')
         domain = request.query_params.get('domain')
-        import logging
-        logger = logging.getLogger(__name__)
         
         tenant = getattr(request, 'tenant', None)
         if not tenant:

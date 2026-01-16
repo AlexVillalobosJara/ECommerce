@@ -54,13 +54,14 @@ def invalidate_category_cache(tenant_id):
 def invalidate_tenant_cache(tenant_id):
     """
     Invalidate all tenant-related cache.
-    
-    Args:
-        tenant_id: UUID of the tenant
     """
     try:
         cache.delete(f"tenant_settings_{tenant_id}")
         cache.delete(f"storefront_common_data_{tenant_id}")
+        cache.delete(f"storefront_home_data_{tenant_id}")
         cache.delete(f"dashboard_stats_{tenant_id}")
+        
+        # Also delete pattern for any other views using tenant_id
+        delete_pattern(f"*_{tenant_id}")
     except Exception:
         pass

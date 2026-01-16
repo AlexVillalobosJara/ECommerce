@@ -45,7 +45,7 @@ export function Header({ onCartClick }: HeaderProps) {
 
     return (
         <>
-            <header className="sticky top-0 z-50 w-full border-b border-border bg-white/80 backdrop-blur-md">
+            <header className="sticky top-0 z-50 w-full border-b border-border/10 backdrop-blur-md" style={{ backgroundColor: 'var(--header-bg, var(--tenant-primary))' }}>
                 <div className="container mx-auto flex h-16 items-center justify-between px-4">
                     {/* Left: Menu + Search */}
                     <div className="flex items-center gap-4">
@@ -54,6 +54,8 @@ export function Header({ onCartClick }: HeaderProps) {
                             size="icon"
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                             aria-label="Open menu"
+                            className="hover:text-white hover:bg-[var(--accent-dark)]"
+                            style={{ color: 'var(--header-text, var(--tenant-secondary-text))' }}
                         >
                             <Menu className="size-5" />
                         </Button>
@@ -62,6 +64,8 @@ export function Header({ onCartClick }: HeaderProps) {
                             size="icon"
                             onClick={() => setSearchOpen(!searchOpen)}
                             aria-label="Search"
+                            className="hover:text-white hover:bg-[var(--accent-dark)]"
+                            style={{ color: 'var(--header-text, var(--tenant-secondary-text))' }}
                         >
                             {searchOpen ? <X className="size-5" /> : <Search className="size-5" />}
                         </Button>
@@ -77,7 +81,7 @@ export function Header({ onCartClick }: HeaderProps) {
                                     className="h-8 w-auto object-contain"
                                 />
                             )}
-                            <span className="font-serif text-xl font-normal tracking-wider">
+                            <span className="font-serif text-xl font-normal tracking-wider" style={{ color: 'var(--header-text, var(--tenant-secondary-text))' }}>
                                 {tenant?.name || "Store"}
                             </span>
                         </Link>
@@ -92,7 +96,8 @@ export function Header({ onCartClick }: HeaderProps) {
                         {tenant?.phone && (
                             <a
                                 href={`tel:${tenant.phone}`}
-                                className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                className="hidden lg:flex items-center gap-2 px-3 py-1.5 text-sm font-medium hover:text-white transition-colors"
+                                style={{ color: 'var(--header-text, var(--tenant-secondary-text))' }}
                             >
                                 <Phone className="size-4" />
                                 <span>{tenant.phone}</span>
@@ -115,13 +120,24 @@ export function Header({ onCartClick }: HeaderProps) {
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="relative"
+                            className="relative hover:text-white"
+                            style={{
+                                color: 'var(--header-text, var(--tenant-secondary-text))',
+                                ['--hover-bg' as any]: 'var(--header-text, var(--tenant-secondary-text))'
+                            }}
+                            onMouseEnter={(e) => {
+                                const bg = getComputedStyle(e.currentTarget).getPropertyValue('--hover-bg')
+                                e.currentTarget.style.backgroundColor = bg + '20' // 20 = ~12% opacity
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = 'transparent'
+                            }}
                             aria-label="Shopping cart"
                             onClick={onCartClick}
                         >
                             <ShoppingBag className="size-5" />
                             {cartCount > 0 && (
-                                <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground font-bold">
+                                <span className="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-white text-xs text-primary font-bold">
                                     {cartCount > 9 ? "9+" : cartCount}
                                 </span>
                             )}

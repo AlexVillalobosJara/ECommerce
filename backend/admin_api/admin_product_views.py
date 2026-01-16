@@ -2,10 +2,11 @@ import os
 import uuid
 from datetime import datetime
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes, throttle_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .admin_user_views import IsTenantAdmin
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.db.models import Q, Count, OuterRef, Subquery, Min, Max, Sum
@@ -645,3 +646,64 @@ def image_set_primary(request, product_id, image_id):
     
     serializer = ProductImageAdminSerializer(image)
     return Response(serializer.data)
+
+
+# ============================================================================
+# TEST ENDPOINT - CSRF BYPASS VERIFICATION
+# ============================================================================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def test_csrf_bypass(request):
+    """
+    Test endpoint to verify CSRF bypass is working
+    """
+    return Response({
+        'success': True,
+        'message': 'CSRF bypass is working!',
+        'path': request.path,
+        'csrf_check_disabled': getattr(request, '_dont_enforce_csrf_checks', False)
+    })
+
+
+# ============================================================================
+# AI CONTENT GENERATION
+# ============================================================================
+
+from rest_framework.decorators import authentication_classes
+from admin_api.jwt_authentication import TenantJWTAuthentication
+
+from rest_framework.throttling import UserRateThrottle
+
+class AIRateThrottle(UserRateThrottle):
+    rate = '15/m'
+
+@api_view(['POST'])
+@authentication_classes([TenantJWTAuthentication])  # ONLY JWT - no SessionAuthentication (which enforces CSRF)
+@permission_classes([IsAuthenticated, IsTenantAdmin])
+@throttle_classes([AIRateThrottle])
+def generate_ai_content(request):
+    """
+    Generate product content using AI
+    Body: {"product_name": "Product Name", "ai_prompt": "Instructions"}
+    """
+    try:
+        product_name = request.data.get('product_name')
+        ai_prompt = request.data.get('ai_prompt')
+        
+        if not product_name and not ai_prompt:
+            return Response(
+                {'error': 'Product name or AI prompt is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        from products.deepseek_service import deepseek_service
+        content = deepseek_service.generate_product_content(product_name, ai_prompt)
+        
+        return Response(content)
+    
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
