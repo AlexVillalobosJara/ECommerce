@@ -111,6 +111,7 @@ export function ProductClientPage({ tenant, product, relatedProducts, categories
             <Header
                 onCartClick={() => setCartOpen(true)}
                 categories={categories}
+                tenant={tenant}
             />
 
             <main className="container max-w-6xl mx-auto px-4 py-12 pt-16">

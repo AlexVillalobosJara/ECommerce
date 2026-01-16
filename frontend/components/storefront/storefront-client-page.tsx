@@ -155,6 +155,7 @@ export function StorefrontClientPage({ initialData }: StorefrontClientPageProps)
             <Header
                 onCartClick={() => setCartOpen(true)}
                 categories={categories}
+                tenant={tenant}
             />
 
             <HeroSection

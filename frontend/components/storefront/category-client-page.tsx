@@ -105,6 +105,7 @@ export function CategoryClientPage({
             <Header
                 onCartClick={() => setCartOpen(true)}
                 categories={allCategories}
+                tenant={tenant}
             />
 
             <main className="flex-1">

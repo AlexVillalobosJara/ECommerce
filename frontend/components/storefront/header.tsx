@@ -18,8 +18,17 @@ interface HeaderProps {
     categories: Category[]
 }
 
-export function Header({ onCartClick, categories }: HeaderProps) {
-    const { tenant } = useTenant()
+interface HeaderProps {
+    onCartClick?: () => void
+    categories: Category[]
+    tenant?: any // Pass tenant from server to avoid hydration delay
+}
+
+export function Header({ onCartClick, categories, tenant: serverTenant }: HeaderProps) {
+    const { tenant: contextTenant } = useTenant()
+    // Use server tenant if available (instant), otherwise fall back to context (client fetch)
+    const tenant = serverTenant || contextTenant
+
     const { getTotalItems } = useCart()
     const cartCount = getTotalItems()
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
