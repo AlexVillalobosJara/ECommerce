@@ -27,8 +27,8 @@ class TransbankService(PaymentGatewayService):
                 from tenants.payment_config_models import PaymentGatewayConfig
                 config = PaymentGatewayConfig.objects.filter(
                     tenant=tenant,
-                    gateway='Transbank',
-                    is_active=True
+                    gateway='Transbank'
+                    # Allow loading inactive configs (e.g. for certification/setup)
                 ).first()
                 
                 if config:

@@ -100,7 +100,7 @@ export function PaymentSettings() {
     const [showCertificationDialog, setShowCertificationDialog] = useState(false)
 
     useEffect(() => {
-        loadGateways()
+        loadGateways(true)
     }, [])
 
     // ... imports need to be updated first, doing it in separate call if easier, but let's try to add the function logic first
@@ -138,9 +138,9 @@ export function PaymentSettings() {
 
     // ... (rest of the component)
 
-    const loadGateways = async () => {
+    const loadGateways = async (showLoadingSpinner = false) => {
         try {
-            setLoading(true)
+            if (showLoadingSpinner) setLoading(true)
             setError(null)
             console.log("Loading gateways...")
 
@@ -293,7 +293,7 @@ export function PaymentSettings() {
                         <div>
                             <p className="font-medium text-destructive">Error al cargar pasarelas</p>
                             <p className="text-sm text-muted-foreground mt-1">{error}</p>
-                            <Button onClick={loadGateways} variant="outline" size="sm" className="mt-3">
+                            <Button onClick={() => loadGateways(true)} variant="outline" size="sm" className="mt-3">
                                 Reintentar
                             </Button>
                         </div>
