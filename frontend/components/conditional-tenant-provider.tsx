@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation"
 import { TenantProvider } from "@/contexts/TenantContext"
-import { TenantStyleProvider } from "@/components/tenant-style-provider"
 import type { ReactNode } from "react"
 
 interface ConditionalTenantProviderProps {
