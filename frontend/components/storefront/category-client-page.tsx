@@ -102,7 +102,10 @@ export function CategoryClientPage({
 
     return (
         <div className="flex min-h-screen flex-col bg-white">
-            <Header onCartClick={() => setCartOpen(true)} />
+            <Header
+                onCartClick={() => setCartOpen(true)}
+                categories={allCategories}
+            />
 
             <main className="flex-1">
                 <div className="relative bg-muted/30 py-12 md:py-16 overflow-hidden">

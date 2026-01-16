@@ -15,33 +15,18 @@ import type { Category } from "@/types/product"
 
 interface HeaderProps {
     onCartClick?: () => void
+    categories: Category[]
 }
 
-export function Header({ onCartClick }: HeaderProps) {
+export function Header({ onCartClick, categories }: HeaderProps) {
     const { tenant } = useTenant()
     const { getTotalItems } = useCart()
     const cartCount = getTotalItems()
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const [searchOpen, setSearchOpen] = useState(false)
-    const [categories, setCategories] = useState<Category[]>([])
 
-    // Fetch categories on mount
-    useEffect(() => {
-        async function loadCategories() {
-            if (!tenant) return
-            try {
-                const data = await storefrontApi.getCategories(tenant.slug)
-                // Filter only root categories (no parent) if needed, or take all
-                // For the menu, usually we show top-level. 
-                const rootCategories = data.filter(c => !c.parent)
-                setCategories(rootCategories)
-            } catch (error) {
-                console.error("Failed to load categories:", error)
-            }
-        }
-
-        loadCategories()
-    }, [tenant])
+    // Derived from props instead of fetch
+    const rootCategories = categories.filter(c => !c.parent)
 
     return (
         <>
@@ -159,7 +144,7 @@ export function Header({ onCartClick }: HeaderProps) {
             <MobileMenu
                 open={mobileMenuOpen}
                 onOpenChange={setMobileMenuOpen}
-                categories={categories}
+                categories={rootCategories}
                 tenant={tenant}
             />
         </>

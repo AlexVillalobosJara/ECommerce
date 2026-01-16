@@ -147,6 +147,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                     tenant={data.tenant}
                     product={data.product}
                     relatedProducts={data.related_products}
+                    categories={data.categories}
                 />
             </>
         )

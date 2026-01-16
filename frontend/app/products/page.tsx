@@ -138,7 +138,10 @@ function ProductsContent() {
 
     return (
         <div className="min-h-screen bg-white flex flex-col">
-            <Header onCartClick={() => setCartOpen(true)} />
+            <Header
+                onCartClick={() => setCartOpen(true)}
+                categories={categories}
+            />
             <main className="flex-1 container mx-auto px-4 py-8">
                 {/* Breadcrumbs / Title */}
                 <nav className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">

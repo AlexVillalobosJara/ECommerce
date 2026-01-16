@@ -152,7 +152,10 @@ export function StorefrontClientPage({ initialData }: StorefrontClientPageProps)
 
     return (
         <div className="min-h-screen bg-white">
-            <Header onCartClick={() => setCartOpen(true)} />
+            <Header
+                onCartClick={() => setCartOpen(true)}
+                categories={categories}
+            />
 
             <HeroSection
                 title={tenant.hero_title || "El Arte del Diseño Minimalista"}

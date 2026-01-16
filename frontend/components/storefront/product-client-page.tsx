@@ -28,9 +28,10 @@ interface ProductClientPageProps {
     tenant: any
     product: ProductDetail
     relatedProducts: any[]
+    categories: any[]
 }
 
-export function ProductClientPage({ tenant, product, relatedProducts }: ProductClientPageProps) {
+export function ProductClientPage({ tenant, product, relatedProducts, categories }: ProductClientPageProps) {
     const router = useRouter()
     const { purchaseItems, quoteItems, addToCart, updateQuantity, removeFromCart } = useCart()
 
@@ -107,7 +108,10 @@ export function ProductClientPage({ tenant, product, relatedProducts }: ProductC
 
     return (
         <div className="min-h-screen bg-white">
-            <Header onCartClick={() => setCartOpen(true)} />
+            <Header
+                onCartClick={() => setCartOpen(true)}
+                categories={categories}
+            />
 
             <main className="container max-w-6xl mx-auto px-4 py-12 pt-16">
                 <div className="mb-10">

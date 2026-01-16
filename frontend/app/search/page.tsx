@@ -121,9 +121,7 @@ function SearchContent() {
 
     return (
         <div className="min-h-screen bg-white">
-            <Header
-                onCartClick={() => setCartOpen(true)}
-            />
+            <Header onCartClick={() => setCartOpen(true)} categories={[]} />
 
             <main className="container mx-auto px-4 py-12">
                 <div className="mb-8">
