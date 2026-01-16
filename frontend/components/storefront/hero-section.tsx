@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { getImageUrl } from "@/lib/image-utils"
+import Image from "next/image"
 
 interface HeroSectionProps {
     title: string
@@ -26,13 +27,14 @@ export function HeroSection({
         <section className="relative h-[80vh] min-h-[600px] w-full overflow-hidden">
             {/* Background Image */}
             <div className="absolute inset-0">
-                <img
+                <Image
                     src={getImageUrl(backgroundImage)}
                     alt="Hero background"
-                    className="size-full object-cover scale-105 animate-fade-in"
-                    loading={priority ? "eager" : "lazy"}
-                    // @ts-ignore
-                    fetchPriority={priority ? "high" : "auto"}
+                    fill
+                    priority={priority}
+                    className="object-cover scale-105 animate-fade-in"
+                    sizes="100vw"
+                    quality={85}
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/40" />
             </div>
