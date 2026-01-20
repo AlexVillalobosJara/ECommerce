@@ -10,6 +10,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunSQL(
+            sql='ALTER TABLE "shipping_zones" ALTER COLUMN "commune_codes" TYPE jsonb USING to_jsonb("commune_codes")',
+            reverse_sql='ALTER TABLE "shipping_zones" ALTER COLUMN "commune_codes" TYPE character varying[] USING (SELECT array_agg(e)::character varying[] FROM jsonb_array_elements_text("commune_codes") as e)'
+        ),
         migrations.AlterField(
             model_name='shippingzone',
             name='commune_codes',
