@@ -5,6 +5,10 @@
 
 import { supabase, SUPABASE_BUCKET } from './supabase'
 import { v4 as uuidv4 } from 'uuid'
+import { fetchWithAuth, getHeaders, API_BASE_URL } from './api-client'
+
+// Environment detection
+const IS_DEV = process.env.NODE_ENV === 'development'
 
 export type ImageFolder = 'products' | 'categories' | 'tenant'
 
@@ -30,6 +34,40 @@ export async function uploadImageToSupabase(
     if (!tenantId) {
         throw new Error('Tenant ID is required for image upload')
     }
+
+    // ------------------------------------------------------------------
+    // LOCAL DEVELOPMENT OVERRIDE
+    // ------------------------------------------------------------------
+    if (IS_DEV) {
+        console.log('[Upload] Using Local Storage (Dev Environment)')
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('folder', folder)
+
+        try {
+            const response = await fetchWithAuth(`${API_BASE_URL}/api/admin/media/upload/`, {
+                method: 'POST',
+                headers: getHeaders(false), // Content-Type handled by fetch for FormData
+                body: formData
+            })
+
+            if (!response.ok) {
+                const errorText = await response.text()
+                throw new Error(errorText || 'Local upload failed')
+            }
+
+            const data = await response.json()
+            return {
+                url: data.url,
+                path: data.path,
+                size: data.size
+            }
+        } catch (error) {
+            console.error('Local upload failed:', error)
+            throw error
+        }
+    }
+    // ------------------------------------------------------------------
 
     // Generate unique filename with tenant prefix
     const timestamp = Date.now()
@@ -82,6 +120,11 @@ export async function uploadImageToSupabase(
  * @param path - The storage path of the image
  */
 export async function deleteImageFromSupabase(path: string): Promise<void> {
+    if (IS_DEV) {
+        console.log('[Delete] Skipping Supabase delete in Local Dev (Not implemented for local yet)')
+        return
+    }
+
     if (!supabase) return
 
     try {

@@ -14,9 +14,10 @@ import { ProductSettings } from "./product-settings"
 import { ProductSpecifications } from "./product-specifications"
 import { ProductSEO } from "./product-seo"
 import { ProductPhysicalAttributes } from "./product-physical-attributes"
+import { ProductFeaturesEditor } from "./products/product-features-editor"
 import { getProductImageUrl } from "@/lib/image-utils"
 import type { AdminProduct } from "@/types/admin"
-import { getProduct, createProduct, updateProduct, getCategories, createVariant, updateVariant, deleteVariant } from "@/services/adminProductService"
+import { getProduct, createProduct, updateProduct, getCategories, createVariant, updateVariant, deleteVariant, createProductFeature, updateProductFeature, deleteProductFeature } from "@/services/adminProductService"
 import { useTenant } from "@/contexts/TenantContext"
 import { formatPrice } from "@/lib/format-price"
 import { useAdminUI } from "@/contexts/AdminUIContext"
@@ -35,6 +36,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
     const [loading, setLoading] = useState(!!productId)
     const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([])
     const [originalVariants, setOriginalVariants] = useState<any[]>([])
+    const [originalFeatures, setOriginalFeatures] = useState<any[]>([])
     const [formData, setFormData] = useState<any>({
         name: "",
         slug: "",
@@ -48,10 +50,12 @@ export function ProductEditor({ productId }: ProductEditorProps) {
         manage_stock: true,
         status: "Draft" as "Draft" | "Published" | "Archived",
         is_featured: false,
+        is_referential_image: false,
         price: "",
         stock: "",
         images: [] as import('@/types/admin').AdminProductImage[],
         variants: [] as any[],
+        features: [] as any[],
         specifications: {} as Record<string, string>,
         min_shipping_days: 0,
         // SEO fields
@@ -130,11 +134,13 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                 manage_stock: data.manage_stock !== undefined ? data.manage_stock : true,
                 status: data.status || "Draft",
                 is_featured: data.is_featured || false,
+                is_referential_image: data.is_referential_image || false,
                 price: data.variants[0]?.price?.toString() || "",
                 stock: data.variants[0]?.stock_quantity?.toString() || "",
                 images: data.images || [],
                 // Deep copy variants to prevent reference mutation
                 variants: JSON.parse(JSON.stringify(data.variants || [])),
+                features: JSON.parse(JSON.stringify(data.features || [])),
                 specifications: data.specifications || {},
                 min_shipping_days: data.min_shipping_days || 0,
                 // SEO fields
@@ -235,6 +241,51 @@ export function ProductEditor({ productId }: ProductEditorProps) {
         }
     }
 
+    const syncFeatures = async (productId: string) => {
+        // Compare current features with original
+        const currentFeatures = formData.features
+
+        // Identify features to create, update, and delete
+        const featuresToCreate = currentFeatures.filter((v: any) => v.id?.startsWith('temp-') || !v.id)
+        const featuresToUpdate = currentFeatures.filter((v: any) => v.id && !v.id.startsWith('temp-'))
+        const featuresToDelete = originalFeatures.filter(
+            (orig: any) => !orig.id?.startsWith('temp-') && !currentFeatures.find((curr: any) => curr.id === orig.id)
+        )
+
+        try {
+            // Delete removed
+            for (const feature of featuresToDelete) {
+                await deleteProductFeature(productId, feature.id)
+            }
+
+            // Create new
+            for (const feature of featuresToCreate) {
+                await createProductFeature(productId, {
+                    title: feature.title,
+                    description: feature.description,
+                    image_url: feature.image_url,
+                    sort_order: feature.sort_order
+                })
+            }
+
+            // Update existing
+            for (const feature of featuresToUpdate) {
+                await updateProductFeature(productId, feature.id, {
+                    title: feature.title,
+                    description: feature.description,
+                    image_url: feature.image_url,
+                    sort_order: feature.sort_order
+                })
+            }
+
+            // Update original state
+            setOriginalFeatures(formData.features.filter((f: any) => f.id && !f.id.startsWith('temp-')))
+        } catch (error: any) {
+            console.error('Error syncing features:', error)
+            throw new Error(`Error al sincronizar características: ${error.message}`)
+        }
+    }
+
     const handleSave = async () => {
         try {
             setIsSaving(true)
@@ -253,6 +304,7 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                 manage_stock: formData.manage_stock,
                 status: formData.status,
                 is_featured: formData.is_featured,
+                is_referential_image: formData.is_referential_image,
                 specifications: formData.specifications,
                 min_shipping_days: formData.min_shipping_days,
                 // SEO fields
@@ -278,15 +330,21 @@ export function ProductEditor({ productId }: ProductEditorProps) {
 
             if (isEditing && productId) {
                 await updateProduct(productId, productData)
-                // Sync variants after updating product
-                await syncVariants(productId)
+                // Sync variants and features
+                await Promise.all([
+                    syncVariants(productId),
+                    syncFeatures(productId)
+                ])
                 toast.success("Producto actualizado correctamente")
             } else {
                 const newProduct = await createProduct(productData)
                 savedProductId = newProduct.id
-                // Sync variants after creating product
+                // Sync variants and features
                 if (formData.variants.length > 0) {
                     await syncVariants(newProduct.id)
+                }
+                if (formData.features.length > 0) {
+                    await syncFeatures(newProduct.id)
                 }
                 toast.success("Producto creado correctamente")
             }
@@ -367,6 +425,12 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                         <ProductSEO data={formData} onChange={updateFormData} />
 
                         <ProductPhysicalAttributes data={formData} onChange={updateFormData} />
+
+                        <ProductFeaturesEditor
+                            productId={productId}
+                            features={formData.features}
+                            onChange={(features) => updateFormData({ features })}
+                        />
 
                         {/* Preview Card */}
                         <Card className="p-6 space-y-4 sticky top-24">

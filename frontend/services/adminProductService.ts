@@ -402,3 +402,58 @@ export async function setProductImagePrimary(productId: string, imageId: string)
 
     return response.json()
 }
+
+// ============================================================================
+// PRODUCT FEATURES ENDPOINTS
+// ============================================================================
+
+export interface AdminProductFeature {
+    id: string
+    image_url: string
+    title: string
+    description: string
+    sort_order: number
+}
+
+export async function createProductFeature(productId: string, data: Partial<AdminProductFeature>): Promise<AdminProductFeature> {
+    const response = await fetchWithAuth(`${API_BASE}/products/${productId}/features/`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to create feature')
+    }
+
+    return response.json()
+}
+
+export async function updateProductFeature(
+    productId: string,
+    featureId: string,
+    data: Partial<AdminProductFeature>
+): Promise<AdminProductFeature> {
+    const response = await fetchWithAuth(`${API_BASE}/products/${productId}/features/${featureId}/`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to update feature')
+    }
+
+    return response.json()
+}
+
+export async function deleteProductFeature(productId: string, featureId: string): Promise<void> {
+    const response = await fetchWithAuth(`${API_BASE}/products/${productId}/features/${featureId}/`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to delete feature')
+    }
+}

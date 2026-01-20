@@ -334,6 +334,11 @@ def category_detail(request, category_id):
         )
         if serializer.is_valid():
             serializer.save()
+            
+            # Invalidate category cache
+            from core.cache_utils import invalidate_category_cache
+            invalidate_category_cache(tenant.id)
+            
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -356,6 +361,11 @@ def category_detail(request, category_id):
         from django.utils import timezone
         category.deleted_at = timezone.now()
         category.save()
+        
+        # Invalidate category cache
+        from core.cache_utils import invalidate_category_cache
+        invalidate_category_cache(tenant.id)
+        
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -403,6 +413,118 @@ def category_reorder(request):
 # VARIANT ENDPOINTS
 # ============================================================================
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsTenantAdmin])
+def generate_ai_content(request):
+    """
+    Generate content using AI (Gemini)
+    Body:
+    - name: Product/Category name
+    - description: Base description (optional)
+    - type: 'product' or 'category' (default: 'product')
+    - keywords: Optional keywords to include
+    """
+    tenant = request.tenant
+    
+    name = request.data.get('name') or request.data.get('product_name')
+    ai_prompt = request.data.get('ai_prompt', '')
+    base_description = request.data.get('description', '')
+    content_type = request.data.get('type', 'product')
+    keywords = request.data.get('keywords', '')
+    
+    if not name and not ai_prompt:
+        return Response(
+            {'error': 'Name or AI prompt is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Configure Gemini - NO LONGER USED DIRECTLY
+    # Use shared service instead to avoid missing dependencies and enable fallback
+    
+    try:
+        # Get country from tenant or default to Chile
+        country = 'Chile'
+        if tenant:
+            country = getattr(tenant, 'country', 'Chile')
+        
+        # Build prompt based on type
+        if content_type == 'category':
+            prompt = f"""
+            Actúa como un experto en SEO y Copywriting para E-commerce en {country}.
+            Genera contenido persuasivo y optimizado para motores de búsqueda (Google {country}) para una categoría de productos.
+            
+            Datos de la Categoría:
+            Nombre: {name}
+            Descripción base: {base_description}
+            Palabras clave: {keywords}
+            
+            Instrucciones:
+            {f"Instrucciones adicionales: {ai_prompt}" if ai_prompt else ""}
+            1. Genera una 'description' atractiva (2-3 párrafos) que invite a explorar los productos, usando modismos locales de {country} sutiles si aplica, y enfocada en la conversión.
+            3. Genera un 'meta_title' optimizado para SEO (max 60 caracteres) con el formato EXACTO: "[Nombre Categoría] | [Beneficio]". NO incluyas palabras como "Chile" o guiones extra. Ejemplo: "Esmeriles Inalámbricos | Potencia Profesional".
+            4. Genera una 'meta_description' persuasiva (max 155 caracteres) que incluya un llamado a la acción.
+            5. El tono debe ser profesional pero cercano.
+            
+            Formato de Salida JSON Estricto:
+            {{
+                "description": "...",
+                "meta_title": "...",
+                "meta_description": "..."
+            }}
+            """
+        else: # Product
+            prompt = f"""
+            Actúa como un experto en SEO y Copywriting para E-commerce en {country}.
+            Genera contenido persuasivo y optimizado para motores de búsqueda (Google {country}) para un producto.
+            
+            Datos del Producto:
+            Nombre: {name}
+            Descripción base: {base_description}
+            Palabras clave: {keywords}
+            
+            Instrucciones:
+            {f"Instrucciones adicionales: {ai_prompt}" if ai_prompt else ""}
+            1. Genera una 'short_description' (2-3 oraciones) usando Markdown simple (negritas **texto**).
+            2. Genera una 'full_description' como UN SOLO STRING DE HTML SIN SALTOS DE LÍNEA (\n). Estructura exacta: "<h3>[Nombre Producto]</h3><p>[Descripción comercial...]</p><h3>Características clave</h3><ul><li>[Beneficio 1]</li><li>[Beneficio 2]</li></ul>". NO uses saltos de línea para "formatear" el código.
+            3. Genera un 'meta_title' optimizado para SEO (max 60 caracteres) con el formato EXACTO: "[Nombre Producto] | [Beneficio]". Ejemplo: "Taladro Percutor 18V | Perforación Precisa".
+            4. Genera una 'meta_description' persuasiva (max 155 caracteres).
+            5. Genera 'technical_specs' como un objeto con especificaciones técnicas estimadas o basadas en el nombre.
+            
+            Formato de Salida JSON Estricto:
+            {{
+                "short_description": "...",
+                "full_description": "...",
+                "meta_title": "...",
+                "meta_description": "...",
+                "keywords": "palabra1, palabra2...",
+                "technical_specs": {{
+                    "Material": "...",
+                    "Dimensiones": "...",
+                    "Peso": "..."
+                }}
+            }}
+            """
+            
+        # Generate content using shared service
+        from products.deepseek_service import deepseek_service
+        data = deepseek_service.generate_from_prompt(prompt)
+        return Response(data)
+            
+    except Exception as e:
+        print(f"AI Generation Error: {str(e)}")
+        # Fallback for critical errors
+        return Response(
+            {'error': f'Failed to generate content: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+            
+    except Exception as e:
+        print(f"AI Generation Error: {str(e)}")
+        return Response(
+            {'error': f'Failed to generate content: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, IsTenantAdmin])
 def variant_create(request, product_id):
@@ -667,43 +789,4 @@ def test_csrf_bypass(request):
 
 
 # ============================================================================
-# AI CONTENT GENERATION
-# ============================================================================
 
-from rest_framework.decorators import authentication_classes
-from admin_api.jwt_authentication import TenantJWTAuthentication
-
-from rest_framework.throttling import UserRateThrottle
-
-class AIRateThrottle(UserRateThrottle):
-    rate = '15/m'
-
-@api_view(['POST'])
-@authentication_classes([TenantJWTAuthentication])  # ONLY JWT - no SessionAuthentication (which enforces CSRF)
-@permission_classes([IsAuthenticated, IsTenantAdmin])
-@throttle_classes([AIRateThrottle])
-def generate_ai_content(request):
-    """
-    Generate product content using AI
-    Body: {"product_name": "Product Name", "ai_prompt": "Instructions"}
-    """
-    try:
-        product_name = request.data.get('product_name')
-        ai_prompt = request.data.get('ai_prompt')
-        
-        if not product_name and not ai_prompt:
-            return Response(
-                {'error': 'Product name or AI prompt is required'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-            
-        from products.deepseek_service import deepseek_service
-        content = deepseek_service.generate_product_content(product_name, ai_prompt)
-        
-        return Response(content)
-    
-    except Exception as e:
-        return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )

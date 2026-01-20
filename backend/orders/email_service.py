@@ -236,7 +236,7 @@ def send_quote_response_notification(order):
         
         params = {
             "from": "Zumi Store <onboarding@resend.dev>",
-            "to": settings.ADMIN_EMAIL,
+            "to": order.customer_email,
             "subject": f"Tu Cotizacion esta Lista - {order.order_number}",
             "html": html_content,
             "attachments": [{"filename": f"Cotizacion_{order.order_number}.pdf", "content": pdf_base64}]

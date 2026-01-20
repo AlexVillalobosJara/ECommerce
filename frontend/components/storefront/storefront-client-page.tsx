@@ -14,6 +14,8 @@ import { useCart } from "@/hooks/useCart"
 import { storefrontApi } from "@/services/storefront-api"
 import { CatalogCTA } from "@/components/storefront/catalog-cta"
 import type { Category, ProductList } from "@/types/product"
+import { BlueVoltHeader } from "@/components/storefront/bluevolt/header"
+import { BlueVoltHero } from "@/components/storefront/bluevolt/hero-section"
 
 interface StorefrontClientPageProps {
     initialData: {
@@ -87,7 +89,7 @@ function ProductListing({
                 </div>
             </div>
 
-            <div className="flex gap-12">
+            <div className="flex gap-20">
                 <div className="hidden w-[240px] shrink-0 lg:block">
                     <div className="sticky top-24">
                         <ProductFiltersSidebar
@@ -102,7 +104,7 @@ function ProductListing({
                     {productsLoading ? (
                         <ProductGridSkeleton count={6} />
                     ) : (
-                        <div className="grid grid-cols-1 gap-x-8 gap-y-16 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-x-12 gap-y-24 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                             {products.map((product, index) => (
                                 <ProductCard
                                     key={product.id}
@@ -152,22 +154,44 @@ export function StorefrontClientPage({ initialData }: StorefrontClientPageProps)
 
     return (
         <div className="min-h-screen bg-white">
-            <Header
-                onCartClick={() => setCartOpen(true)}
-                categories={categories}
-                tenant={tenant}
-            />
+            {tenant.slug === 'bluevolt' ? (
+                <BlueVoltHeader
+                    onMenuClick={() => { }} // Mobile menu logic differs, placeholder
+                    onCartClick={() => setCartOpen(true)}
+                    cartItemsCount={purchaseItems.length + quoteItems.length}
+                    categories={categories}
+                    tenant={tenant}
+                />
+            ) : (
+                <Header
+                    onCartClick={() => setCartOpen(true)}
+                    categories={categories}
+                    tenant={tenant}
+                />
+            )}
 
-            <HeroSection
-                title={tenant.hero_title || "El Arte del Diseño Minimalista"}
-                subtitle={tenant.hero_subtitle || "Cada pieza cuenta una historia de elegancia y funcionalidad"}
-                ctaText={tenant.hero_cta_text || "Explorar Colección"}
-                backgroundImage={tenant.hero_image_url || "/hero-stainless-kitchen.jpg"}
-                onCtaClick={() => {
-                    document.getElementById('featured-products')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                priority // Always priority on home page
-            />
+            {tenant.slug === 'bluevolt' ? (
+                <BlueVoltHero
+                    title={tenant.hero_title || "Potencia y Precisión Profesional"}
+                    subtitle={tenant.hero_subtitle || "Herramientas de alto rendimiento para proyectos exigentes"}
+                    ctaText={tenant.hero_cta_text || "Explorar Catálogo"}
+                    backgroundImage={tenant.hero_image_url || "/hero-tools.jpg"}
+                    onCtaClick={() => {
+                        document.getElementById('featured-products')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                />
+            ) : (
+                <HeroSection
+                    title={tenant.hero_title || "El Arte del Diseño Minimalista"}
+                    subtitle={tenant.hero_subtitle || "Cada pieza cuenta una historia de elegancia y funcionalidad"}
+                    ctaText={tenant.hero_cta_text || "Explorar Colección"}
+                    backgroundImage={tenant.hero_image_url || "/hero-stainless-kitchen.jpg"}
+                    onCtaClick={() => {
+                        document.getElementById('featured-products')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    priority // Always priority on home page
+                />
+            )}
 
             <CategoriesSection categories={categories} />
 

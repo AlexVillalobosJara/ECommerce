@@ -39,3 +39,5 @@ export function getHeaders(includeContentType = true): HeadersInit {
 
     return headers
 }
+
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"

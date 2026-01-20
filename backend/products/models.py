@@ -98,6 +98,9 @@ class Product(models.Model):
     length_cm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     width_cm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     height_cm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    
+    # Display Options
+    is_referential_image = models.BooleanField(default=False, help_text="If true, shows 'Images are referential' disclaimer")
     min_shipping_days = models.IntegerField(default=0, help_text="Minimum days required before shipping this product")
     
     # Statistics
@@ -229,6 +232,35 @@ class ProductImage(models.Model):
     
     def __str__(self):
         return f"Image for {self.product.name}"
+
+
+class ProductFeature(models.Model):
+    """Product features (visual highlights)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='product_features')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='features')
+    
+    # Content
+    image_url = models.TextField()  # Relative URL to media
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    
+    # Ordering
+    sort_order = models.IntegerField(default=0)
+    
+    # Audit
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'product_features'
+        ordering = ['sort_order', 'created_at']
+        indexes = [
+            models.Index(fields=['product', 'sort_order']),
+        ]
+    
+    def __str__(self):
+        return f"{self.title} - {self.product.name}"
 
 
 class ProductReview(models.Model):

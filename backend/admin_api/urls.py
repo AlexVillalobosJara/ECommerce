@@ -17,6 +17,10 @@ from .admin_product_views import (
     generate_ai_content,
     test_csrf_bypass,
 )
+from .admin_product_features_views import (
+    product_feature_create,
+    product_feature_detail
+)
 from .admin_cache_views import (
     cache_diagnostics,
     clear_tenant_cache,
@@ -49,6 +53,7 @@ from .admin_marketing_views import TenantMarketingConfigViewSet
 from .admin_seo_views import AdminRedirectViewSet
 from .admin_dashboard_views import AdminDashboardViewSet
 from .admin_tenant_views import AdminTenantViewSet
+from .views_media import upload_media
 
 app_name = 'admin_api'
 
@@ -84,7 +89,16 @@ urlpatterns = [
     # Images
     path('products/<uuid:product_id>/images/upload/', image_upload, name='image_upload'),
     path('products/<uuid:product_id>/images/<uuid:image_id>/', image_detail, name='image_detail'),
+    path('products/<uuid:product_id>/images/upload/', image_upload, name='image_upload'),
+    path('products/<uuid:product_id>/images/<uuid:image_id>/', image_detail, name='image_detail'),
     path('products/<uuid:product_id>/images/<uuid:image_id>/set-primary/', image_set_primary, name='image_set_primary'),
+    
+    # Generic Media Upload (Local Dev)
+    path('media/upload/', upload_media, name='media_upload'),
+    
+    # Features (Content Images)
+    path('products/<uuid:product_id>/features/', product_feature_create, name='product_feature_create'),
+    path('products/<uuid:product_id>/features/<uuid:feature_id>/', product_feature_detail, name='product_feature_detail'),
     
     # Orders
     path('orders/', order_list, name='order_list'),

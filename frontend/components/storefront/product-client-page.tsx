@@ -18,6 +18,7 @@ import type { ProductDetail, ProductVariant } from "@/types/product"
 import { RelatedProducts } from "@/components/storefront/related-products"
 import { ProductReviews } from "@/components/storefront/product-reviews"
 import { TechnicalSpecs } from "@/components/storefront/technical-specs"
+import { ProductFeaturesSection } from "@/components/storefront/product-features-section"
 import { formatPrice } from "@/lib/format-price"
 import { getProductImageUrl } from "@/lib/image-utils"
 import { trackViewItem, trackAddToCart } from "@/lib/analytics"
@@ -148,10 +149,13 @@ export function ProductClientPage({ tenant, product, relatedProducts, categories
                                             selectedImageIndex === index ? "border-black" : "border-transparent opacity-60 hover:opacity-100"
                                         )}
                                     >
-                                        <img src={getProductImageUrl(image.url)} alt="" className="w-full h-full object-cover mix-blend-multiply p-1" />
+                                        <img src={getProductImageUrl(image.url)} alt={product.name} className="w-full h-full object-contain mix-blend-multiply p-4" />
                                     </button>
                                 ))}
                             </div>
+                        )}
+                        {product.is_referential_image && (
+                            <p className="text-xs text-muted-foreground mt-2 italic">* Las imágenes son referenciales</p>
                         )}
                     </div>
 
@@ -316,6 +320,9 @@ export function ProductClientPage({ tenant, product, relatedProducts, categories
                         )}
                     </Tabs>
                 </div>
+
+                {/* Product Features Section */}
+                <ProductFeaturesSection features={product.features || []} />
 
                 {tenant.show_related_products !== false && product.category && (
                     <div className="mt-24 mb-12">

@@ -19,7 +19,15 @@ interface CategoryBasicInfoProps {
     categories: AdminCategory[]
 }
 
+import { useState } from "react"
+import { Sparkles, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
+import { getHeaders, API_BASE_URL } from "@/lib/api-client"
+
 export function CategoryBasicInfo({ data, onChange, categories }: CategoryBasicInfoProps) {
+    const [isGenerating, setIsGenerating] = useState(false)
+
     const handleNameChange = (name: string) => {
         const slug = name
             .toLowerCase()
@@ -28,6 +36,40 @@ export function CategoryBasicInfo({ data, onChange, categories }: CategoryBasicI
             .replace(/[^a-z0-9]+/g, "-")
             .replace(/^-+|-+$/g, "")
         onChange({ name, slug })
+    }
+
+    const handleGenerateAI = async () => {
+        if (!data.name) {
+            toast.error("Ingresa un nombre primero")
+            return
+        }
+
+        setIsGenerating(true)
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/admin/products/generate-ai-content/`, {
+                method: "POST",
+                headers: getHeaders(),
+                body: JSON.stringify({
+                    name: data.name,
+                    description: data.description,
+                    type: 'category'
+                })
+            })
+
+            const responseData = await response.json()
+
+            if (!response.ok) throw new Error(responseData.error || "Error generating content")
+
+            if (responseData.description) {
+                onChange({ description: responseData.description })
+                toast.success("Descripción generada con éxito")
+            }
+        } catch (error) {
+            console.error("AI Error:", error)
+            toast.error("Error al generar contenido")
+        } finally {
+            setIsGenerating(false)
+        }
     }
 
     return (
@@ -64,7 +106,24 @@ export function CategoryBasicInfo({ data, onChange, categories }: CategoryBasicI
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="description">Descripción</Label>
+                                <div className="flex justify-between items-center">
+                                    <Label htmlFor="description">Descripción</Label>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleGenerateAI}
+                                        disabled={isGenerating || !data.name}
+                                        className="h-7 text-xs"
+                                        type="button"
+                                    >
+                                        {isGenerating ? (
+                                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                        ) : (
+                                            <Sparkles className="mr-2 h-3 w-3 text-purple-600" />
+                                        )}
+                                        Generar con IA (SEO Chile)
+                                    </Button>
+                                </div>
                                 <Textarea
                                     id="description"
                                     placeholder="Describe brevemente esta categoría..."

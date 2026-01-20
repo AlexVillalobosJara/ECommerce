@@ -59,6 +59,20 @@ export function ProductSettings({ data, onChange }: ProductSettingsProps) {
                             onCheckedChange={(checked) => onChange({ is_featured: checked })}
                         />
                     </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30">
+                        <div className="flex-1">
+                            <Label htmlFor="is_referential_image" className="font-medium cursor-pointer">
+                                Imagen Referencial
+                            </Label>
+                            <p className="text-sm text-muted-foreground mt-1">Mostrar leyenda "Imágenes referenciales"</p>
+                        </div>
+                        <Switch
+                            id="is_referential_image"
+                            checked={data.is_referential_image}
+                            onCheckedChange={(checked) => onChange({ is_referential_image: checked })}
+                        />
+                    </div>
                 </div>
             </CardContent>
         </Card>

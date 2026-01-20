@@ -164,7 +164,12 @@ export function CategoryEditor({ categoryId }: CategoryEditorProps) {
 
                         <CategoryMediaUpload data={formData} onChange={updateFormData} />
 
-                        <CategorySEO data={formData} onChange={updateFormData} />
+                        <CategorySEO
+                            data={formData}
+                            onChange={updateFormData}
+                            productName={formData.name}
+                            description={formData.description}
+                        />
                     </div>
 
                     {/* Sidebar - Right Column */}

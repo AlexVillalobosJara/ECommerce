@@ -5,8 +5,59 @@ Supports: OpenAI, Google Gemini, and can be extended to others
 import os
 import json
 import requests
+import re
+import ast
 from typing import Dict, List, Optional
 from abc import ABC, abstractmethod
+
+
+def extract_json_safely(content: str) -> Dict:
+    """Helper to safely extract and parse JSON from AI response"""
+    content = content.strip()
+    
+    # Remove markdown code blocks
+    if content.startswith('```json'):
+        content = content[7:]
+    if content.startswith('```'):
+        content = content[3:]
+    if content.endswith('```'):
+        content = content[:-3]
+    content = content.strip()
+    
+    # Try regex to find outermost JSON object if simple strip failed
+    match = re.search(r'(\{.*\})', content, re.DOTALL)
+    if match:
+        content = match.group(1)
+        
+    # Attempt 1: Try standard JSON parse (Best for valid, pretty-printed JSON)
+    try:
+        return json.loads(content, strict=False)
+    except json.JSONDecodeError:
+        pass
+
+    # Attempt 2: Try Python literal eval (Best for Python diects, single quotes)
+    try:
+        # Pre-process for Python syntax
+        python_content = content.replace('null', 'None').replace('true', 'True').replace('false', 'False')
+        return ast.literal_eval(python_content)
+    except (ValueError, SyntaxError):
+        pass
+
+    # Attempt 3: Aggressive sanitization (Last resort for "Invalid control char" / unescaped newlines)
+    # This WILL break pretty-printed JSON structure, so only use it if above failed.
+    try:
+        sanitized = content.replace('\n', '\\n').replace('\r', '').replace('\t', '\\t')
+        return json.loads(sanitized, strict=False)
+    except:
+        pass
+        
+    # Attempt 4: Single quote fix (Last resort for messy quotes)
+    try:
+         fixed = content.replace("'", '"')
+         return json.loads(fixed, strict=False)
+    except:
+         # Include part of the content in error for debugging
+         raise ValueError(f"Failed to parse JSON content: {content[:100]}...")
 
 
 class AIProvider(ABC):
@@ -62,20 +113,9 @@ class OpenAIProvider(AIProvider):
         content = result['choices'][0]['message']['content']
         return self._parse_json_response(content)
     
+    
     def _parse_json_response(self, content: str) -> Dict:
-        """Parse JSON from AI response"""
-        content = content.strip()
-        
-        # Remove markdown code blocks
-        if content.startswith('```json'):
-            content = content[7:]
-        if content.startswith('```'):
-            content = content[3:]
-        if content.endswith('```'):
-            content = content[:-3]
-        content = content.strip()
-        
-        return json.loads(content)
+        return extract_json_safely(content)
 
 
 class GeminiProvider(AIProvider):
@@ -117,20 +157,9 @@ class GeminiProvider(AIProvider):
         
         return self._parse_json_response(content)
     
+    
     def _parse_json_response(self, content: str) -> Dict:
-        """Parse JSON from AI response"""
-        content = content.strip()
-        
-        # Remove markdown code blocks
-        if content.startswith('```json'):
-            content = content[7:]
-        if content.startswith('```'):
-            content = content[3:]
-        if content.endswith('```'):
-            content = content[:-3]
-        content = content.strip()
-        
-        return json.loads(content)
+        return extract_json_safely(content)
 
 
 class GroqProvider(AIProvider):
@@ -172,20 +201,9 @@ class GroqProvider(AIProvider):
         content = result['choices'][0]['message']['content']
         return self._parse_json_response(content)
     
+    
     def _parse_json_response(self, content: str) -> Dict:
-        """Parse JSON from AI response"""
-        content = content.strip()
-        
-        # Remove markdown code blocks
-        if content.startswith('```json'):
-            content = content[7:]
-        if content.startswith('```'):
-            content = content[3:]
-        if content.endswith('```'):
-            content = content[:-3]
-        content = content.strip()
-        
-        return json.loads(content)
+        return extract_json_safely(content)
 
 
 class MultiProviderAIService:
@@ -239,7 +257,30 @@ class MultiProviderAIService:
         
         prompt = self._build_prompt(prompt_input, product_name)
         
+        # Define validation logic for products
+        def validate_product_content(content):
+            required_fields = ['short_description', 'full_description', 'meta_title', 
+                             'meta_description', 'keywords', 'technical_specs']
+            for field in required_fields:
+                if field not in content:
+                    raise ValueError(f"Missing required field: {field}")
+            return True
+
+        return self.generate_from_prompt(prompt, validator=validate_product_content)
+
+    def generate_from_prompt(self, prompt: str, validator=None) -> Dict:
+        """
+        Generate content from a raw prompt using available providers with fallback.
+        
+        Args:
+            prompt: The full prompt string to send to AI.
+            validator: Optional function to validate the returned JSON dict.
+                      Should raise ValueError if invalid.
+        """
         errors = []
+        
+        if not self.providers:
+            raise Exception("No AI providers configured. Please add GROQ_API_KEY or OPENAI_API_KEY to your .env file.")
         
         # Try each provider in order
         for provider in self.providers:
@@ -247,13 +288,9 @@ class MultiProviderAIService:
                 print(f"Trying {provider.get_name()}...")
                 content = provider.generate_content(prompt)
                 
-                # Validate required fields
-                required_fields = ['short_description', 'full_description', 'meta_title', 
-                                 'meta_description', 'keywords', 'technical_specs']
-                
-                for field in required_fields:
-                    if field not in content:
-                        raise ValueError(f"Missing required field: {field}")
+                # Optional validation
+                if validator:
+                    validator(content)
                 
                 print(f"✓ Success with {provider.get_name()}")
                 return content

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from products.models import Category, Product, ProductVariant, ProductImage
+from products.models import Category, Product, ProductVariant, ProductImage, ProductFeature
 
 
 class CategoryListSerializer(serializers.ModelSerializer):
@@ -68,6 +68,21 @@ class CategoryDetailSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class ProductActivityAdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage  # Temporary fix, will create dedicated class
+        fields = '__all__'
+
+
+class ProductFeatureAdminSerializer(serializers.ModelSerializer):
+    """Serializer for product features (visual highlights)"""
+    
+    class Meta:
+        model = ProductFeature
+        fields = ['id', 'image_url', 'title', 'description', 'sort_order', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
 class ProductImageAdminSerializer(serializers.ModelSerializer):
     """Serializer for product images in admin"""
     
@@ -108,7 +123,7 @@ class ProductListAdminSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug', 'sku', 'brand', 'short_description', 'category_name',
                   'is_quote_only', 'is_featured', 'status', 'primary_image',
                   'min_price', 'max_price', 'variants_count', 'in_stock', 'total_stock',
-                  'total_available', 'total_reserved', 'min_shipping_days', 'created_at', 'updated_at', 'published_at']
+                  'total_available', 'total_reserved', 'min_shipping_days', 'is_referential_image', 'created_at', 'updated_at', 'published_at']
     
     def get_in_stock(self, obj):
         # We can derive this from annotated_total_stock or custom field
@@ -121,6 +136,7 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
     category_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
     variants = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    features = serializers.SerializerMethodField()
     images_data = serializers.ListField(
         child=serializers.DictField(),
         write_only=True,
@@ -138,14 +154,20 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
         active_images = obj.images.filter(deleted_at__isnull=True)
         return ProductImageAdminSerializer(active_images, many=True).data
     
+    def get_features(self, obj):
+        """Return product features sorted by order"""
+        features = obj.features.all().order_by('sort_order', 'created_at')
+        return ProductFeatureAdminSerializer(features, many=True).data
+    
     class Meta:
         model = Product
         fields = ['id', 'name', 'slug', 'short_description', 'description', 'specifications',
                   'sku', 'barcode', 'brand', 'category', 'category_id',
                   'is_quote_only', 'manage_stock', 'min_shipping_days', 'status', 'is_featured',
+                  'is_referential_image',
                   'meta_title', 'meta_description', 'meta_keywords',
                   'weight_kg', 'length_cm', 'width_cm', 'height_cm',
-                  'views_count', 'sales_count', 'variants', 'images', 'images_data',
+                  'views_count', 'sales_count', 'variants', 'images', 'features', 'images_data',
                   'created_at', 'updated_at', 'published_at']
         read_only_fields = ['id', 'views_count', 'sales_count', 'created_at', 
                             'updated_at', 'published_at']

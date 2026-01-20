@@ -44,13 +44,13 @@ export function ProductCard({ product, onAddToCart, onRequestQuote, className, a
         >
             {/* Image Container */}
             <div className={cn(
-                "relative overflow-hidden bg-muted",
+                "relative overflow-hidden bg-white border border-gray-100 rounded-xl",
                 aspectRatio === "portrait" ? "aspect-[3/4]" : "aspect-square"
             )}>
                 <img
                     src={getProductImageUrl(product.primary_image)}
                     alt={product.name}
-                    className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="size-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
                     loading={priority ? "eager" : "lazy"}
                     // @ts-ignore
                     fetchPriority={priority ? "high" : "auto"}
@@ -79,7 +79,7 @@ export function ProductCard({ product, onAddToCart, onRequestQuote, className, a
 
             {/* Product Info */}
             <div className="mt-4 space-y-2">
-                <h3 className="text-pretty text-lg font-medium tracking-tight">{product.name}</h3>
+                <h3 className="text-pretty text-base font-medium tracking-tight">{product.name}</h3>
 
                 {/* Rating */}
                 {tenant?.show_product_ratings && parseFloat(product.average_rating || "0") > 0 && (
@@ -99,7 +99,7 @@ export function ProductCard({ product, onAddToCart, onRequestQuote, className, a
                                 </p>
                             )}
                             <p className={cn(
-                                "text-lg font-semibold tracking-tight",
+                                "text-base font-semibold tracking-tight",
                                 product.has_discount ? "text-destructive" : "text-foreground"
                             )}>
                                 {product.min_price !== product.max_price && <span className="text-sm font-normal text-muted-foreground mr-1">Desde</span>}

@@ -1,12 +1,20 @@
 from django.db import models
 from rest_framework import serializers
-from .models import Category, Product, ProductVariant, ProductImage, ProductReview
+from .models import Category, Product, ProductVariant, ProductImage, ProductReview, ProductFeature
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
         fields = ['id', 'url', 'alt_text', 'sort_order', 'is_primary']
+
+
+
+class ProductFeatureSerializer(serializers.ModelSerializer):
+    """Serializer for product features"""
+    class Meta:
+        model = ProductFeature
+        fields = ['id', 'image_url', 'title', 'description', 'sort_order']
 
 
 class ProductReviewSerializer(serializers.ModelSerializer):
@@ -154,7 +162,9 @@ class ProductListSerializer(serializers.ModelSerializer):
             'is_quote_only', 'is_featured', 'status', 'primary_image',
             'min_price', 'max_price', 'min_compare_at_price', 'has_discount',
             'variants_count', 'in_stock', 'average_rating', 'review_count',
-            'min_shipping_days'
+            'min_price', 'max_price', 'min_compare_at_price', 'has_discount',
+            'variants_count', 'in_stock', 'average_rating', 'review_count',
+            'min_shipping_days', 'is_referential_image'
         ]
     
     def get_primary_image(self, obj):
@@ -223,6 +233,7 @@ class ProductDetailSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     variants = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    features = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
@@ -232,9 +243,15 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             'manage_stock', 'status', 'is_featured', 'meta_title',
             'meta_description', 'weight_kg', 'length_cm', 'width_cm',
             'height_cm', 'views_count', 'sales_count', 'variants',
-            'images', 'created_at', 'updated_at', 'min_shipping_days',
-            'average_rating', 'review_count'
+            'images', 'features', 'created_at', 'updated_at', 'min_shipping_days',
+            'images', 'features', 'created_at', 'updated_at', 'min_shipping_days',
+            'average_rating', 'review_count', 'is_referential_image'
         ]
+    
+    def get_features(self, obj):
+        """Return features ordered by sort_order"""
+        features = obj.features.all().order_by('sort_order', 'created_at')
+        return ProductFeatureSerializer(features, many=True).data
     
     def get_variants(self, obj):
         """Return only active, non-deleted variants"""

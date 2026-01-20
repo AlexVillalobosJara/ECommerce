@@ -111,7 +111,8 @@ export default function CheckoutPage() {
         };
 
         syncLeadTimes();
-    }, [tenant, mounted]); // Only once on mount per tenant
+        syncLeadTimes();
+    }, [tenant, mounted, purchaseItems, quoteItems]); // Re-run when items change or load
 
     // Load regions and communes
     useEffect(() => {

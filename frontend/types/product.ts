@@ -60,6 +60,7 @@ export interface ProductList {
     total_stock: number | null
     total_reserved: number | null
     min_shipping_days: number
+    is_referential_image?: boolean
     average_rating?: string
     review_count?: number
 }
@@ -79,6 +80,7 @@ export interface ProductDetail {
     manage_stock: boolean
     status: string
     is_featured: boolean
+    is_referential_image?: boolean
     meta_title: string | null
     meta_description: string | null
     meta_keywords: string | null
@@ -91,6 +93,13 @@ export interface ProductDetail {
     sales_count: number
     variants: ProductVariant[]
     images: ProductImage[]
+    features: {
+        id: string
+        image_url: string
+        title: string
+        description: string
+        sort_order: number
+    }[]
     created_at: string
     updated_at: string
 

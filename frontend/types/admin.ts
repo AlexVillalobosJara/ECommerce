@@ -60,6 +60,16 @@ export interface AdminProductVariant {
     updated_at: string
 }
 
+export interface AdminProductFeature {
+    id: string
+    image_url: string
+    title: string
+    description: string
+    sort_order: number
+    created_at: string
+    updated_at: string
+}
+
 export interface AdminProduct {
     id: string
     name: string
@@ -75,6 +85,7 @@ export interface AdminProduct {
     manage_stock: boolean
     status: 'Draft' | 'Published' | 'Archived'
     is_featured: boolean
+    is_referential_image?: boolean
     min_shipping_days: number
     meta_title?: string
     meta_description?: string
@@ -88,6 +99,7 @@ export interface AdminProduct {
     specifications?: Record<string, string>
     variants: AdminProductVariant[]
     images: AdminProductImage[]
+    features: AdminProductFeature[]
     created_at: string
     updated_at: string
     published_at?: string | null
