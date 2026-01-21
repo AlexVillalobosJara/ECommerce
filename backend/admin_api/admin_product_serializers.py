@@ -39,6 +39,39 @@ class CategoryListSerializer(serializers.ModelSerializer):
         return ' > '.join(path)
 
 
+class CategorySimpleSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for category reference in product detail.
+    Avoids expensive recursive children and product counts.
+    """
+    path = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'slug', 'path', 'parent_id']
+        
+    def get_path(self, obj):
+        # reuse path logic or keep it simple? 
+        # For simple serializer, maybe we just want the name? 
+        # But 'path' is useful for context.
+        # Let's keep a simplified path separate from the heavy logic if possible,
+        # but for now copying the logic is fine or using a helper.
+        # To avoid code duplication, we could move get_path to a mixin or helper, 
+        # but for now I'll just include the basic fields needed for the dropdown context.
+        path = []
+        current = obj
+        visited = set()
+        max_depth = 5 # Reduced depth for performance
+        
+        while current and len(path) < max_depth:
+            if current.id in visited:
+                break
+            visited.add(current.id)
+            path.insert(0, current.name)
+            current = current.parent
+        return ' > '.join(path)
+
+
 class CategoryDetailSerializer(serializers.ModelSerializer):
     """Serializer for category create/update in admin"""
     products_count = serializers.SerializerMethodField(read_only=True)
@@ -132,7 +165,8 @@ class ProductListAdminSerializer(serializers.ModelSerializer):
 
 class ProductDetailAdminSerializer(serializers.ModelSerializer):
     """Serializer for product detail/create/update in admin"""
-    category = CategoryListSerializer(read_only=True)
+    # Use Simple serializer to avoid N+1 and heavy recursion
+    category = CategorySimpleSerializer(read_only=True)
     category_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
     variants = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
@@ -222,6 +256,8 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
         return product
     
     def update(self, instance, validated_data):
+        from django.db import transaction
+        
         # Track who updated
         request = self.context.get('request')
         validated_data['updated_by'] = request.user.id
@@ -234,51 +270,81 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
         # Extract images_data before updating product
         images_data = validated_data.pop('images_data', None)
         
-        # Update product
-        product = super().update(instance, validated_data)
-        
-        # Update images if provided (smart diffing)
-        if images_data is not None:
-            # 1. Map existing images by ID or URL to identify them
-            existing_images = {str(img.id): img for img in instance.images.all()}
+        with transaction.atomic():
+            # Update product
+            product = super().update(instance, validated_data)
             
-            # 2. Track processed IDs to identify deletions
-            processed_ids = set()
-            new_images_to_create = []
-            
-            for img_data in images_data:
-                img_id = img_data.get('id')
-                # If we have an ID and it exists, update it
-                if img_id and str(img_id) in existing_images:
-                    img_obj = existing_images[str(img_id)]
-                    img_obj.alt_text = img_data.get('alt_text', '')
-                    img_obj.sort_order = img_data.get('sort_order', 0)
-                    img_obj.is_primary = img_data.get('is_primary', False)
-                    img_obj.url = img_data.get('url', img_obj.url) # Ensure URL is kept or updated
-                    img_obj.updated_by = request.user.id
-                    img_obj.save()
-                    processed_ids.add(str(img_id))
+            # Update images if provided
+            if images_data is not None:
+                # 1. Map existing images
+                existing_images = {str(img.id): img for img in instance.images.all()}
                 
-                # If no ID or ID not found (new image), prepare for creation
-                else:
-                    new_images_to_create.append(ProductImage(
-                        product=product,
-                        tenant_id=instance.tenant_id,
-                        url=img_data.get('url'),
-                        alt_text=img_data.get('alt_text', ''),
-                        sort_order=img_data.get('sort_order', 0),
-                        is_primary=img_data.get('is_primary', False),
-                        created_by=request.user.id
-                    ))
-            
-            # 3. Create new images in bulk
-            if new_images_to_create:
-                ProductImage.objects.bulk_create(new_images_to_create)
-            
-            # 4. Delete images that were not in the payload
-            # (Only delete if images_data was actually passed, effectively syncing the list)
-            for img_id, img_obj in existing_images.items():
-                if img_id not in processed_ids:
-                    img_obj.delete()
+                processed_ids = set()
+                new_images_to_create = []
+                images_to_update = []
+                
+                for img_data in images_data:
+                    img_id = img_data.get('id')
+                    
+                    # Update existing
+                    if img_id and str(img_id) in existing_images:
+                        img_obj = existing_images[str(img_id)]
+                        
+                        # Check if any field changed to avoid unnecessary updates
+                        changed = False
+                        if img_obj.alt_text != img_data.get('alt_text', ''):
+                            img_obj.alt_text = img_data.get('alt_text', '')
+                            changed = True
+                        if img_obj.sort_order != img_data.get('sort_order', 0):
+                            img_obj.sort_order = img_data.get('sort_order', 0)
+                            changed = True
+                        if img_obj.is_primary != img_data.get('is_primary', False):
+                            img_obj.is_primary = img_data.get('is_primary', False)
+                            changed = True
+                        if img_data.get('url') and img_obj.url != img_data.get('url'):
+                            img_obj.url = img_data.get('url')
+                            changed = True
+                            
+                        if changed:
+                            img_obj.updated_by = request.user.id
+                            images_to_update.append(img_obj)
+                            
+                        processed_ids.add(str(img_id))
+                    
+                    # Create new
+                    else:
+                        new_images_to_create.append(ProductImage(
+                            product=product,
+                            tenant_id=instance.tenant_id,
+                            url=img_data.get('url'),
+                            alt_text=img_data.get('alt_text', ''),
+                            sort_order=img_data.get('sort_order', 0),
+                            is_primary=img_data.get('is_primary', False),
+                            created_by=request.user.id
+                        ))
+                
+                # Bulk Operations
+                if new_images_to_create:
+                    ProductImage.objects.bulk_create(new_images_to_create)
+                
+                if images_to_update:
+                    ProductImage.objects.bulk_update(
+                        images_to_update, 
+                        ['alt_text', 'sort_order', 'is_primary', 'url', 'updated_by']
+                    )
+                
+                # Delete missing (exclude processed)
+                # Filter locally to get IDs to delete, then delete in one query
+                ids_to_delete = [
+                    img_id for img_id in existing_images.keys() 
+                    if img_id not in processed_ids
+                ]
+                if ids_to_delete:
+                    # Soft delete in bulk
+                    from django.utils import timezone
+                    ProductImage.objects.filter(
+                        id__in=ids_to_delete, 
+                        product=product
+                    ).update(deleted_at=timezone.now())
         
         return product

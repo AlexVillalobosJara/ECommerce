@@ -153,7 +153,7 @@ def product_detail(request, product_id):
     
     try:
         product = Product.objects.select_related('category').prefetch_related(
-            'variants', 'images'
+            'variants', 'images', 'features'
         ).get(
             id=product_id,
             tenant=tenant,
