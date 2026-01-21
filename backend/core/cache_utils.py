@@ -28,12 +28,15 @@ def delete_pattern(pattern):
 
 def invalidate_product_cache(tenant_id):
     """
-    Invalidate all product-related cache for a tenant.
-    
-    Args:
-        tenant_id: UUID of the tenant
+    Invalidate all product-related cache for a tenant by bumping the version.
+    Replaces slow delete_pattern.
     """
-    delete_pattern(f"products_list_{tenant_id}_*")
+    # Bump version for 'products_list' scope for this tenant
+    # This invalidates all product lists that rely on this version
+    bump_cache_version('products_list', tenant_id)
+    
+    # Also bump 'categories' scope as products affect category lists
+    bump_cache_version('categories', tenant_id)
 
 
 def invalidate_category_cache(tenant_id):
@@ -51,17 +54,48 @@ def invalidate_category_cache(tenant_id):
     invalidate_product_cache(tenant_id)
 
 
-def invalidate_tenant_cache(tenant_id):
-    """
-    Invalidate all tenant-related cache.
-    """
-    try:
-        cache.delete(f"tenant_settings_{tenant_id}")
-        cache.delete(f"storefront_common_data_{tenant_id}")
-        cache.delete(f"storefront_home_data_{tenant_id}")
-        cache.delete(f"dashboard_stats_{tenant_id}")
-        
         # Also delete pattern for any other views using tenant_id
         delete_pattern(f"*_{tenant_id}")
     except Exception:
         pass
+
+
+def get_cache_version(scope, scope_id):
+    """
+    Get the current version for a specific cache scope (e.g. 'category', 'product_list').
+    Returns an integer version number (defaults to 1).
+    """
+    version_key = f"version_{scope}_{scope_id}"
+    version = cache.get(version_key)
+    if version is None:
+        version = 1
+        cache.set(version_key, version, timeout=None) # Optimize: No timeout, or long timeout
+    return version
+
+
+def bump_cache_version(scope, scope_id):
+    """
+    Increment the version for a specific cache scope.
+    This effectively invalidates all keys depending on this version.
+    """
+    version_key = f"version_{scope}_{scope_id}"
+    try:
+        # Atomic increment in Redis
+        if hasattr(cache, 'incr'):
+            cache.incr(version_key)
+        else:
+            # Fallback for LocMemCache
+            version = cache.get(version_key, 1)
+            cache.set(version_key, version + 1, timeout=None)
+    except Exception:
+        pass
+
+
+def get_versioned_cache_key(base_key, scope, scope_id):
+    """
+    Generate a versioned cache key.
+    Format: {base_key}:v{version}
+    """
+    version = get_cache_version(scope, scope_id)
+    return f"{base_key}:v{version}"
+

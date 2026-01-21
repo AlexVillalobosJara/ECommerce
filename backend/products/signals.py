@@ -5,9 +5,10 @@ from .models import Product, Category
 
 # Helper to clear Home Page Cache
 def clear_home_cache(tenant_id):
-    cache_key = f"storefront_home_data_{tenant_id}"
-    cache.delete(cache_key)
-    print(f"Removed Cache: {cache_key}")
+    # Bump version for 'home_data' scope
+    from core.cache_utils import bump_cache_version
+    bump_cache_version('home_data', tenant_id)
+    print(f"Bumped Cache Version: home_data_{tenant_id}")
 
 # Helper to clear Product Detail Cache
 def clear_product_cache(tenant_id, slug):
@@ -17,26 +18,11 @@ def clear_product_cache(tenant_id, slug):
 
 # Helper to clear Category Page Cache
 def clear_category_cache(tenant_id, slug=None):
-    # Invalidate category pages. 
-    # If slug is provided, only invalidate that category's pages (including filtered versions).
-    # If no slug, invalidate ALL category pages for the tenant (fallback).
-    if slug:
-        pattern = f"storefront_category_data_{tenant_id}_{slug}_*"
-    else:
-        pattern = f"storefront_category_data_{tenant_id}_*"
-        
-    try:
-        if hasattr(cache, "delete_pattern"):
-            count = cache.delete_pattern(pattern)
-            print(f"Removed Cache Pattern: {pattern} (Count: {count})")
-        else:
-            # Fallback for backends without delete_pattern (e.g. LocMemCache)
-            # If we can't pattern match, we unfortunately have to clear everything or do nothing
-            # For LocMemCache in dev, just clearing specific key if possible, but pattern is hard
-            # We'll just rely on global clear or expiration in dev
-            pass
-    except Exception as e:
-        print(f"Error clearing cache pattern: {e}")
+    # Bump version for 'categories' scope
+    # This invalidates ALL filtered lists in StorefrontCategoryView because they all share the 'categories' scope version
+    from core.cache_utils import bump_cache_version
+    bump_cache_version('categories', tenant_id)
+    print(f"Bumped Cache Version: categories_{tenant_id}")
 
 @receiver(post_save, sender=Product)
 @receiver(post_delete, sender=Product)

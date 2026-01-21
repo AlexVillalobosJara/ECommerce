@@ -134,8 +134,13 @@ class StorefrontHomeView(StorefrontBaseView):
         if not tenant:
             return Response({"error": "Tenant not found"}, status=404)
 
-        # Full Page Cache (Invalidated by Signals)
-        cache_key = f"storefront_home_data_{tenant.id}"
+        # Full Page Cache (Invalidated by Signals via Versioning)
+        from core.cache_utils import get_versioned_cache_key
+        
+        base_key = f"storefront_home_data_{tenant.id}"
+        # Use 'home_data' scope
+        cache_key = get_versioned_cache_key(base_key, 'home_data', tenant.id)
+        
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
@@ -173,7 +178,13 @@ class StorefrontCategoryView(StorefrontBaseView):
 
         # Build cache key from all relevant parameters
         params_str = "&".join([f"{k}={v}" for k, v in sorted(request.query_params.items())])
-        cache_key = f"storefront_category_data_{tenant.id}_{category_slug}_{params_str}"
+        base_key = f"storefront_category_data_{tenant.id}_{category_slug}_{params_str}"
+        
+        # Use 'categories' scope (general category updates invalidate this)
+        # We could be more specific ('category_slug'), but 'categories' scope aligns with list updates
+        from core.cache_utils import get_versioned_cache_key
+        cache_key = get_versioned_cache_key(base_key, 'categories', tenant.id)
+        
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)

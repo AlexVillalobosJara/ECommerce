@@ -44,9 +44,10 @@ def product_list_create(request):
         is_featured = request.GET.get('is_featured', '')
         page = request.GET.get('page', '1')
         
-        # Generate cache key based on filters
+        # Generate cache key based on filters and CURRENT VERSION
         from django.core.cache import cache
         from urllib.parse import urlencode
+        from core.cache_utils import get_versioned_cache_key
         
         filter_params = {
             'search': search,
@@ -55,7 +56,11 @@ def product_list_create(request):
             'is_featured': is_featured,
             'page': page
         }
-        cache_key = f"products_list_{tenant.id}_{urlencode(filter_params)}"
+        
+        # Base key: products_list_{tenant_id}_{params}
+        base_key = f"products_list_{tenant.id}_{urlencode(filter_params)}"
+        # Versioned key: products_list_{tenant_id}_{params}:v{N}
+        cache_key = get_versioned_cache_key(base_key, 'products_list', tenant.id)
         
         # Try to get from cache (5 min TTL) - fail silently if cache unavailable
         try:
