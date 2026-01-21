@@ -496,14 +496,7 @@ def send_order_status_update_email(order):
         from .models import OrderStatus
         
         status_map = {
-            'QuoteSent': {
-                'title': 'Tu Cotización está Lista',
-                'subtitle': 'Hemos preparado tu cotización personalizada',
-                'description': 'Tu cotización ha sido generada y está disponible para su revisión.',
-                'color': '#8b5cf6', # Purple
-                'button_text': 'Ver y Pagar Cotización',
-                'button_link': True
-            },
+            # 'QuoteSent' handled separately to include PDF attachment
             'Processing': {
                 'title': 'Tu Pedido está en Preparación',
                 'subtitle': 'Estamos alistando tus productos',
