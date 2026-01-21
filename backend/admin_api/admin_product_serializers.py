@@ -237,21 +237,48 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
         # Update product
         product = super().update(instance, validated_data)
         
-        # Update images if provided
+        # Update images if provided (smart diffing)
         if images_data is not None:
-            # Delete existing images
-            instance.images.all().delete()
+            # 1. Map existing images by ID or URL to identify them
+            existing_images = {str(img.id): img for img in instance.images.all()}
             
-            # Create new images from Supabase URLs
+            # 2. Track processed IDs to identify deletions
+            processed_ids = set()
+            new_images_to_create = []
+            
             for img_data in images_data:
-                ProductImage.objects.create(
-                    product=product,
-                    tenant_id=instance.tenant_id,
-                    url=img_data.get('url'),
-                    alt_text=img_data.get('alt_text', ''),
-                    sort_order=img_data.get('sort_order', 0),
-                    is_primary=img_data.get('is_primary', False),
-                    created_by=request.user.id
-                )
+                img_id = img_data.get('id')
+                # If we have an ID and it exists, update it
+                if img_id and str(img_id) in existing_images:
+                    img_obj = existing_images[str(img_id)]
+                    img_obj.alt_text = img_data.get('alt_text', '')
+                    img_obj.sort_order = img_data.get('sort_order', 0)
+                    img_obj.is_primary = img_data.get('is_primary', False)
+                    img_obj.url = img_data.get('url', img_obj.url) # Ensure URL is kept or updated
+                    img_obj.updated_by = request.user.id
+                    img_obj.save()
+                    processed_ids.add(str(img_id))
+                
+                # If no ID or ID not found (new image), prepare for creation
+                else:
+                    new_images_to_create.append(ProductImage(
+                        product=product,
+                        tenant_id=instance.tenant_id,
+                        url=img_data.get('url'),
+                        alt_text=img_data.get('alt_text', ''),
+                        sort_order=img_data.get('sort_order', 0),
+                        is_primary=img_data.get('is_primary', False),
+                        created_by=request.user.id
+                    ))
+            
+            # 3. Create new images in bulk
+            if new_images_to_create:
+                ProductImage.objects.bulk_create(new_images_to_create)
+            
+            # 4. Delete images that were not in the payload
+            # (Only delete if images_data was actually passed, effectively syncing the list)
+            for img_id, img_obj in existing_images.items():
+                if img_id not in processed_ids:
+                    img_obj.delete()
         
         return product

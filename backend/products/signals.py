@@ -17,16 +17,24 @@ def clear_product_cache(tenant_id, slug):
 
 # Helper to clear Category Page Cache
 def clear_category_cache(tenant_id, slug=None):
-    # Invalidate all category pages for this tenant because changing one category
-    # (e.g. parent/order/name) might affect the tree or others.
-    # Using delete_pattern from django-redis
-    pattern = f"storefront_category_data_{tenant_id}_*"
+    # Invalidate category pages. 
+    # If slug is provided, only invalidate that category's pages (including filtered versions).
+    # If no slug, invalidate ALL category pages for the tenant (fallback).
+    if slug:
+        pattern = f"storefront_category_data_{tenant_id}_{slug}_*"
+    else:
+        pattern = f"storefront_category_data_{tenant_id}_*"
+        
     try:
         if hasattr(cache, "delete_pattern"):
             count = cache.delete_pattern(pattern)
             print(f"Removed Cache Pattern: {pattern} (Count: {count})")
         else:
-            print(f"Warning: Cache backend does not support delete_pattern. Cannot clear {pattern}")
+            # Fallback for backends without delete_pattern (e.g. LocMemCache)
+            # If we can't pattern match, we unfortunately have to clear everything or do nothing
+            # For LocMemCache in dev, just clearing specific key if possible, but pattern is hard
+            # We'll just rely on global clear or expiration in dev
+            pass
     except Exception as e:
         print(f"Error clearing cache pattern: {e}")
 
@@ -44,8 +52,13 @@ def invalidate_product_cache(sender, instance, **kwargs):
     clear_product_cache(instance.tenant.id, instance.slug)
     
     # Also clear category cache because product count or prices might change in filters
+    # Optimization: Only clear the specific category cache if available
     if instance.category:
-        clear_category_cache(instance.tenant.id)
+        try:
+            clear_category_cache(instance.tenant.id, slug=instance.category.slug)
+        except Exception:
+            # Fallback if category access fails
+            clear_category_cache(instance.tenant.id)
 
 @receiver(post_save, sender=Category)
 @receiver(post_delete, sender=Category)
@@ -57,5 +70,5 @@ def invalidate_category_cache(sender, instance, **kwargs):
     """
     print(f"Signal: Category {instance.name} changed. Invalidating cache...")
     clear_home_cache(instance.tenant.id)
-    # Clear all category caches to be safe (tree structure)
-    clear_category_cache(instance.tenant.id)
+    # Clear this category's cache
+    clear_category_cache(instance.tenant.id, slug=instance.slug)
