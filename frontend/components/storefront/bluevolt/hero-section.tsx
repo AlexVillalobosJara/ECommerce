@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Shield, Zap, Award } from "lucide-react"
+import Image from "next/image"
 
 interface HeroSectionProps {
     title: string
@@ -25,10 +26,13 @@ export function BlueVoltHero({
         <section className="relative w-full overflow-hidden bg-[#0a1628]">
             {/* Background Image with enhanced overlay */}
             <div className="absolute inset-0">
-                <img
+                <Image
                     src={backgroundImage || "/placeholder.svg"}
                     alt="Hero background"
-                    className="size-full object-cover opacity-90"
+                    fill
+                    priority
+                    className="object-cover opacity-90"
+                    sizes="100vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-[#0a1628]/95 via-[#0a1628]/60 to-transparent" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0a1628] via-transparent to-[#0a1628]/30" />

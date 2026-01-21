@@ -2,6 +2,7 @@
 
 import { ShoppingCart } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { ProductList } from "@/types/product"
@@ -47,13 +48,13 @@ export function ProductCard({ product, onAddToCart, onRequestQuote, className, a
                 "relative overflow-hidden bg-white border border-gray-100 rounded-xl",
                 aspectRatio === "portrait" ? "aspect-[3/4]" : "aspect-square"
             )}>
-                <img
+                <Image
                     src={getProductImageUrl(product.primary_image)}
                     alt={product.name}
-                    className="size-full object-contain p-4 transition-transform duration-500 group-hover:scale-105"
-                    loading={priority ? "eager" : "lazy"}
-                    // @ts-ignore
-                    fetchPriority={priority ? "high" : "auto"}
+                    fill
+                    className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
+                    priority={priority}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
 
                 {/* Stock Badge */}

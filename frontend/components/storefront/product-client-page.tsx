@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Minus, Plus, ShoppingCart, Star, Check, ChevronLeft } from "lucide-react"
+import Image from "next/image"
 import { toast } from "sonner"
 import { Header } from "@/components/storefront/header"
 import { Footer } from "@/components/storefront/footer"
@@ -131,10 +132,13 @@ export function ProductClientPage({ tenant, product, relatedProducts, categories
                     {/* Media Column (Col 1) */}
                     <div className="space-y-6">
                         <div className="aspect-square overflow-hidden rounded-2xl bg-[#F9F9F9] relative group">
-                            <img
+                            <Image
                                 src={currentImage}
                                 alt={product.name}
-                                className="w-full h-full object-contain mix-blend-multiply p-8 transition-transform duration-700 group-hover:scale-105"
+                                fill
+                                priority
+                                className="object-contain mix-blend-multiply p-8 transition-transform duration-700 group-hover:scale-105"
+                                sizes="(max-width: 1024px) 100vw, 50vw"
                             />
                         </div>
 
@@ -145,11 +149,17 @@ export function ProductClientPage({ tenant, product, relatedProducts, categories
                                         key={image.id}
                                         onClick={() => setSelectedImageIndex(index)}
                                         className={cn(
-                                            "size-20 overflow-hidden rounded-xl bg-[#F9F9F9] border-2 transition-all",
+                                            "size-20 overflow-hidden rounded-xl bg-[#F9F9F9] border-2 transition-all relative",
                                             selectedImageIndex === index ? "border-black" : "border-transparent opacity-60 hover:opacity-100"
                                         )}
                                     >
-                                        <img src={getProductImageUrl(image.url)} alt={product.name} className="w-full h-full object-contain mix-blend-multiply p-4" />
+                                        <Image
+                                            src={getProductImageUrl(image.url)}
+                                            alt={product.name}
+                                            fill
+                                            className="object-contain mix-blend-multiply p-2"
+                                            sizes="80px"
+                                        />
                                     </button>
                                 ))}
                             </div>
