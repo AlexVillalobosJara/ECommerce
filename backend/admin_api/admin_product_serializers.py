@@ -179,18 +179,33 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
     )
     
     def get_variants(self, obj):
-        """Return only non-deleted variants"""
-        active_variants = obj.variants.filter(deleted_at__isnull=True)
+        """Return only non-deleted variants using Python filtering to use prefetch"""
+        # obj.variants.all() uses the prefetch cache. 
+        # .filter() would hit DB again.
+        # Use list comprehension to filter in memory.
+        if hasattr(obj, '_prefetched_objects_cache') and 'variants' in obj._prefetched_objects_cache:
+            active_variants = [v for v in obj.variants.all() if v.deleted_at is None]
+        else:
+            active_variants = obj.variants.filter(deleted_at__isnull=True)
+            
         return ProductVariantAdminSerializer(active_variants, many=True).data
     
     def get_images(self, obj):
-        """Return only non-deleted images"""
-        active_images = obj.images.filter(deleted_at__isnull=True)
+        """Return only non-deleted images using Python filtering"""
+        if hasattr(obj, '_prefetched_objects_cache') and 'images' in obj._prefetched_objects_cache:
+            active_images = [i for i in obj.images.all() if i.deleted_at is None]
+        else:
+            active_images = obj.images.filter(deleted_at__isnull=True)
+            
         return ProductImageAdminSerializer(active_images, many=True).data
     
     def get_features(self, obj):
-        """Return product features sorted by order"""
-        features = obj.features.all().order_by('sort_order', 'created_at')
+        """Return product features sorted by order using Python sorts"""
+        if hasattr(obj, '_prefetched_objects_cache') and 'features' in obj._prefetched_objects_cache:
+            features = sorted(obj.features.all(), key=lambda x: (x.sort_order, x.created_at))
+        else:
+            features = obj.features.all().order_by('sort_order', 'created_at')
+            
         return ProductFeatureAdminSerializer(features, many=True).data
     
     class Meta:

@@ -21,6 +21,7 @@ from .admin_product_serializers import (
     ProductVariantAdminSerializer,
     ProductImageAdminSerializer
 )
+from core.profiling import profile_block
 
 
 # ============================================================================
@@ -152,13 +153,14 @@ def product_detail(request, product_id):
     tenant = request.tenant
     
     try:
-        product = Product.objects.select_related('category').prefetch_related(
-            'variants', 'images', 'features'
-        ).get(
-            id=product_id,
-            tenant=tenant,
-            deleted_at__isnull=True
-        )
+        with profile_block("Product Detail Fetch"):
+            product = Product.objects.select_related('category').prefetch_related(
+                'variants', 'images', 'features'
+            ).get(
+                id=product_id,
+                tenant=tenant,
+                deleted_at__isnull=True
+            )
     except Product.DoesNotExist:
         return Response(
             {'error': 'Product not found'},
@@ -166,22 +168,32 @@ def product_detail(request, product_id):
         )
     
     if request.method == 'GET':
-        serializer = ProductDetailAdminSerializer(product)
-        return Response(serializer.data)
+        with profile_block("Serializer Init (GET)"):
+            serializer = ProductDetailAdminSerializer(product)
+        with profile_block("Serializer Data Access (GET)"):
+            data = serializer.data
+        return Response(data)
     
     elif request.method == 'PUT':
-        serializer = ProductDetailAdminSerializer(
-            product,
-            data=request.data,
-            context={'request': request},
-            partial=True
-        )
-        if serializer.is_valid():
-            serializer.save()
+        with profile_block("Serializer Init (PUT)"):
+            serializer = ProductDetailAdminSerializer(
+                product,
+                data=request.data,
+                context={'request': request},
+                partial=True
+            )
+        
+        with profile_block("Serializer Validation"):
+            is_valid = serializer.is_valid()
+            
+        if is_valid:
+            with profile_block("Serializer Save (Transaction + Bulk Update)"):
+                serializer.save()
             
             # Invalidate product list cache
-            from core.cache_utils import invalidate_product_cache
-            invalidate_product_cache(tenant.id)
+            with profile_block("Cache Invalidation"):
+                from core.cache_utils import invalidate_product_cache
+                invalidate_product_cache(tenant.id)
             
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
