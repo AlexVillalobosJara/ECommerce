@@ -35,6 +35,27 @@ def get_reply_to(order):
         return order.tenant.email
     return settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else "admin@empresa.cl"
 
+def get_admin_url(tenant):
+    """
+    Construct the Admin URL for a given Tenant.
+    Prioritizes custom_domain, falls back to FRONTEND_URL.
+    """
+    if tenant.custom_domain:
+        base_url = tenant.custom_domain
+        if not base_url.startswith(('http://', 'https://')):
+            base_url = f"https://{base_url}"
+    else:
+        # Fallback to FRONTEND_URL (Platform URL)
+        # Ideally we should construct a subdomain here if possible: f"https://{tenant.slug}.platform.com"
+        # But for now, we stick to FRONTEND_URL as fallback or try to infer.
+        # Given potential Vercel/Render setups, FRONTEND_URL might be the main marketing site.
+        base_url = settings.FRONTEND_URL
+        
+    if base_url.endswith('/'):
+        base_url = base_url[:-1]
+        
+    return f"{base_url}/admin/orders"
+
 def send_quote_request_notification(order):
     """
     Send email notification to admin when a new quote request is received
@@ -55,7 +76,7 @@ def send_quote_request_notification(order):
         if order.shipping_region: shipping_parts.append(order.shipping_region)
         shipping_address = ", ".join(shipping_parts) if shipping_parts else "No proporcionada"
         
-        admin_url = f"{settings.FRONTEND_URL}/admin/orders"
+        admin_url = get_admin_url(order.tenant)
         
         html_content = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -404,7 +425,7 @@ def send_new_order_notification(order):
         total = float(order.total)
         total_formatted = f"${total:,.0f}"
         items_count = order.items.count()
-        admin_url = f"{settings.FRONTEND_URL}/admin/orders"
+        admin_url = get_admin_url(order.tenant)
         
         html_content = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
