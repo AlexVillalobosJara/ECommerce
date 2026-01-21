@@ -384,6 +384,9 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
                 if ids_to_delete:
                     # Soft delete in bulk
                     from django.utils import timezone
+                    ProductImage.objects.filter(
+                        id__in=ids_to_delete, 
+                        product=product
                     ).update(deleted_at=timezone.now())
             
             # Update variants if provided
