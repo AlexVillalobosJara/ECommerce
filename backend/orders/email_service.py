@@ -14,11 +14,33 @@ logger = logging.getLogger(__name__)
 resend.api_key = settings.RESEND_API_KEY
 
 
+# ... (previous imports remain)
+
+def get_sender_address(tenant):
+    """
+    Construct the 'From' address using the Tenant's name and the Platform's configured email.
+    Format: "Tenant Name <platform@email.com>"
+    """
+    from_email = settings.DEFAULT_FROM_EMAIL
+    # Clean tenant name to avoid special characters breaking headers if necessary, 
+    # but Resend handles basic UTF-8 well.
+    return f"{tenant.name} <{from_email}>"
+
+def get_reply_to(order):
+    """
+    Get the appropriate Reply-To address.
+    Defaults to Tenant's email, falls back to Admin email.
+    """
+    if order.tenant.email:
+        return order.tenant.email
+    return settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else "admin@empresa.cl"
+
 def send_quote_request_notification(order):
     """
     Send email notification to admin when a new quote request is received
     """
     try:
+        # ... (content generation remains the same) ...
         customer_name = order.shipping_recipient_name or order.customer_email.split('@')[0]
         order_number = order.order_number
         customer_email = order.customer_email
@@ -129,8 +151,9 @@ def send_quote_request_notification(order):
 </html>"""
         
         params = {
-            "from": "Zumi Store <onboarding@resend.dev>",
-            "to": order.tenant.email if order.tenant.email else (settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else "admin@empresa.cl"),
+            "from": get_sender_address(order.tenant),
+            "to": get_reply_to(order), # Send TO the tenant
+            "reply_to": order.customer_email, # Reply TO the customer
             "subject": f" Nueva Solicitud de Cotizacion - {order.order_number}",
             "html": html_content,
         }
@@ -235,8 +258,9 @@ def send_quote_response_notification(order):
 </html>"""
         
         params = {
-            "from": "Zumi Store <onboarding@resend.dev>",
+            "from": get_sender_address(order.tenant),
             "to": order.customer_email,
+            "reply_to": get_reply_to(order),
             "subject": f"Tu Cotizacion esta Lista - {order.order_number}",
             "html": html_content,
             "attachments": [{"filename": f"Cotizacion_{order.order_number}.pdf", "content": pdf_base64}]
@@ -358,8 +382,9 @@ def send_order_confirmation_email(order):
         
         recipient_email = settings.ADMIN_EMAIL if settings.DEBUG else order.customer_email
         params = {
-            "from": "Zumi Store <onboarding@resend.dev>",
+            "from": get_sender_address(order.tenant),
             "to": recipient_email,
+            "reply_to": get_reply_to(order),
             "subject": f" Confirmacion de Pedido - {order.order_number}",
             "html": html_content,
         }
@@ -430,8 +455,9 @@ def send_new_order_notification(order):
 </html>"""
         
         params = {
-            "from": "Zumi Store <onboarding@resend.dev>",
-            "to": order.tenant.email if order.tenant.email else settings.ADMIN_EMAIL,
+            "from": get_sender_address(order.tenant),
+            "to": get_reply_to(order), # Send TO the Tenant (Admin)
+            "reply_to": order.customer_email, # Reply TO the Customer
             "subject": f" Nueva Venta: {order.order_number} ({total_formatted})",
             "html": html_content,
         }
@@ -566,8 +592,9 @@ Gracias por confiar en {order.tenant.name}
 </html>"""
 
         params = {
-            "from": "Zumi Store <onboarding@resend.dev>",
+            "from": get_sender_address(order.tenant),
             "to": order.customer_email,
+            "reply_to": get_reply_to(order),
             "subject": f"{config['title']} - Pedido {order.order_number}",
             "html": html_content,
         }

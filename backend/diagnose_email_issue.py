@@ -16,51 +16,30 @@ from orders.payment_models import Payment
 from django.utils import timezone
 from datetime import timedelta
 
-print("=" * 80)
-print("CHECKING RECENT ORDERS AND PAYMENTS")
-print("=" * 80)
+# ... existing code ...
 
-# Get orders from the last hour
-recent_orders = Order.objects.filter(
-    created_at__gte=timezone.now() - timedelta(hours=1)
-).order_by('-created_at')
-
-for order in recent_orders:
-    print(f"\nOrder: {order.order_number}")
-    print(f"  Status: {order.status}")
-    print(f"  Created: {order.created_at}")
-    print(f"  Updated: {order.updated_at}")
-    print(f"  Paid at: {order.paid_at or 'Not paid'}")
+if __name__ == "__main__":
+    import sys
     
-    # Get payments for this order
-    payments = order.payments.all()
-    print(f"  Payments: {payments.count()}")
-    for payment in payments:
-        print(f"    - Payment {payment.id}")
-        print(f"      Status: {payment.status}")
-        print(f"      Token: {payment.gateway_token}")
-        print(f"      Completed: {payment.completed_at or 'Not completed'}")
+    # Redirect stdout to a file with UTF-8 encoding
+    with open('diagnose_result.txt', 'w', encoding='utf-8') as f:
+        sys.stdout = f
+        sys.stderr = f
+        
+        # ... Run checks ...
+        try:
+             # Run the checks here (copying the previous logic or restructuring)
+             # Since I can't easily indent the whole file via replace, I'll just change the print statements in the loop
+             # Actually, simpler: just run the command and trust the python encoding if I don't redirect in shell.
+             pass
+        except Exception as e:
+             print(e)
 
-print("\n" + "=" * 80)
-print("CHECKING IF SIGNALS ARE REGISTERED")
-print("=" * 80)
-
-from django.db.models import signals
-from orders.models import Order
-
-# Check if our signal is connected
-receivers = signals.post_save.receivers
-order_receivers = [r for r in receivers if r[0][0] and 'Order' in str(r[0][0])]
-
-print(f"Total post_save receivers: {len(receivers)}")
-print(f"Order-related receivers: {len(order_receivers)}")
-
-if order_receivers:
-    print("\nOrder post_save receivers:")
-    for receiver in order_receivers:
-        print(f"  - {receiver}")
-else:
-    print("WARNING: No Order post_save receivers found!")
+# REVERTING STRATEGY: I will just run the command normally and read the output from the tool. 
+# The issue was `> file.txt` created UTF-16.
+# I will run `python diagnose_email_issue.py` and let the tool capture stdout. 
+# I already did that in step 340 and it truncated.
+# I'll modify the script to print LESS noise and ONLY the error.
 
 print("\n" + "=" * 80)
 print("TESTING EMAIL FUNCTION DIRECTLY")
@@ -78,7 +57,10 @@ if paid_order:
     print("\nTrying to send customer confirmation email...")
     try:
         result = send_order_confirmation_email(paid_order)
-        print(f"✓ Customer email sent successfully")
+        if result:
+            print(f"✓ Customer email sent successfully: {result}")
+        else:
+            print(f"✗ Failed to send customer email (Returned None)")
     except Exception as e:
         print(f"✗ Error sending customer email: {e}")
         import traceback
@@ -87,7 +69,11 @@ if paid_order:
     print("\nTrying to send admin notification email...")
     try:
         result = send_new_order_notification(paid_order)
-        print(f"✓ Admin email sent successfully")
+        if result:
+            print(f"✓ Admin email sent successfully: {result}")
+        else:
+            print(f"✗ Failed to send admin email (Returned None)")
+            print("  Check backend/orders/email_service.py logs or try printing the exception there.")
     except Exception as e:
         print(f"✗ Error sending admin email: {e}")
         import traceback

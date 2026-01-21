@@ -50,5 +50,28 @@ def check_base64():
             print(f"[WARN] Product {p.name} (ID: {p.id})")
             print(f"  -> Specs size: {spec_len/1024:.2f} KB")
 
+    # Check Tenant Data
+    print("\n--- Checking Tenant Data ---")
+    bad_tenants = 0
+    for t in Tenant.objects.all():
+        fields_to_check = {
+            'logo_url': t.logo_url,
+            'hero_image_url': t.hero_image_url,
+            'privacy_policy': t.privacy_policy_text,
+            'terms_policy': t.terms_policy_text
+        }
+        
+        for field_name, value in fields_to_check.items():
+            if value:
+                if value.startswith('data:'):
+                     print(f"[WARN] Tenant {t.slug} has Base64 in {field_name}")
+                     bad_tenants += 1
+                elif len(value) > 50000 and 'url' in field_name: # 50KB for a URL field is suspicious
+                     print(f"[WARN] Tenant {t.slug} has huge content in {field_name} ({len(value)/1024:.2f} KB)")
+                     bad_tenants += 1
+    
+    if bad_tenants == 0:
+        print("✓ No suspicious data in Tenant models")
+
 if __name__ == '__main__':
     check_base64()
