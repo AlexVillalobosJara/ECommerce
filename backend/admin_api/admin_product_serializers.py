@@ -177,6 +177,12 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
         required=False,
         help_text="Array of image objects with url, alt_text, sort_order, is_primary"
     )
+    variants_data = serializers.ListField(
+        child=serializers.DictField(),
+        write_only=True,
+        required=False,
+        help_text="Array of variant objects to sync"
+    )
     
     def get_variants(self, obj):
         """Return only non-deleted variants using Python filtering to use prefetch"""
@@ -216,7 +222,7 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
                   'is_referential_image',
                   'meta_title', 'meta_description', 'meta_keywords',
                   'weight_kg', 'length_cm', 'width_cm', 'height_cm',
-                  'views_count', 'sales_count', 'variants', 'images', 'features', 'images_data',
+                  'views_count', 'sales_count', 'variants', 'images', 'features', 'images_data', 'variants_data',
                   'created_at', 'updated_at', 'published_at']
         read_only_fields = ['id', 'views_count', 'sales_count', 'created_at', 
                             'updated_at', 'published_at']
@@ -252,6 +258,7 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
         
         # Extract images_data before creating product
         images_data = validated_data.pop('images_data', [])
+        variants_data = validated_data.pop('variants_data', [])
         
         # Create product
         product = super().create(validated_data)
@@ -265,6 +272,25 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
                 alt_text=img_data.get('alt_text', ''),
                 sort_order=img_data.get('sort_order', 0),
                 is_primary=img_data.get('is_primary', False),
+                created_by=request.user.id
+            )
+            
+        # Create variants
+        for v_data in variants_data:
+            # Skip empty SKUs
+            if not v_data.get('sku'):
+                continue
+                
+            ProductVariant.objects.create(
+                product=product,
+                tenant_id=tenant.id,
+                sku=v_data.get('sku'),
+                name=v_data.get('name', ''),
+                price=v_data.get('price'),
+                stock_quantity=v_data.get('stock_quantity', 0),
+                is_active=v_data.get('is_active', True),
+                is_default=v_data.get('is_default', False),
+                attributes=v_data.get('attributes', {}),
                 created_by=request.user.id
             )
         
@@ -284,6 +310,7 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
         
         # Extract images_data before updating product
         images_data = validated_data.pop('images_data', None)
+        variants_data = validated_data.pop('variants_data', None)
         
         with transaction.atomic():
             # Update product
@@ -357,8 +384,94 @@ class ProductDetailAdminSerializer(serializers.ModelSerializer):
                 if ids_to_delete:
                     # Soft delete in bulk
                     from django.utils import timezone
-                    ProductImage.objects.filter(
-                        id__in=ids_to_delete, 
+                    ).update(deleted_at=timezone.now())
+            
+            # Update variants if provided
+            if variants_data is not None:
+                existing_variants = {str(v.id): v for v in instance.variants.all()}
+                
+                v_processed_ids = set()
+                new_variants = []
+                variants_to_update = []
+                
+                for v_data in variants_data:
+                    v_id = v_data.get('id')
+                    
+                    # Convert temporary IDs to new creates
+                    if v_id and str(v_id).startswith('temp-'):
+                        v_id = None
+                    
+                    # Update existing
+                    if v_id and str(v_id) in existing_variants:
+                        v_obj = existing_variants[str(v_id)]
+                        
+                        changed = False
+                        
+                        # Fields to check
+                        if v_obj.sku != v_data.get('sku'):
+                            v_obj.sku = v_data.get('sku')
+                            changed = True
+                            
+                        if v_obj.name != v_data.get('name'):
+                            v_obj.name = v_data.get('name')
+                            changed = True
+                            
+                        val_price = v_data.get('price')
+                        if val_price is not None and v_obj.price != float(val_price):
+                            v_obj.price = val_price
+                            changed = True
+                            
+                        val_stock = v_data.get('stock_quantity')
+                        if val_stock is not None and v_obj.stock_quantity != int(val_stock):
+                            v_obj.stock_quantity = val_stock
+                            changed = True
+
+                        if v_obj.is_active != v_data.get('is_active', True):
+                            v_obj.is_active = v_data.get('is_active', True)
+                            changed = True
+                            
+                        if changed:
+                            v_obj.updated_by = request.user.id
+                            variants_to_update.append(v_obj)
+                            
+                        v_processed_ids.add(str(v_id))
+                        
+                    # Create new
+                    else:
+                        if not v_data.get('sku'):
+                            continue
+                            
+                        new_variants.append(ProductVariant(
+                            product=product,
+                            tenant_id=instance.tenant_id,
+                            sku=v_data.get('sku'),
+                            name=v_data.get('name', ''),
+                            price=v_data.get('price'),
+                            stock_quantity=v_data.get('stock_quantity', 0),
+                            is_active=v_data.get('is_active', True),
+                            is_default=v_data.get('is_default', False),
+                            attributes=v_data.get('attributes', {}),
+                            created_by=request.user.id
+                        ))
+                
+                # Bulk Operations for Variants
+                if new_variants:
+                    ProductVariant.objects.bulk_create(new_variants)
+                    
+                if variants_to_update:
+                    ProductVariant.objects.bulk_update(
+                        variants_to_update,
+                        ['sku', 'name', 'price', 'stock_quantity', 'is_active', 'updated_by']
+                    )
+                    
+                # Delete missing variants
+                v_ids_to_delete = [
+                    vid for vid in existing_variants.keys()
+                    if vid not in v_processed_ids
+                ]
+                if v_ids_to_delete:
+                    ProductVariant.objects.filter(
+                        id__in=v_ids_to_delete,
                         product=product
                     ).update(deleted_at=timezone.now())
         

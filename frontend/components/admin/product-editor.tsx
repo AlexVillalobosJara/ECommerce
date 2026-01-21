@@ -318,31 +318,36 @@ export function ProductEditor({ productId }: ProductEditorProps) {
                 height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
                 // Include images with Supabase URLs
                 images_data: formData.images.map((img: any) => ({
+                    id: img.id,
                     url: img.url,
                     alt_text: img.alt_text || '',
                     sort_order: img.sort_order,
                     is_primary: img.is_primary
                 })),
-                // Note: variants are synced separately via API
+                // Include variants for Bulk Update (Backend optimization)
+                variants_data: formData.variants.map((v: any) => ({
+                    id: v.id,
+                    sku: v.sku,
+                    name: v.name,
+                    price: v.price,
+                    stock_quantity: v.stock_quantity,
+                    is_active: v.is_active,
+                    is_default: v.is_default,
+                    attributes: v.attributes
+                })),
             }
 
             let savedProductId = productId
 
             if (isEditing && productId) {
                 await updateProduct(productId, productData)
-                // Sync variants and features
-                await Promise.all([
-                    syncVariants(productId),
-                    syncFeatures(productId)
-                ])
+                // Sync features only (variants handled in updateProduct via bulk update)
+                await syncFeatures(productId)
                 toast.success("Producto actualizado correctamente")
             } else {
                 const newProduct = await createProduct(productData)
                 savedProductId = newProduct.id
-                // Sync variants and features
-                if (formData.variants.length > 0) {
-                    await syncVariants(newProduct.id)
-                }
+                // Sync features
                 if (formData.features.length > 0) {
                     await syncFeatures(newProduct.id)
                 }
