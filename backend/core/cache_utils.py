@@ -65,6 +65,27 @@ def invalidate_category_cache(tenant_id):
         pass
 
 
+def invalidate_tenant_cache(tenant_id):
+    """
+    Invalidate all tenant-related cache when tenant settings change.
+    """
+    try:
+        # Direct key invalidation for non-versioned keys
+        cache.delete(f"tenant_settings_{tenant_id}")
+        cache.delete(f"storefront_common_data_{tenant_id}")
+        # dashboard_stats might need versioning later, but delete for now
+        cache.delete(f"dashboard_stats_{tenant_id}")
+        
+        # Bump versions for versioned scopes
+        # Tenant settings affect everything (Home, Categories, Products)
+        bump_cache_version('home_data', tenant_id)
+        bump_cache_version('categories', tenant_id)
+        bump_cache_version('products_list', tenant_id)
+        
+    except Exception:
+        pass
+
+
 def get_cache_version(scope, scope_id):
     """
     Get the current version for a specific cache scope (e.g. 'category', 'product_list').
