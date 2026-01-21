@@ -54,8 +54,13 @@ def invalidate_category_cache(tenant_id):
     invalidate_product_cache(tenant_id)
 
 
-        # Also delete pattern for any other views using tenant_id
-        delete_pattern(f"*_{tenant_id}")
+    # Invalidate old product pattern for backward compatibility if needed, 
+    # but versioning makes this redundant for new requests.
+    try:
+        if hasattr(cache, "delete_pattern"):
+            # Clean up old keys if existing to avoid memory leak only if we care
+            # But mostly we depend on version bumps now.
+            pass
     except Exception:
         pass
 
