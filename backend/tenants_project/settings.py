@@ -100,10 +100,11 @@ DATABASES = {
     'default': dj_database_url.config(
         # Look for DATABASE_URL in env, otherwise use local Postgres credentials
         default=os.getenv('DATABASE_URL', f"postgres://postgres:{'$$kairos01%%'}@localhost:5432/ecommerce"),
-        conn_max_age=0, # Recommended 0 for Supabase Transaction Pooler (port 6543)
+        conn_max_age=60, # Reduced SSL handshake overhead (Supabase Pooler)
         conn_health_checks=True,
     )
 }
+
 
 # Add database options separately as dj_database_url doesn't support them in config() directly
 DATABASES['default']['OPTIONS'] = {

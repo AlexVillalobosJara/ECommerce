@@ -1,6 +1,7 @@
 from django.http import JsonResponse, HttpResponsePermanentRedirect
 from django.utils.deprecation import MiddlewareMixin
 from django.db.models import Q
+from django.core.cache import cache
 from tenants.models import Tenant, Redirect
 import logging
 
@@ -20,121 +21,105 @@ class TenantMiddleware(MiddlewareMixin):
     
     def process_request(self, request):
         try:
-            # Get the host from the request
-            host = request.get_host().split(':')[0].lower()  # Remove port and normalize to lowercase
-            logger.info(f"TenantMiddleware resolving host: {host}")
-            
-            # Skip tenant resolution for global Django admin (if any)
-            if request.path.startswith('/admin/'):
+            # 0. Skip tenant resolution for health checks and admin
+            # Health check is ultra-lightweight and ignores database
+            if request.path == '/api/health/' or request.path.startswith('/admin/'):
                 if not hasattr(request, 'tenant'):
                     request.tenant = None
                 return None
+
+            # Get the host from the request
+            host = request.get_host().split(':')[0].lower()
             
-            # 0. Try to match by X-Tenant header (High priority for cross-domain API calls)
+            # 1. Try Cache First (Redis)
+            # This avoids ANY database query for known tenants/hosts
+            cache_key = f"resolved_tenant_{host}"
+            cached_tenant = cache.get(cache_key)
+            
+            if cached_tenant == "NOT_FOUND":
+                request.tenant = None
+                return None
+            elif cached_tenant:
+                request.tenant = cached_tenant
+                return None
+
+            # 2. Resolution Logic (Database Fallback)
+            tenant = None
+            
+            # Optimization: Defer heavy text fields that aren't needed for most logic/branding
+            # This reduces egress data volume significantly on the 'tenants' table
+            deferred_fields = [
+                'privacy_policy_text', 'terms_policy_text', 'about_us_text', 
+                'our_history_text', 'mission_text', 'vision_text', 'faq_text',
+                'hero_subtitle', 'cta_description'
+            ]
+            
+            # --- Resolution 0: X-Tenant header (API Priority) ---
             header_tenant_slug = request.headers.get('X-Tenant')
             if header_tenant_slug:
-                try:
-                    # Allow matching by slug or custom_domain in header
-                    tenant = Tenant.objects.get(
-                        Q(slug=header_tenant_slug) | Q(custom_domain=header_tenant_slug),
-                        status__in=['Active', 'Trial'],
-                        deleted_at__isnull=True
-                    )
-                    request.tenant = tenant
-                    logger.info(f"Tenant resolved by X-Tenant header: {tenant.slug}")
-                    return None
-                except Tenant.DoesNotExist:
-                    logger.warning(f"Tenant not found for X-Tenant header: {header_tenant_slug}")
+                tenant = Tenant.objects.filter(
+                    Q(slug=header_tenant_slug) | Q(custom_domain=header_tenant_slug),
+                    status__in=['Active', 'Trial'],
+                    deleted_at__isnull=True
+                ).defer(*deferred_fields).first()
             
-            # 1. Try to match by custom domain first
-            clean_host = host[4:] if host.startswith('www.') else host
-            try:
+            # --- Resolution 1: Custom Domain ---
+            if not tenant:
+                clean_host = host[4:] if host.startswith('www.') else host
                 tenant = Tenant.objects.filter(
                     Q(custom_domain=host) | Q(custom_domain=clean_host),
                     status__in=['Active', 'Trial'],
                     deleted_at__isnull=True
-                ).first()
-                
-                if tenant:
-                    request.tenant = tenant
-                    logger.info(f"Tenant resolved by domain: {tenant.slug}")
-                    return None
-            except Exception as inner_e:
-                logger.warning(f"Error in custom domain lookup: {str(inner_e)}")
+                ).defer(*deferred_fields).first()
 
-            # 2. Try to match by query parameter (High priority for cross-domain/testing)
-            tenant_slug = request.GET.get('tenant') or request.GET.get('slug')
-            tenant_domain = request.GET.get('domain')
-            
-            if tenant_slug or tenant_domain:
-                try:
-                    if tenant_slug:
-                        tenant = Tenant.objects.get(
-                            Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
-                            status__in=['Active', 'Trial'],
-                            deleted_at__isnull=True
-                        )
-                    else:
-                        tenant = Tenant.objects.get(
-                            custom_domain=tenant_domain,
-                            status__in=['Active', 'Trial'],
-                            deleted_at__isnull=True
-                        )
-                    request.tenant = tenant
-                    logger.info(f"Tenant resolved by query param: {tenant.slug}")
-                    return None
-                except Tenant.DoesNotExist:
-                    logger.warning(f"Tenant not found for query params: {tenant_slug or tenant_domain}")
-                    # DO NOT RETURN NONE HERE - let the middleware try other resolution methods
-            
-            # 3. Try to match by platform subdomain (e.g. slug.onrender.com)
-            parts = host.split('.')
-            platform_domains = ['localhost', 'onrender.com', 'vercel.app', 'railway.app']
-            is_platform = any(d in host for d in platform_domains)
-            
-            platform_slug = None
-            if is_platform and len(parts) >= 2:
-                potentially_slug = parts[0]
-                if potentially_slug not in ['www', 'api', 'admin', 'localhost']:
-                    platform_slug = potentially_slug
-            
-            if platform_slug:
-                try:
-                    tenant = Tenant.objects.get(
-                        slug=platform_slug,
+            # --- Resolution 2: Query Params ---
+            if not tenant:
+                tenant_slug = request.GET.get('tenant') or request.GET.get('slug')
+                if tenant_slug:
+                    tenant = Tenant.objects.filter(
+                        Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
                         status__in=['Active', 'Trial'],
                         deleted_at__isnull=True
-                    )
-                    request.tenant = tenant
-                    logger.info(f"Tenant resolved by platform subdomain: {tenant.slug}")
-                    return None
-                except Tenant.DoesNotExist:
-                    logger.info(f"No tenant found for platform subdomain: {platform_slug}")
+                    ).defer(*deferred_fields).first()
 
-            # 4. SaaS Fallback: Check if the clean host is exactly a slug
-            if not is_platform:
-                try:
-                    tenant = Tenant.objects.get(
-                        slug=clean_host,
-                        status__in=['Active', 'Trial'],
-                        deleted_at__isnull=True
-                    )
-                    request.tenant = tenant
-                    logger.info(f"Tenant resolved by SaaS fallback (host as slug): {tenant.slug}")
-                    return None
-                except Tenant.DoesNotExist:
-                    logger.info(f"No tenant found for SaaS fallback host: {clean_host}")
+            # --- Resolution 3: Platform Subdomain (slug.onrender.com, etc) ---
+            if not tenant:
+                parts = host.split('.')
+                platform_domains = ['localhost', 'onrender.com', 'vercel.app', 'railway.app']
+                is_platform = any(d in host for d in platform_domains)
+                if is_platform and len(parts) >= 2:
+                    platform_slug = parts[0]
+                    if platform_slug not in ['www', 'api', 'admin', 'localhost']:
+                        tenant = Tenant.objects.filter(
+                            slug=platform_slug,
+                            status__in=['Active', 'Trial'],
+                            deleted_at__isnull=True
+                        ).defer(*deferred_fields).first()
+
+            # --- Resolution 4: SaaS Fallback (host is the slug) ---
+            if not tenant and not is_platform:
+                clean_host = host[4:] if host.startswith('www.') else host
+                tenant = Tenant.objects.filter(
+                    slug=clean_host,
+                    status__in=['Active', 'Trial'],
+                    deleted_at__isnull=True
+                ).defer(*deferred_fields).first()
+
+            # 3. Handle Result & Cache
+            if tenant:
+                request.tenant = tenant
+                # Cache full object for 10 minutes to reduce DB hits to nearly zero
+                cache.set(cache_key, tenant, timeout=600)
+                return None
             
-            # If we reach here, we didn't find a tenant
-            global_storefront_paths = [
-                '/api/storefront/communes/',
-                '/api/storefront/home-data/',
-            ]
+            # Negative Caching: Prevent frequent DB hits for non-existent hosts (bots/noise)
+            cache.set(cache_key, "NOT_FOUND", timeout=60)
             
+            # Fallback for storefront API
+            global_storefront_paths = ['/api/storefront/communes/', '/api/storefront/home-data/']
             is_global_storefront = any(request.path.startswith(p) for p in global_storefront_paths)
             
             if request.path.startswith('/api/storefront/') and not is_global_storefront:
-                logger.warning(f"Tenant not found for storefront request. Host: {host}")
                 return JsonResponse({
                     'error': 'Tenant not found',
                     'detail': f'No active tenant found for host: {host}'
@@ -145,9 +130,6 @@ class TenantMiddleware(MiddlewareMixin):
 
         except Exception as e:
             logger.error(f"CRITICAL Error in TenantMiddleware: {str(e)}")
-            import traceback
-            logger.error(traceback.format_exc())
-            
             if request.path.startswith('/api/'):
                 return JsonResponse({
                     'error': 'Internal Server Error',
@@ -162,19 +144,15 @@ class RedirectMiddleware(MiddlewareMixin):
     Must run AFTER TenantMiddleware.
     """
     def process_request(self, request):
-        # 1. Skip admin routes
-        if request.path.startswith('/admin/'):
+        if request.path.startswith('/admin/') or request.path == '/api/health/':
             return None
             
-        # 2. Get tenant
         tenant = getattr(request, 'tenant', None)
         if not tenant:
             return None
             
-        # 3. Check for exact match in redirect table
         try:
             path = request.path
-            # Normalize: check with and without trailing slash to be more robust
             paths_to_check = [path]
             if path.endswith('/') and len(path) > 1:
                 paths_to_check.append(path[:-1])
@@ -188,31 +166,18 @@ class RedirectMiddleware(MiddlewareMixin):
             ).first()
             
             if redirect:
-                logger.info(f"Redirect found: {redirect.old_path} -> {redirect.new_path}")
                 return HttpResponsePermanentRedirect(redirect.new_path)
-                
-        except Exception as e:
-            logger.error(f"Error in RedirectMiddleware: {str(e)}")
+        except Exception:
+            pass
             
         return None
 
 
 class DisableCSRFForAdminAPIMiddleware(MiddlewareMixin):
     """
-    Middleware to disable CSRF for admin API routes that use JWT authentication.
-    JWT tokens in Authorization headers are not vulnerable to CSRF attacks.
-    
-    Must be placed BEFORE CsrfViewMiddleware in MIDDLEWARE settings.
+    Middleware to disable CSRF for admin API routes using JWT.
     """
     def process_request(self, request):
-        path = request.path
-        logger.info(f"DisableCSRFForAdminAPIMiddleware - Path: {path}")
-        
-        # Exempt all /api/admin/ routes from CSRF
-        if path.startswith('/api/admin/'):
+        if request.path.startswith('/api/admin/'):
             setattr(request, '_dont_enforce_csrf_checks', True)
-            logger.warning(f"CSRF DISABLED for admin API route: {path}")
-            return None
-        
-        logger.info(f"CSRF NOT disabled for path: {path}")
         return None
