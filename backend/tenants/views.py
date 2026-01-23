@@ -85,33 +85,49 @@ class StorefrontBaseView(views.APIView):
         if tenant:
             return tenant
 
-        # 2. Fallback to query params WITH CACHING (shared key with middleware)
-        slug = request.query_params.get('slug')
-        domain = request.query_params.get('domain')
-        host = domain or slug or request.get_host().split(':')[0].lower()
+        # 2. Fallback resolution (consistent with Middleware)
+        header_tenant = request.headers.get('X-Tenant')
+        slug_param = request.query_params.get('tenant') or request.query_params.get('slug')
+        domain_param = request.query_params.get('domain')
+        host = request.get_host().split(':')[0].lower()
         
-        cache_key = f"resolved_tenant_{host}"
+        identifier = header_tenant or slug_param or domain_param
+        
+        if identifier:
+            cache_key = f"resolved_tenant_v2_id_{identifier}"
+        else:
+            cache_key = f"resolved_tenant_v2_host_{host}"
+
+        # 3. Check Cache
         tenant = cache.get(cache_key)
-        
         if tenant == "NOT_FOUND":
             return None
         if tenant:
             request.tenant = tenant
             return tenant
 
-        # 3. Final DB fallback if cache is empty
-        if slug:
-            tenant = Tenant.objects.filter(slug=slug, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
-        elif domain:
-            tenant = Tenant.objects.filter(custom_domain=domain, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
+        # 4. DB Fallback (Lightweight query)
+        if identifier:
+            tenant = Tenant.objects.filter(
+                Q(slug=identifier) | Q(custom_domain=identifier),
+                status__in=['Active', 'Trial'],
+                deleted_at__isnull=True
+            ).first()
+        else:
+            tenant = Tenant.objects.filter(
+                Q(custom_domain=host) | Q(slug=host),
+                status__in=['Active', 'Trial'],
+                deleted_at__isnull=True
+            ).first()
         
         if tenant:
             request.tenant = tenant
-            cache.set(cache_key, tenant, 600)  # 10 min cache
+            cache.set(cache_key, tenant, 3600)  # 1 hour cache
         else:
-            cache.set(cache_key, "NOT_FOUND", 60)  # 1 min negative cache
+            cache.set(cache_key, "NOT_FOUND", 60) # 1 min negative cache
             
         return tenant
+
 
     def get_common_data(self, request, tenant):
         cache_key = f"storefront_common_data_{tenant.id}"
