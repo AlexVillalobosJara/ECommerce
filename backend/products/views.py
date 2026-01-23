@@ -35,7 +35,7 @@ class StorefrontCategoryViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         data = serializer.data
         
-        cache.set(cache_key, data, 600) # Cache for 10 minutes
+        cache.set(cache_key, data, 3600) # Cache for 1 hour
         return Response(data)
 
     def get_queryset(self):
@@ -96,8 +96,8 @@ class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
 
         response = super().list(request, *args, **kwargs)
         
-        # Cache for 2 minutes to balance performance and freshness
-        cache.set(cache_key, response.data, 120)
+        # Cache for 1 hour to reduce egress
+        cache.set(cache_key, response.data, 3600)
         return response
 
     def get_queryset(self):
@@ -179,10 +179,9 @@ class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
     
     def retrieve(self, request, *args, **kwargs):
-        """Increment view count when product is viewed"""
+        """Increment view count when product is viewed (optimized)"""
         instance = self.get_object()
-        instance.views_count += 1
-        instance.save(update_fields=['views_count'])
+        Product.objects.filter(pk=instance.pk).update(views_count=F('views_count') + 1)
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 

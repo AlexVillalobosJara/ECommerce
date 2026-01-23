@@ -46,12 +46,13 @@ class TenantMiddleware(MiddlewareMixin):
             # 2. Resolution Logic (Database Fallback)
             tenant = None
             
-            # Optimization: Defer heavy text fields that aren't needed for most logic/branding
-            # This reduces egress data volume significantly on the 'tenants' table
-            deferred_fields = [
-                'privacy_policy_text', 'terms_policy_text', 'about_us_text', 
-                'our_history_text', 'mission_text', 'vision_text', 'faq_text',
-                'hero_subtitle', 'cta_description'
+            # Optimization: ONLY defer sensitive fields that should NEVER be sent to frontend.
+            # This protects secrets AND avoids "deferred field" DB hits for UI text fields.
+            sensitive_fields = [
+                'transbank_api_key', 'transbank_commerce_code',
+                'mercadopago_access_token', 'mercadopago_public_key',
+                'khipu_receiver_id', 'khipu_secret_key',
+                'smtp_username', 'smtp_password', 'smtp_host'
             ]
             
             # --- Resolution 0: X-Tenant header (API Priority) ---
@@ -61,7 +62,7 @@ class TenantMiddleware(MiddlewareMixin):
                     Q(slug=header_tenant_slug) | Q(custom_domain=header_tenant_slug),
                     status__in=['Active', 'Trial'],
                     deleted_at__isnull=True
-                ).defer(*deferred_fields).first()
+                ).defer(*sensitive_fields).first()
             
             # --- Resolution 1: Custom Domain ---
             if not tenant:
@@ -70,7 +71,7 @@ class TenantMiddleware(MiddlewareMixin):
                     Q(custom_domain=host) | Q(custom_domain=clean_host),
                     status__in=['Active', 'Trial'],
                     deleted_at__isnull=True
-                ).defer(*deferred_fields).first()
+                ).defer(*sensitive_fields).first()
 
             # --- Resolution 2: Query Params ---
             if not tenant:
@@ -80,7 +81,7 @@ class TenantMiddleware(MiddlewareMixin):
                         Q(slug=tenant_slug) | Q(custom_domain=tenant_slug),
                         status__in=['Active', 'Trial'],
                         deleted_at__isnull=True
-                    ).defer(*deferred_fields).first()
+                    ).defer(*sensitive_fields).first()
 
             # --- Resolution 3: Platform Subdomain (slug.onrender.com, etc) ---
             if not tenant:
@@ -94,7 +95,7 @@ class TenantMiddleware(MiddlewareMixin):
                             slug=platform_slug,
                             status__in=['Active', 'Trial'],
                             deleted_at__isnull=True
-                        ).defer(*deferred_fields).first()
+                        ).defer(*sensitive_fields).first()
 
             # --- Resolution 4: SaaS Fallback (host is the slug) ---
             if not tenant and not is_platform:
@@ -103,13 +104,14 @@ class TenantMiddleware(MiddlewareMixin):
                     slug=clean_host,
                     status__in=['Active', 'Trial'],
                     deleted_at__isnull=True
-                ).defer(*deferred_fields).first()
+                ).defer(*sensitive_fields).first()
 
             # 3. Handle Result & Cache
             if tenant:
                 request.tenant = tenant
-                # Cache full object for 10 minutes to reduce DB hits to nearly zero
-                cache.set(cache_key, tenant, timeout=600)
+                # Cache full object for 1 hora (was 10 mins).
+                # These objects change infrequently, so long cache is better for Egress.
+                cache.set(cache_key, tenant, timeout=3600)
                 return None
             
             # Negative Caching: Prevent frequent DB hits for non-existent hosts (bots/noise)

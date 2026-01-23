@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.db import models
 from django.db.models import Q, Min, Max, Count, OuterRef, Subquery, Exists, F
 from .models import Tenant, PremiumPalette
-from .serializers import TenantSerializer, PremiumPaletteSerializer
+from .serializers import TenantSerializer, PremiumPaletteSerializer, StorefrontTenantSerializer
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from products.models import Category, Product, ProductImage, ProductVariant
 from products.serializers import CategorySerializer, ProductListSerializer, ProductDetailSerializer
@@ -25,12 +25,22 @@ class PremiumPaletteViewSet(viewsets.ModelViewSet):
     ordering = ['name']
 
 class TenantViewSet(viewsets.ModelViewSet):
-    serializer_class = TenantSerializer
+    """
+    ViewSet for Tenant model. 
+    Publicly used by the storefront for initial configuration.
+    """
+    serializer_class = StorefrontTenantSerializer # Use safe serializer by default
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'slug', 'email']
     ordering_fields = ['created_at', 'name', 'status']
     ordering = ['-created_at']
     
+    def get_serializer_class(self):
+        # Only use full serializer for authenticated admins
+        if self.request.user and self.request.user.is_staff:
+            return TenantSerializer
+        return StorefrontTenantSerializer
+
     def get_queryset(self):
         queryset = Tenant.objects.filter(deleted_at__isnull=True)
         slug = self.request.query_params.get('slug')
@@ -42,6 +52,23 @@ class TenantViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(custom_domain=domain)
             
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        # Cache list results for storefront (frequent hits)
+        slug = request.query_params.get('slug')
+        domain = request.query_params.get('domain')
+        
+        if not request.user.is_staff and (slug or domain):
+            cache_key = f"api_tenant_list_{slug or domain}"
+            cached_res = cache.get(cache_key)
+            if cached_res:
+                return Response(cached_res)
+            
+            response = super().list(request, *args, **kwargs)
+            cache.set(cache_key, response.data, 600) # 10 min cache
+            return response
+            
+        return super().list(request, *args, **kwargs)
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -53,18 +80,37 @@ class StorefrontBaseView(views.APIView):
     permission_classes = []
     
     def resolve_tenant(self, request):
+        # 1. Try to get from request (populated by TenantMiddleware)
+        tenant = getattr(request, 'tenant', None)
+        if tenant:
+            return tenant
+
+        # 2. Fallback to query params WITH CACHING (shared key with middleware)
         slug = request.query_params.get('slug')
         domain = request.query_params.get('domain')
+        host = domain or slug or request.get_host().split(':')[0].lower()
         
-        tenant = getattr(request, 'tenant', None)
-        if not tenant:
-            if slug:
-                tenant = Tenant.objects.filter(slug=slug, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
-            elif domain:
-                tenant = Tenant.objects.filter(custom_domain=domain, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
+        cache_key = f"resolved_tenant_{host}"
+        tenant = cache.get(cache_key)
+        
+        if tenant == "NOT_FOUND":
+            return None
+        if tenant:
+            request.tenant = tenant
+            return tenant
+
+        # 3. Final DB fallback if cache is empty
+        if slug:
+            tenant = Tenant.objects.filter(slug=slug, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
+        elif domain:
+            tenant = Tenant.objects.filter(custom_domain=domain, deleted_at__isnull=True, status__in=['Active', 'Trial']).first()
         
         if tenant:
             request.tenant = tenant
+            cache.set(cache_key, tenant, 600)  # 10 min cache
+        else:
+            cache.set(cache_key, "NOT_FOUND", 60)  # 1 min negative cache
+            
         return tenant
 
     def get_common_data(self, request, tenant):
@@ -73,8 +119,8 @@ class StorefrontBaseView(views.APIView):
         if cached_data:
             return cached_data['tenant'], cached_data['categories']
 
-        # 1. Tenant Data
-        tenant_data = TenantSerializer(tenant, context={'request': request}).data
+        # 1. Tenant Data (Using lightweight safe serializer)
+        tenant_data = StorefrontTenantSerializer(tenant, context={'request': request}).data
         
         # 2. Categories Data (Top level)
         categories_qs = Category.objects.filter(
