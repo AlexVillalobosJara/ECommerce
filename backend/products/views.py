@@ -70,7 +70,7 @@ class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
     Read-only, filtered by tenant.
     Supports search and filtering.
     """
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'description', 'brand', 'sku', 'category__name']
     ordering_fields = ['name', 'created_at', 'sales_count', 'price']
     ordering = ['-created_at']
