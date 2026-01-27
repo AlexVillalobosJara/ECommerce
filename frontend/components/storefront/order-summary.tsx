@@ -107,7 +107,12 @@ export function OrderSummary({ purchaseItems, quoteItems, subtotal, shipping, ta
 
                     {/* Total */}
                     <div className="flex items-center justify-between">
-                        <span className="font-serif text-lg font-normal">Total</span>
+                        <div>
+                            <span className="font-serif text-lg font-normal">Total</span>
+                            {tenant?.prices_include_tax && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5">(IVA incluido)</p>
+                            )}
+                        </div>
                         <span className="font-serif text-2xl font-normal text-foreground">{format(total)}</span>
                     </div>
                 </>

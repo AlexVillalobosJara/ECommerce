@@ -58,10 +58,13 @@ def get_admin_url(tenant):
 
 def send_quote_request_notification(order):
     """
-    Send email notification to admin when a new quote request is received
+    Send email notification to admin when a new quote request is received.
+    Also sends a confirmation to the customer.
     """
     try:
-        # ... (content generation remains the same) ...
+        # First send confirming email to the customer
+        send_quote_received_confirmation_to_customer(order)
+
         customer_name = order.shipping_recipient_name or order.customer_email.split('@')[0]
         order_number = order.order_number
         customer_email = order.customer_email
@@ -146,15 +149,18 @@ def send_quote_request_notification(order):
         
         if order.customer_notes:
             html_content += f"""
+</table>
 <h3 style="margin:32px 0 16px 0;font-size:18px;font-weight:bold;"> Notas del Cliente</h3>
 <table width="100%" cellpadding="16" cellspacing="0" border="0" bgcolor="#fef3c7" style="margin-bottom:32px;border-left:4px solid #f59e0b;">
 <tr>
 <td>{order.customer_notes}</td>
 </tr>
 </table>"""
+        else:
+            html_content += """
+</table>"""
         
         html_content += f"""
-</table>
 <table width="100%" cellpadding="24" cellspacing="0" border="0" bgcolor="#7c3aed" style="margin-bottom:24px;">
 <tr>
 <td align="center">
@@ -181,6 +187,71 @@ def send_quote_request_notification(order):
         return resend.Emails.send(params)
     except Exception as e:
         logger.error(f"Failed to send quote request email: {e}")
+        return None
+
+
+def send_quote_received_confirmation_to_customer(order):
+    """
+    Send a confirmation email to the customer when they request a quote.
+    """
+    try:
+        customer_name = order.shipping_recipient_name or order.customer_email.split('@')[0]
+        order_number = order.order_number
+        tenant_name = order.tenant.name
+        
+        html_content = f"""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background-color:#fafafa;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#fafafa">
+<tr>
+<td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="max-width:600px; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;">
+<tr>
+<td align="center" bgcolor="#4f46e5" style="padding:48px 40px;">
+<h1 style="margin:0 0 12px 0;color:#ffffff;font-size:28px;font-weight:bold;">Recibimos tu solicitud</h1>
+<p style="margin:0;color:#ffffff;font-size:16px;">Estamos procesando tu cotización</p>
+</td>
+</tr>
+<tr>
+<td style="padding:40px;">
+<p style="font-size:16px; margin-bottom:24px;">Hola <strong>{customer_name}</strong>,</p>
+<p style="font-size:16px; color:#4b5563; line-height:1.6; margin-bottom:32px;">
+    Gracias por tu interés en nuestros productos. Hemos recibido correctamente tu solicitud de cotización <strong>#{order_number}</strong>.
+</p>
+<table width="100%" cellpadding="20" cellspacing="0" border="0" bgcolor="#f9fafb" style="margin-bottom:32px;border-left:4px solid #4f46e5;">
+<tr>
+<td>
+    <strong>¿Qué sigue ahora?</strong><br/>
+    Nuestro equipo revisará tu solicitud y te enviará una respuesta con los precios finales y link de pago a la brevedad posible.
+</td>
+</tr>
+</table>
+<p style="font-size:14px; color:#9ca3af; text-align:center;">
+    Gracias por confiar en {tenant_name}
+</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>"""
+        
+        params = {
+            "from": get_sender_address(order.tenant),
+            "to": order.customer_email,
+            "reply_to": get_reply_to(order),
+            "subject": f"Recibimos tu solicitud de cotización - {order_number}",
+            "html": html_content,
+        }
+        return resend.Emails.send(params)
+    except Exception as e:
+        logger.error(f"Failed to send quote confirmation email to customer: {e}")
         return None
 
 

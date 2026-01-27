@@ -11,7 +11,8 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: var(--tenant-primary, oklch(0.205 0 0));
-  --primary-foreground: var(--primary-btn-text, oklch(0.985 0 0));
+  --primary-foreground: oklch(0.985 0 0);
+  --primary-btn-text: var(--tenant-primary-btn-text, oklch(0.985 0 0));
   --secondary: var(--tenant-secondary, oklch(0.97 0 0));
   --secondary-foreground: var(--tenant-primary, oklch(0.205 0 0));
   --muted: var(--tenant-muted, oklch(0.97 0 0));
@@ -45,7 +46,6 @@
   --secondary-text: var(--tenant-secondary-text, #F0EFEC);
   --accent-dark: var(--tenant-accent-dark, #2B2C30);
   --accent-medium: var(--tenant-accent-medium, #3F4A52);
-  --primary-btn-text: var(--tenant-primary-btn-text, var(--primary-foreground));
 }
 
 .dark {

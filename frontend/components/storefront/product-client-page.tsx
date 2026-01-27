@@ -192,15 +192,20 @@ export function ProductClientPage({ tenant, product, relatedProducts, categories
                             {product.is_quote_only ? (
                                 <p className="font-serif text-2xl font-light text-primary tracking-tight">Solicitar Cotización</p>
                             ) : selectedVariant?.selling_price ? (
-                                <div className="flex items-center gap-4">
-                                    {selectedVariant.has_discount && selectedVariant.original_price && (
-                                        <span className="text-xl text-gray-400 line-through font-light">
-                                            {formatPrice(selectedVariant.original_price, tenant)}
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-4">
+                                        {selectedVariant.has_discount && selectedVariant.original_price && (
+                                            <span className="text-xl text-gray-400 line-through font-light">
+                                                {formatPrice(selectedVariant.original_price, tenant)}
+                                            </span>
+                                        )}
+                                        <span className={cn("font-serif text-3xl lg:text-4xl font-medium tracking-tight", selectedVariant.has_discount ? "text-[#E63946]" : "text-gray-900")}>
+                                            {formatPrice(selectedVariant.selling_price, tenant)}
                                         </span>
+                                    </div>
+                                    {tenant.prices_include_tax && (
+                                        <p className="text-xs text-muted-foreground mt-1">(IVA incluido)</p>
                                     )}
-                                    <span className={cn("font-serif text-3xl lg:text-4xl font-medium tracking-tight", selectedVariant.has_discount ? "text-[#E63946]" : "text-gray-900")}>
-                                        {formatPrice(selectedVariant.selling_price, tenant)}
-                                    </span>
                                 </div>
                             ) : (
                                 <p className="text-xl text-muted-foreground italic">Seleccione una opción</p>

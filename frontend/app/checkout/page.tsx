@@ -117,11 +117,11 @@ export default function CheckoutPage() {
     // Load regions and communes
     useEffect(() => {
         const loadLocations = async () => {
+            if (regionsData.length > 0 && !formData.region) return
             try {
                 const data = await storefrontApi.getCommunesByRegion()
                 setRegionsData(data)
 
-                // If region is already selected, update available communes
                 if (formData.region) {
                     const selectedRegion = data.find((r: any) => r.region_code === formData.region)
                     if (selectedRegion) {
@@ -298,13 +298,6 @@ export default function CheckoutPage() {
             return
         }
 
-        if (!isQuoteOnly && !isStorePickup && !shippingZoneId && !shippingMethodName && !shippingError) {
-            if (!formData.commune) {
-                setError("Selecciona una comuna")
-                return
-            }
-        }
-
         if (!isQuoteOnly && !isStorePickup && !shippingZoneId && !shippingMethodName) {
             setError("No hemos encontrado opción de envío para esta comuna. Contáctanos.")
             return
@@ -474,10 +467,10 @@ export default function CheckoutPage() {
                                 <h2 className="mb-6 font-serif text-2xl font-normal tracking-tight">Dirección de Envío</h2>
                                 <div className="space-y-4">
                                     <div>
-                                        <Label htmlFor="address" className="text-sm font-medium">Dirección *</Label>
+                                        <Label htmlFor="address" className="text-sm font-medium">Dirección {isStorePickup ? "(Opcional)" : "*"}</Label>
                                         <Input
                                             id="address"
-                                            required
+                                            required={!isStorePickup}
                                             value={formData.address}
                                             onChange={(e) => updateField("address", e.target.value)}
                                             className="mt-1.5"
@@ -496,7 +489,7 @@ export default function CheckoutPage() {
 
                                     <div className="grid gap-4 sm:grid-cols-2">
                                         <div>
-                                            <Label htmlFor="region" className="text-sm font-medium">Región *</Label>
+                                            <Label htmlFor="region" className="text-sm font-medium">Región {isStorePickup ? "(Opcional)" : "*"}</Label>
                                             <Select value={formData.region} onValueChange={handleRegionChange}>
                                                 <SelectTrigger id="region" className="mt-1.5">
                                                     <SelectValue placeholder="Seleccionar región" />
@@ -511,8 +504,8 @@ export default function CheckoutPage() {
                                             </Select>
                                         </div>
                                         <div>
-                                            <Label htmlFor="commune" className="text-sm font-medium">Comuna *</Label>
-                                            <Select value={formData.commune} onValueChange={handleCommuneChange} disabled={!formData.region}>
+                                            <Label htmlFor="commune" className="text-sm font-medium">Comuna {isStorePickup ? "(Opcional)" : "*"}</Label>
+                                            <Select value={formData.commune} onValueChange={handleCommuneChange} disabled={!formData.region && !isStorePickup}>
                                                 <SelectTrigger id="commune" className="mt-1.5">
                                                     <SelectValue placeholder="Seleccionar comuna" />
                                                 </SelectTrigger>
@@ -578,7 +571,7 @@ export default function CheckoutPage() {
                                 </Card>
                             )}
 
-                            {estimatedDate && (
+                            {estimatedDate && !isQuoteOnly && (
                                 <Card className="border-border bg-white p-6 lg:p-8">
                                     <div className="flex items-start gap-3">
                                         <div className="p-2 bg-primary/10 rounded-full">
