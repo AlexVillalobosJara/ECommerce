@@ -71,8 +71,8 @@ class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
     Supports search and filtering.
     """
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'description', 'brand', 'sku']
-    ordering_fields = ['name', 'created_at', 'sales_count']
+    search_fields = ['name', 'description', 'brand', 'sku', 'category__name']
+    ordering_fields = ['name', 'created_at', 'sales_count', 'price']
     ordering = ['-created_at']
     lookup_field = 'slug'
     
@@ -118,7 +118,7 @@ class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
             status='Published',
             deleted_at__isnull=True
         ).annotate(
-            annotated_min_price=Min('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
+            price=Min('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
             annotated_max_price=Max('variants__price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
             annotated_min_compare_price=Min('variants__compare_at_price', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True)),
             annotated_variants_count=Count('variants', filter=Q(variants__is_active=True, variants__deleted_at__isnull=True), distinct=True),

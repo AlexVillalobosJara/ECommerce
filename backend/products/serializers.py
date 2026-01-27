@@ -179,8 +179,8 @@ class ProductListSerializer(serializers.ModelSerializer):
     
     def get_min_price(self, obj):
         if obj.is_quote_only: return None
-        if hasattr(obj, 'annotated_min_price'):
-            return obj.annotated_min_price
+        if hasattr(obj, 'price'):
+            return obj.price
         
         # Fallback to logic if not annotated (Admin or direct view)
         variants = obj.variants.filter(is_active=True, deleted_at__isnull=True)
