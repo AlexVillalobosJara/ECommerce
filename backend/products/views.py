@@ -154,27 +154,35 @@ class StorefrontProductViewSet(viewsets.ReadOnlyModelViewSet):
         if in_stock == 'true':
             queryset = queryset.filter(
                 Q(manage_stock=False) |
-                Q(variants__stock_quantity__gt=0, variants__is_active=True)
-            ).distinct()
+                Q(has_stock__gt=0)
+            )
         
         # Filter by price range
         min_price = self.request.query_params.get('min_price')
         max_price = self.request.query_params.get('max_price')
         if min_price or max_price:
-            price_filter = Q(is_quote_only=False)
             if min_price:
-                price_filter &= Q(variants__price__gte=min_price)
+                queryset = queryset.filter(price__gte=min_price)
             if max_price:
-                price_filter &= Q(variants__price__lte=max_price)
-            queryset = queryset.filter(price_filter).distinct()
+                queryset = queryset.filter(price__lte=max_price)
         
         # Filter by exclude (e.g. for related products, exclude current)
         exclude_id = self.request.query_params.get('exclude')
         if exclude_id:
             queryset = queryset.exclude(id=exclude_id)
 
-        # Performance: Use only necessary fields if possible, but list serializer needs many.
-        # Just ensure we aren't fetching too many rows. Pagination is handled by DRF.
+        # Handle ordering manually to avoid issues with annotations and distinct
+        ordering = self.request.query_params.get('ordering')
+        if ordering:
+            if ordering == 'price':
+                queryset = queryset.order_by(F('price').asc(nulls_last=True))
+            elif ordering == '-price':
+                queryset = queryset.order_by(F('price').desc(nulls_last=True))
+            elif ordering in self.ordering_fields:
+                queryset = queryset.order_by(ordering)
+        else:
+            # Default ordering
+            queryset = queryset.order_by('-created_at')
 
         return queryset
     
